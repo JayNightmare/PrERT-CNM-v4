@@ -17,6 +17,8 @@ Provide practical guidance to complete each of the 4 phases with:
 > [!NOTE]
 > This document is still being worked on, so documentation for later phases is not yet available. The final index will include all 8 documents listed below.
 
+[Overall](./Project/Execution-Playbook/README.md) project execution playbook with phase-by-phase guides and runbooks.
+
 ### Phase Execution Guides
 
 1. [Tech Stack](./Project/Execution-Playbook/01-tech-stack.md)
@@ -33,11 +35,16 @@ Provide practical guidance to complete each of the 4 phases with:
 
 ### Implementation Runbooks and Technical Documentation
 
+#### Phase 1
+
 1. [Phase 1: Implementation Runbook](./Project/Execution-Playbook/06-phase1-implementation-runbook.md)
       - Commands and operational steps for running the implemented Phase 1 pipeline.
-2. [Phase 2: Implementation Runbook](./Project/Execution-Playbook/07-phase2-implementation-runbook.md)
+
+#### Phase 2
+
+1. [Phase 2: Implementation Runbook](./Project/Execution-Playbook/07-phase2-implementation-runbook.md)
       - Commands and operational steps for running the implemented Phase 2 pipeline.
-3. [Phase 2: Technical Documentation](./Project/Execution-Playbook/08-phase2-technical-documentation.md)
+2. [Phase 2: Technical Documentation](./Project/Execution-Playbook/08-phase2-technical-documentation.md)
       - Architecture, rationale, data contracts, scoring logic, and quality gates for Phase 2.
 
 ## Suggested Working Rhythm
