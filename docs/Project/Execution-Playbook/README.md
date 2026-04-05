@@ -12,6 +12,10 @@ Provide practical guidance to complete each of the 4 phases with:
 - Quality gates and completion criteria.
 - Risks and mitigation strategies.
 
+## Visualisations
+
+- [Phase 1-2 Progress and Accuracy Dashboard](09-phase1-phase2-progress-dashboard.md) - Charts and figure tables for extraction progress, mapping coverage, risk distribution, and scenario stability.
+
 ## Document Index
 
 1. `01-tech-stack.md`
@@ -31,7 +35,7 @@ Provide practical guidance to complete each of the 4 phases with:
       - Commands and operational steps for running the implemented Phase 2 pipeline.
 8. `08-phase2-technical-documentation.md`
       - Architecture, rationale, data contracts, scoring logic, and quality gates for Phase 2.
-9. `09-phase1-phase2-progress-dashboard.md`
+9. [09-phase1-phase2-progress-dashboard.md](09-phase1-phase2-progress-dashboard.md)
       - Visual progress dashboard with charts and figure tables for Phase 1 and Phase 2 quality indicators.
 
 ## Suggested Working Rhythm

@@ -15,7 +15,7 @@ Provide practical guidance to complete each of the 4 phases with:
 ## Document Index
 
 > [!NOTE]
-> This document is still being worked on, so documentation for later phases is not yet available. The final index will include all 8 documents listed below.
+> This document is still being worked on. The index now includes implementation runbooks, technical documentation, and a visual progress dashboard.
 
 [Overall](./Project/Execution-Playbook/README.md) project execution playbook with phase-by-phase guides and runbooks.
 
@@ -46,6 +46,11 @@ Provide practical guidance to complete each of the 4 phases with:
       - Commands and operational steps for running the implemented Phase 2 pipeline.
 2. [Phase 2: Technical Documentation](./Project/Execution-Playbook/08-phase2-technical-documentation.md)
       - Architecture, rationale, data contracts, scoring logic, and quality gates for Phase 2.
+
+### Visualisations
+
+1. [Phase 1-2 Progress and Accuracy Dashboard](./Project/Execution-Playbook/09-phase1-phase2-progress-dashboard.md)
+      - Charts and figure tables showing progress and model-quality indicators across Phase 1 and 2.
 
 ## Suggested Working Rhythm
 
