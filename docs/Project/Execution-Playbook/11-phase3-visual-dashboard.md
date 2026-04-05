@@ -9,27 +9,32 @@ Provide a visual and tabular status view of dataset shape and held-out classifie
 - Baseline model: `multinomial_naive_bayes`
 - Upgraded model: `logreg_tfidf`
 
+This dashboard currently emphasizes classifier benchmark visuals. Bayesian posterior risk outputs are now produced by the pipeline and should be treated as the primary scoring surface for Phase 3 decisioning.
+
 ## Data Sources
 
 - `artifacts/phase-3-nb/dataset_manifest.json`
 - `artifacts/phase-3-nb/classifier_metrics.json`
 - `artifacts/phase-3-logreg/dataset_manifest.json`
 - `artifacts/phase-3-logreg/classifier_metrics.json`
+- `artifacts/phase-3/bayesian_risk_validation.json` (default Bayesian-enabled runs)
+- `artifacts/phase-3/bayesian_risk_test.json` (default Bayesian-enabled runs)
 
 ## Executive Summary
 
-| Area    | Metric                                   |                                            Current Value |
-| ------- | ---------------------------------------- | -------------------------------------------------------: |
-| Dataset | Total rows                               |                                                    19720 |
-| Dataset | Class mix (org/system/user)              | 84.18% / 3.81% / 12.00% (0.841836 / 0.038134 / 0.120030) |
-| Split   | Train / Validation / Test                | 79.34% / 9.14% / 11.52% (0.793357 / 0.091430 / 0.115213) |
-| Model   | Baseline test accuracy                   |                                        81.47% (0.814701) |
-| Model   | Upgraded test accuracy                   |                                        89.30% (0.893046) |
-| Model   | Baseline test macro F1                   |                                        64.01% (0.640117) |
-| Model   | Upgraded test macro F1                   |                                        78.06% (0.780633) |
-| Delta   | Test accuracy gain (upgraded - baseline) |                                        7.83% (+0.078345) |
-| Delta   | Test macro F1 gain (upgraded - baseline) |                                       14.05% (+0.140516) |
-| Leakage | Policy overlap (all split pairs)         |                                                        0 |
+| Area     | Metric                                   |                                            Current Value |
+| -------- | ---------------------------------------- | -------------------------------------------------------: |
+| Dataset  | Total rows                               |                                                    19720 |
+| Dataset  | Class mix (org/system/user)              | 84.18% / 3.81% / 12.00% (0.841836 / 0.038134 / 0.120030) |
+| Split    | Train / Validation / Test                | 79.34% / 9.14% / 11.52% (0.793357 / 0.091430 / 0.115213) |
+| Model    | Baseline test accuracy                   |                                        81.47% (0.814701) |
+| Model    | Upgraded test accuracy                   |                                        89.30% (0.893046) |
+| Model    | Baseline test macro F1                   |                                        64.01% (0.640117) |
+| Model    | Upgraded test macro F1                   |                                        78.06% (0.780633) |
+| Delta    | Test accuracy gain (upgraded - baseline) |                                        7.83% (+0.078345) |
+| Delta    | Test macro F1 gain (upgraded - baseline) |                                       14.05% (+0.140516) |
+| Bayesian | Primary metric surface                   |                `bayesian_posterior` (enabled by default) |
+| Leakage  | Policy overlap (all split pairs)         |                                                        0 |
 
 ## Figure Table
 
@@ -118,9 +123,10 @@ What this means:
 
 ## Next Measurement Targets
 
-1. Add calibration visuals (reliability curve and expected calibration error) for both models.
-2. Add threshold-sensitivity analysis for minority-class precision/recall tradeoffs.
-3. Add dated run trend snapshots to monitor stability and drift.
+1. Add Bayesian posterior visuals (per-level posterior means and interval bands).
+2. Add calibration visuals (reliability curve and expected calibration error) for both classifier and posterior outputs.
+3. Add threshold-sensitivity analysis for minority-class precision/recall tradeoffs.
+4. Add dated run trend snapshots to monitor stability and drift.
 
 Regeneration command:
 

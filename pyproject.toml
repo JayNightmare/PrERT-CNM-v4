@@ -9,14 +9,18 @@ description = "Phase 1 regulation extraction and Chroma Cloud ingestion for priv
 readme = "docs/Project/Execution-Playbook/README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "accelerate>=1.1.0",
   "chromadb>=1.5.5",
+  "datasets>=3.2.0",
   "httpx>=0.28.1",
   "matplotlib>=3.10.6",
   "scikit-learn>=1.5.2",
   "python-dotenv>=1.2.2",
   "pypdf>=6.9.2",
   "pytest>=9.0.2",
-  "ruff>=0.15.9"
+  "ruff>=0.15.9",
+  "torch>=2.5.0",
+  "transformers>=4.48.0"
 ]
 
 [project.optional-dependencies]

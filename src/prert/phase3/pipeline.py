@@ -15,6 +15,7 @@ from prert.phase3.dataset import (
 )
 from prert.phase3.evaluation import evaluate_classifier
 from prert.phase3.io import write_json, write_jsonl
+from prert.phase3.risk import compute_bayesian_risk, load_bayesian_priors
 
 
 def run_phase3_pipeline(
@@ -31,6 +32,14 @@ def run_phase3_pipeline(
     max_df: float = 0.95,
     c: float = 1.0,
     max_iter: int = 1000,
+    privacybert_model_name: str = "bert-base-uncased",
+    privacybert_epochs: float = 2.0,
+    privacybert_batch_size: int = 8,
+    privacybert_learning_rate: float = 5e-5,
+    privacybert_max_length: int = 256,
+    enable_bayesian_scoring: bool = True,
+    bayesian_priors_path: Optional[Path] = None,
+    bayesian_top_k: int = 5,
     seed: int = 42,
     max_rows: Optional[int] = None,
 ) -> Dict[str, Any]:
@@ -70,10 +79,12 @@ def run_phase3_pipeline(
     write_jsonl(output_dir / "test_dataset.jsonl", test_rows)
     write_json(output_dir / "dataset_manifest.json", dataset_manifest)
 
-    checkpoint_suffix = "model.json"
-    if model_type.strip().lower() in {"logreg_tfidf", "logistic_regression", "lr_tfidf"}:
-        checkpoint_suffix = "model.pkl"
-    checkpoint_path = output_dir / "classifier_checkpoint" / checkpoint_suffix
+    selected_model = model_type.strip().lower()
+    checkpoint_path = output_dir / "classifier_checkpoint" / "model.json"
+    if selected_model in {"logreg_tfidf", "logistic_regression", "lr_tfidf"}:
+        checkpoint_path = output_dir / "classifier_checkpoint" / "model.pkl"
+    elif selected_model in {"privacybert", "privacy_bert", "bert_privacy"}:
+        checkpoint_path = output_dir / "classifier_checkpoint" / "privacybert"
 
     model, training_summary = train_classifier(
         examples=splits["train"],
@@ -87,13 +98,41 @@ def run_phase3_pipeline(
         max_df=max_df,
         c=c,
         max_iter=max_iter,
+        privacybert_model_name=privacybert_model_name,
+        privacybert_epochs=privacybert_epochs,
+        privacybert_batch_size=privacybert_batch_size,
+        privacybert_learning_rate=privacybert_learning_rate,
+        privacybert_max_length=privacybert_max_length,
     )
 
     validation_metrics = evaluate_classifier(model, splits["validation"], LABELS)
     test_metrics = evaluate_classifier(model, splits["test"], LABELS)
 
-    write_jsonl(output_dir / "validation_predictions.jsonl", validation_metrics.pop("predictions"))
-    write_jsonl(output_dir / "test_predictions.jsonl", test_metrics.pop("predictions"))
+    validation_predictions = validation_metrics.pop("predictions")
+    test_predictions = test_metrics.pop("predictions")
+
+    write_jsonl(output_dir / "validation_predictions.jsonl", validation_predictions)
+    write_jsonl(output_dir / "test_predictions.jsonl", test_predictions)
+
+    bayesian_payload: Dict[str, Any] = {
+        "enabled": False,
+        "validation": {},
+        "test": {},
+        "primary_score": None,
+    }
+    if enable_bayesian_scoring:
+        priors = load_bayesian_priors(bayesian_priors_path)
+        validation_risk = compute_bayesian_risk(validation_predictions, priors=priors, top_k=bayesian_top_k)
+        test_risk = compute_bayesian_risk(test_predictions, priors=priors, top_k=bayesian_top_k)
+        write_json(output_dir / "bayesian_risk_validation.json", validation_risk)
+        write_json(output_dir / "bayesian_risk_test.json", test_risk)
+        bayesian_payload = {
+            "enabled": True,
+            "validation": validation_risk,
+            "test": test_risk,
+            "primary_score": test_risk["overall"]["primary_score"],
+            "priors_source": str(bayesian_priors_path) if bayesian_priors_path else "default",
+        }
 
     metrics_payload = {
         "phase": "phase-3",
@@ -110,10 +149,16 @@ def run_phase3_pipeline(
                 "max_df": max_df,
                 "c": c,
                 "max_iter": max_iter,
+                "privacybert_model_name": privacybert_model_name,
+                "privacybert_epochs": privacybert_epochs,
+                "privacybert_batch_size": privacybert_batch_size,
+                "privacybert_learning_rate": privacybert_learning_rate,
+                "privacybert_max_length": privacybert_max_length,
             },
         },
         "validation": validation_metrics,
         "test": test_metrics,
+        "bayesian": bayesian_payload,
     }
 
     write_json(output_dir / "classifier_metrics.json", metrics_payload)
@@ -140,7 +185,7 @@ def run_phase3_pipeline(
     )
 
     _write_model_card(output_dir / "model_card.md", metrics_payload, source_name)
-    _write_scoring_spec(output_dir / "scoring_spec.md")
+    _write_scoring_spec(output_dir / "scoring_spec.md", bayesian_enabled=enable_bayesian_scoring)
     _write_prototype_demo(output_dir / "prototype_demo.md")
 
     manifest = {
@@ -152,6 +197,7 @@ def run_phase3_pipeline(
             "source_dir": str(source_dir) if source_dir else "",
             "labeled_input_path": str(labeled_input_path) if labeled_input_path else "",
             "model_type": model_type,
+            "enable_bayesian_scoring": enable_bayesian_scoring,
         },
         "dataset_manifest": {
             "total_rows": dataset_manifest["total_rows"],
@@ -171,17 +217,21 @@ def run_phase3_pipeline(
             "test_macro_f1": metrics_payload["test"]["macro_f1"],
             "validation_accuracy": metrics_payload["validation"]["accuracy"],
             "test_accuracy": metrics_payload["test"]["accuracy"],
+            "bayesian_primary_score": bayesian_payload["primary_score"],
         },
+        "primary_metric_surface": "bayesian_posterior" if enable_bayesian_scoring else "classifier_metrics",
         "output_files": {
             "training_dataset": "training_dataset.jsonl",
             "validation_dataset": "validation_dataset.jsonl",
             "test_dataset": "test_dataset.jsonl",
             "dataset_manifest": "dataset_manifest.json",
-            "classifier_checkpoint": "classifier_checkpoint/model.json",
+            "classifier_checkpoint": str(checkpoint_path.relative_to(output_dir)),
             "classifier_metrics": "classifier_metrics.json",
             "classifier_metrics_rows": "classifier_metrics.jsonl",
             "validation_predictions": "validation_predictions.jsonl",
             "test_predictions": "test_predictions.jsonl",
+            "bayesian_validation": "bayesian_risk_validation.json" if enable_bayesian_scoring else "",
+            "bayesian_test": "bayesian_risk_test.json" if enable_bayesian_scoring else "",
             "model_card": "model_card.md",
             "scoring_spec": "scoring_spec.md",
             "prototype_demo": "prototype_demo.md",
@@ -223,13 +273,26 @@ Test:
 
 ## Notes
 
-- This is a deterministic baseline for Phase 3 acceptance and reproducibility.
-- Bayesian scoring integration is intentionally deferred to the next increment.
+- Classifier metrics are retained for diagnostics and benchmark comparison.
+- Bayesian posterior risk outputs are emitted when Bayesian scoring is enabled.
 """
     path.write_text(text, encoding="utf-8")
 
 
-def _write_scoring_spec(path: Path) -> None:
+def _write_scoring_spec(path: Path, bayesian_enabled: bool) -> None:
+    bayesian_section = """
+## Bayesian Risk Outputs
+
+- bayesian_risk_validation.json
+- bayesian_risk_test.json
+
+Each Bayesian output includes:
+
+- per-level posterior alpha/beta
+- posterior mean risk and interval bounds
+- top contributing clauses for each level
+""" if bayesian_enabled else ""
+
     text = """# Phase 3 Baseline Scoring Specification
 
 ## Output Schema
@@ -245,6 +308,7 @@ def _write_scoring_spec(path: Path) -> None:
 - macro_recall
 - macro_f1
 - per-class precision/recall/f1/support
+""" + bayesian_section + """
 
 ## Constraints
 

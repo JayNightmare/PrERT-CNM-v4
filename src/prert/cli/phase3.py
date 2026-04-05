@@ -26,6 +26,14 @@ def main() -> None:
         max_df=args.max_df,
         c=args.c,
         max_iter=args.max_iter,
+        privacybert_model_name=args.privacybert_model_name,
+        privacybert_epochs=args.privacybert_epochs,
+        privacybert_batch_size=args.privacybert_batch_size,
+        privacybert_learning_rate=args.privacybert_learning_rate,
+        privacybert_max_length=args.privacybert_max_length,
+        enable_bayesian_scoring=not args.disable_bayesian_scoring,
+        bayesian_priors_path=args.bayesian_priors_path,
+        bayesian_top_k=args.bayesian_top_k,
         seed=args.seed,
         max_rows=args.max_rows,
     )
@@ -39,6 +47,8 @@ def main() -> None:
     print(f"Test macro F1: {metrics['test_macro_f1']}")
     print(f"Validation accuracy: {metrics['validation_accuracy']}")
     print(f"Test accuracy: {metrics['test_accuracy']}")
+    if metrics.get("bayesian_primary_score") is not None:
+        print(f"Bayesian primary score (test): {metrics['bayesian_primary_score']}")
 
 
 def _parse_args() -> argparse.Namespace:
@@ -85,7 +95,7 @@ def _parse_args() -> argparse.Namespace:
         "--model-type",
         type=str,
         default="naive_bayes",
-        choices=("naive_bayes", "logreg_tfidf"),
+        choices=("naive_bayes", "logreg_tfidf", "privacybert"),
         help="Classifier backend for Phase 3.",
     )
     parser.add_argument(
@@ -129,6 +139,53 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=1000,
         help="Maximum iterations for logistic regression solver.",
+    )
+    parser.add_argument(
+        "--privacybert-model-name",
+        type=str,
+        default="bert-base-uncased",
+        help="Transformers model name or path used for privacybert backend.",
+    )
+    parser.add_argument(
+        "--privacybert-epochs",
+        type=float,
+        default=2.0,
+        help="Training epochs for privacybert backend.",
+    )
+    parser.add_argument(
+        "--privacybert-batch-size",
+        type=int,
+        default=8,
+        help="Per-device batch size for privacybert backend.",
+    )
+    parser.add_argument(
+        "--privacybert-learning-rate",
+        type=float,
+        default=5e-5,
+        help="Learning rate for privacybert backend.",
+    )
+    parser.add_argument(
+        "--privacybert-max-length",
+        type=int,
+        default=256,
+        help="Maximum token length for privacybert backend.",
+    )
+    parser.add_argument(
+        "--disable-bayesian-scoring",
+        action="store_true",
+        help="Disable Bayesian posterior risk scoring outputs.",
+    )
+    parser.add_argument(
+        "--bayesian-priors-path",
+        type=Path,
+        default=None,
+        help="Optional JSON file with Bayesian alpha/beta priors by level.",
+    )
+    parser.add_argument(
+        "--bayesian-top-k",
+        type=int,
+        default=5,
+        help="Top contributing clauses retained per level in Bayesian outputs.",
     )
     parser.add_argument(
         "--max-rows",

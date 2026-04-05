@@ -15,16 +15,17 @@ Provide practical guidance to complete each of the 4 phases with:
 ## Visualisations
 
 - [Phase 1-2 Progress and Accuracy Dashboard](09-phase1-phase2-progress-dashboard.md) - Charts and figure tables for extraction progress, mapping coverage, risk distribution, and scenario stability.
-- [Phase 3 Visual Dashboard](11-phase3-visual-dashboard.md) - Dataset mix, split profile, held-out quality indicators, baseline-vs-upgraded model comparisons, and confusion flow.
+- [Phase 3 Visual Dashboard](11-phase3-visual-dashboard.md) - Dataset mix, split profile, held-out classifier indicators, baseline-vs-upgraded model comparisons, and confusion flow.
 
 ## Implementation Status Snapshot
 
 - Phase 1: implemented and operational via `scripts/run_phase1_pipeline.py`.
 - Phase 2: implemented and operational via `scripts/run_phase2_metrics.py`.
-- Phase 3 baseline and upgraded model path: implemented and operational via `scripts/run_phase3_baseline.py` (`--model-type naive_bayes|logreg_tfidf`).
+- Phase 3 model backends: implemented and operational via `scripts/run_phase3_baseline.py` (`--model-type naive_bayes|logreg_tfidf|privacybert`).
+- Phase 3 Bayesian risk output layer: implemented as default artifact output (`bayesian_risk_validation.json`, `bayesian_risk_test.json`) and recorded in `phase3_manifest.json` as the primary metric surface when enabled.
 - Latest comparable benchmark artifacts: `artifacts/phase-3-nb/` and `artifacts/phase-3-logreg/`.
 - Latest recorded combined regression command completed successfully: `PYTHONPATH=src pytest -q tests/test_phase2_pipeline.py tests/test_phase3_pipeline.py`
-- Phase 3 next increment (Bayesian scoring and API integration): planned but not yet implemented.
+- Phase 3 next increment: strengthen PrivacyBERT training workflow, calibrate Bayesian priors/posteriors with benchmarked risk metrics, and finalize API integration.
 
 ## Document Index
 
@@ -48,9 +49,9 @@ Provide practical guidance to complete each of the 4 phases with:
 9. [09-phase1-phase2-progress-dashboard.md](09-phase1-phase2-progress-dashboard.md)
       - Visual progress dashboard with charts and figure tables for Phase 1 and Phase 2 quality indicators.
 10. [10-phase3-implementation-runbook.md](10-phase3-implementation-runbook.md)
-       - Commands and operational steps for running the implemented Phase 3 baseline classifier pipeline.
+       - Commands and operational steps for running the implemented Phase 3 classifier backends and Bayesian risk output pipeline.
 11. [11-phase3-visual-dashboard.md](11-phase3-visual-dashboard.md)
-       - Visual dashboard for Phase 3 dataset profile, held-out quality metrics, and confusion flow.
+       - Visual dashboard for Phase 3 dataset profile, held-out classifier quality metrics, confusion flow, and Bayesian scoring context.
 
 ## Suggested Working Rhythm
 

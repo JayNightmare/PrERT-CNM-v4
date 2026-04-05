@@ -4,9 +4,14 @@ Timeline target: Month 3
 
 ## Status Update
 
-Phase 3 implementation now includes a deterministic multinomial Naive Bayes baseline and an upgraded TF-IDF + weighted logistic regression path (see `10-phase3-implementation-runbook.md` and `11-phase3-visual-dashboard.md`).
+Phase 3 implementation now includes:
 
-This document remains the target plan for the next increment: PrivacyBERT-oriented modeling, Bayesian risk scoring, explainability hardening, and service-level integration.
+- Deterministic multinomial Naive Bayes baseline.
+- Upgraded TF-IDF + weighted logistic regression path.
+- PrivacyBERT backend scaffold integrated into the classifier/pipeline/CLI surface (`--model-type privacybert`).
+- Bayesian posterior risk output layer integrated into the pipeline (`bayesian_risk_validation.json`, `bayesian_risk_test.json`).
+
+Remaining work in this document focuses on production hardening: full PrivacyBERT runbooks and benchmark baselines, prior calibration and Bayesian metric governance, richer explainability, and service-level integration.
 
 ## Goal
 

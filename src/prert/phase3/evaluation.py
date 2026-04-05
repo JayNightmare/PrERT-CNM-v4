@@ -5,12 +5,12 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Any, Dict, Iterable, List, Sequence
 
-from prert.phase3.classifier import NaiveBayesTextClassifier
+from prert.phase3.classifier import TextClassifier
 from prert.phase3.types import ClauseExample
 
 
 def evaluate_classifier(
-    model: NaiveBayesTextClassifier,
+    model: TextClassifier,
     examples: Sequence[ClauseExample],
     labels: Sequence[str],
 ) -> Dict[str, Any]:

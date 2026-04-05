@@ -1,13 +1,14 @@
 # Phase 3 Implementation Runbook
 
-This runbook executes the Phase 3 baseline classifier pipeline in an isolated output folder.
+This runbook executes the Phase 3 classifier-and-risk pipeline in an isolated output folder.
 
 ## Scope
 
 - Build a clause-level labeled dataset from OPP-115 annotations or a provided labeled JSONL.
 - Create deterministic train, validation, and test splits with policy-level leakage protection.
-- Train a baseline text classifier for user/system/organization labels.
-- Evaluate held-out metrics and write reproducible Phase 3 artifacts.
+- Train a text classifier backend for user/system/organization labels (`naive_bayes`, `logreg_tfidf`, or `privacybert`).
+- Evaluate held-out classifier metrics and emit Bayesian posterior risk outputs.
+- Write reproducible Phase 3 artifacts and manifest-level provenance.
 
 ## Current Snapshot (Comparable Baseline vs Upgraded)
 
@@ -79,6 +80,38 @@ PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
   --output-dir artifacts/phase-3-logreg
 ```
 
+Run with the PrivacyBERT backend scaffold:
+
+```bash
+PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+  --model-type privacybert \
+  --privacybert-model-name bert-base-uncased \
+  --privacybert-epochs 2 \
+  --privacybert-batch-size 8 \
+  --privacybert-learning-rate 5e-5 \
+  --privacybert-max-length 256 \
+  --output-dir artifacts/phase-3-privacybert
+```
+
+Run with custom Bayesian priors (enabled by default):
+
+```bash
+PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+  --model-type logreg_tfidf \
+  --bayesian-priors-path configs/phase3_bayesian_priors.json \
+  --bayesian-top-k 5 \
+  --output-dir artifacts/phase-3
+```
+
+Disable Bayesian scoring output (benchmark/diagnostic only):
+
+```bash
+PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+  --model-type logreg_tfidf \
+  --disable-bayesian-scoring \
+  --output-dir artifacts/phase-3-no-bayes
+```
+
 Run a comparable full-data Naive Bayes baseline for side-by-side benchmarking:
 
 ```bash
@@ -97,10 +130,13 @@ Written to the selected `--output-dir` (for example `artifacts/phase-3/`, `artif
 - `dataset_manifest.json`
 - `classifier_checkpoint/model.json` (naive_bayes)
 - `classifier_checkpoint/model.pkl` (logreg_tfidf)
+- `classifier_checkpoint/privacybert/` (privacybert)
 - `classifier_metrics.json`
 - `classifier_metrics.jsonl`
 - `validation_predictions.jsonl`
 - `test_predictions.jsonl`
+- `bayesian_risk_validation.json` (when Bayesian scoring enabled)
+- `bayesian_risk_test.json` (when Bayesian scoring enabled)
 - `model_card.md`
 - `scoring_spec.md`
 - `prototype_demo.md`
@@ -110,7 +146,10 @@ Written to the selected `--output-dir` (for example `artifacts/phase-3/`, `artif
 
 - `dataset_manifest.json.policy_overlap.* == 0`
 - `classifier_metrics.json.validation.macro_f1` and `classifier_metrics.json.test.macro_f1` are in [0, 1]
+- `classifier_metrics.json.bayesian.enabled == true` for Bayesian-primary runs
+- `classifier_metrics.json.bayesian.primary_score` is in [0, 1] when enabled
 - `phase3_manifest.json` includes input config, split counts, and output file references
+- `phase3_manifest.json.primary_metric_surface` is `bayesian_posterior` for default runs
 
 ## Verification
 
@@ -128,8 +167,9 @@ PYTHONPATH=src pytest -q tests/test_phase2_pipeline.py tests/test_phase3_pipelin
 
 ## Notes
 
-- This baseline intentionally focuses on reproducible held-out classification metrics.
-- Bayesian scoring and API integration are deferred to the next Phase 3 increment.
+- Bayesian posterior scoring is now integrated as a first implementation slice and is enabled by default.
+- Classifier held-out metrics remain available for benchmark comparison and regression checks.
+- Full PrivacyBERT benchmark hardening, Bayesian calibration governance, and API endpoints remain next-increment work.
 
 ---
 

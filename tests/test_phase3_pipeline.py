@@ -50,6 +50,8 @@ def test_phase3_pipeline_writes_outputs(tmp_path: Path) -> None:
     assert (output_dir / "classifier_metrics.jsonl").exists()
     assert (output_dir / "validation_predictions.jsonl").exists()
     assert (output_dir / "test_predictions.jsonl").exists()
+    assert (output_dir / "bayesian_risk_validation.json").exists()
+    assert (output_dir / "bayesian_risk_test.json").exists()
     assert (output_dir / "phase3_manifest.json").exists()
 
 
@@ -72,6 +74,10 @@ def test_phase3_metrics_in_range(tmp_path: Path) -> None:
         for key in ("accuracy", "macro_precision", "macro_recall", "macro_f1"):
             value = float(split_metrics[key])
             assert 0.0 <= value <= 1.0
+
+    assert metrics["bayesian"]["enabled"] is True
+    primary_score = float(metrics["bayesian"]["primary_score"])
+    assert 0.0 <= primary_score <= 1.0
 
     manifest_path = output_dir / "dataset_manifest.json"
     dataset_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -96,6 +102,10 @@ def test_phase3_manifest_includes_model_metadata(tmp_path: Path) -> None:
     assert manifest["inputs"]["model_type"] == "naive_bayes"
     assert manifest["model_summary"]["model_type"] == "multinomial_naive_bayes"
     assert manifest["model_summary"]["training_config"]["max_features"] == 20000
+    assert manifest["primary_metric_surface"] == "bayesian_posterior"
+    assert manifest["metrics"]["bayesian_primary_score"] is not None
+    assert manifest["output_files"]["bayesian_validation"] == "bayesian_risk_validation.json"
+    assert manifest["output_files"]["bayesian_test"] == "bayesian_risk_test.json"
 
 
 def test_phase3_logreg_tfidf_pipeline(tmp_path: Path) -> None:
@@ -120,3 +130,24 @@ def test_phase3_logreg_tfidf_pipeline(tmp_path: Path) -> None:
     assert manifest["model_summary"]["model_type"] == "logreg_tfidf"
     assert manifest["model_summary"]["checkpoint_path"].endswith("model.pkl")
     assert (output_dir / "classifier_checkpoint" / "model.pkl").exists()
+
+
+def test_phase3_can_disable_bayesian_scoring(tmp_path: Path) -> None:
+    input_path = tmp_path / "labeled.jsonl"
+    output_dir = tmp_path / "phase-3-no-bayes"
+    _write_labeled_dataset(input_path)
+
+    manifest = run_phase3_pipeline(
+        output_dir=output_dir,
+        labeled_input_path=input_path,
+        seed=19,
+        enable_bayesian_scoring=False,
+    )
+
+    metrics = json.loads((output_dir / "classifier_metrics.json").read_text(encoding="utf-8"))
+    assert metrics["bayesian"]["enabled"] is False
+    assert metrics["bayesian"]["primary_score"] is None
+
+    assert not (output_dir / "bayesian_risk_validation.json").exists()
+    assert not (output_dir / "bayesian_risk_test.json").exists()
+    assert manifest["primary_metric_surface"] == "classifier_metrics"
