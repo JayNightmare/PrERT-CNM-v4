@@ -123,9 +123,9 @@ Notes:
 
 | Scenario    | Mean Confidence-Adjusted Score (↑) | Mean Risk Score (↓) |
 | ----------- | ---------------------------------: | ------------------: |
-| normal      |                     77.6% (0.7757) |              0.2243 |
-| stressed    |                     57.0% (0.5703) |              0.4297 |
-| adversarial |                     37.3% (0.3705) |              0.6295 |
+| normal      |                     77.6% (0.7757) |      22.4% (0.2243) |
+| stressed    |                     57.0% (0.5703) |        43% (0.4297) |
+| adversarial |                     37.3% (0.3705) |      62.7% (0.6295) |
 
 Interpretation:
 
@@ -142,4 +142,4 @@ Interpretation:
 
 ## Navigation
 
-[⬅ Back](08-phase2-technical-documentation.md) | [Next ⮕](README.md)
+[⬅ Back](08-phase2-technical-documentation.md) | [Next ⮕](10-phase3-implementation-runbook.md)

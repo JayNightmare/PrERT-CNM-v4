@@ -1,0 +1,85 @@
+{
+  "phase": "phase-3",
+  "seed": 42,
+  "inputs": {
+    "opp115_root": "/Volumes/Personal-Projects/PrERT-CNM-v4/data/raw/OPP-115",
+    "input_set": "consolidation-0.75",
+    "source_dir": "",
+    "labeled_input_path": ""
+  },
+  "dataset_manifest": {
+    "total_rows": 5000,
+    "class_distribution": {
+      "organization": 4194,
+      "system": 206,
+      "user": 600
+    },
+    "splits": {
+      "train": {
+        "split": "train",
+        "rows": 3872,
+        "unique_policies": 23,
+        "class_distribution": {
+          "organization": 3229,
+          "system": 156,
+          "user": 487
+        }
+      },
+      "validation": {
+        "split": "validation",
+        "rows": 437,
+        "unique_policies": 2,
+        "class_distribution": {
+          "organization": 379,
+          "system": 13,
+          "user": 45
+        }
+      },
+      "test": {
+        "split": "test",
+        "rows": 691,
+        "unique_policies": 4,
+        "class_distribution": {
+          "organization": 586,
+          "system": 37,
+          "user": 68
+        }
+      }
+    },
+    "policy_overlap": {
+      "train_validation": 0,
+      "train_test": 0,
+      "validation_test": 0
+    }
+  },
+  "model_summary": {
+    "model_type": "multinomial_naive_bayes",
+    "labels": [
+      "user",
+      "system",
+      "organization"
+    ],
+    "vocabulary_size": 3088,
+    "checkpoint_path": "artifacts/phase-3/classifier_checkpoint/model.json"
+  },
+  "metrics": {
+    "validation_macro_f1": 0.69043,
+    "test_macro_f1": 0.573119,
+    "validation_accuracy": 0.885584,
+    "test_accuracy": 0.716353
+  },
+  "output_files": {
+    "training_dataset": "training_dataset.jsonl",
+    "validation_dataset": "validation_dataset.jsonl",
+    "test_dataset": "test_dataset.jsonl",
+    "dataset_manifest": "dataset_manifest.json",
+    "classifier_checkpoint": "classifier_checkpoint/model.json",
+    "classifier_metrics": "classifier_metrics.json",
+    "classifier_metrics_rows": "classifier_metrics.jsonl",
+    "validation_predictions": "validation_predictions.jsonl",
+    "test_predictions": "test_predictions.jsonl",
+    "model_card": "model_card.md",
+    "scoring_spec": "scoring_spec.md",
+    "prototype_demo": "prototype_demo.md"
+  }
+}

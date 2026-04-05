@@ -6,4 +6,5 @@ __all__ = [
     "chunking",
     "chroma",
     "phase2",
+    "phase3",
 ]

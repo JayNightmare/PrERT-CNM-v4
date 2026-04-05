@@ -2,6 +2,12 @@
 
 Timeline target: Month 3
 
+## Status Update
+
+Phase 3 baseline implementation is now in place using a deterministic multinomial Naive Bayes pipeline (see `10-phase3-implementation-runbook.md`).
+
+This document remains the target plan for the next increment: PrivacyBERT-oriented modeling, Bayesian risk scoring, explainability hardening, and service-level integration.
+
 ## Goal
 
 Build an integrated prototype that classifies privacy clauses and converts them into quantitative risk scores.

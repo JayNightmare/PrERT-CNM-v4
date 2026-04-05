@@ -1,0 +1,2 @@
+{"split": "validation", "rows": 437, "accuracy": 0.885584, "macro_precision": 0.665276, "macro_recall": 0.732948, "macro_f1": 0.69043}
+{"split": "test", "rows": 691, "accuracy": 0.716353, "macro_precision": 0.530286, "macro_recall": 0.729766, "macro_f1": 0.573119}
