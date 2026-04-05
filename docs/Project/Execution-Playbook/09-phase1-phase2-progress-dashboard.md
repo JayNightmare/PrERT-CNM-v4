@@ -27,18 +27,19 @@ Provide a visual and tabular status view of project progress and model quality i
 
 ## Legend
 
-- ↑ higher is better
-- ↓ lower is better
-- ↔ directional-neutral context metric (distribution/mix visibility)
+- ↑ higher is better for output-value metrics
+- ↓ lower is better for output-value metrics
+- Risk-band distinction (Fig 4): low-risk improves when it increases, and high-risk improves when it decreases.
+- If total scored rows change between runs, compare low/high percentages (shares), not only raw counts.
 
 ## Figure Table
 
-| Figure ID | Figure Preview                                             | Direction      | Key Takeaway                                                                              |
-| --------- | ---------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------- |
-| Fig 1     | ![Fig 1](figures/fig-01-phase1-controls-by-regulation.png) | ↔              | GDPR is the largest single control source (103), with ISO and NIST balanced (68/66).      |
-| Fig 2     | ![Fig 2](figures/fig-02-phase1-chunks-by-regulation.png)   | ↔              | Chunk split closely matches control split, indicating stable chunking behavior.           |
-| Fig 3     | ![Fig 3](figures/fig-03-phase2-metric-levels.png)          | ↔              | Organization-level metrics are the largest share (100), then user (82), then system (55). |
-| Fig 4     | ![Fig 4](figures/fig-04-phase2-risk-bands.png)             | ↑ low / ↓ high | Most rows are medium risk at baseline (389), with 251 low and 71 high.                    |
+| Figure ID | Figure Preview                                             | Key Takeaway                                                                              |
+| --------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Fig 1     | ![Fig 1](figures/fig-01-phase1-controls-by-regulation.png) | GDPR is the largest single control source (103), with ISO and NIST balanced (68/66).      |
+| Fig 2     | ![Fig 2](figures/fig-02-phase1-chunks-by-regulation.png)   | Chunk split closely matches control split, indicating stable chunking behavior.           |
+| Fig 3     | ![Fig 3](figures/fig-03-phase2-metric-levels.png)          | Organization-level metrics are the largest share (100), then user (82), then system (55). |
+| Fig 4     | ![Fig 4](figures/fig-04-phase2-risk-bands.png)             | Most rows are medium risk at baseline (389), with 251 low and 71 high; low up/high down.  |
 
 ## Fig 1. Phase 1 Controls by Regulation
 
@@ -48,7 +49,9 @@ What this means:
 
 - This chart shows how extracted controls are distributed across regulations.
 - A balanced mix is useful for coverage confidence; extreme skew would indicate potential under-extraction in one source.
-- This is a context chart (↔), not a direct better/worse score.
+- Clear distinction: this is not a "higher is always better" or "lower is always better" chart.
+- Better result definition: distribution remains aligned with intended source coverage and avoids unexplained skew.
+- This is a context chart, not a direct better/worse score.
 
 ## Fig 2. Phase 1 Chunks by Regulation
 
@@ -58,7 +61,9 @@ What this means:
 
 - Chunk totals track how much searchable content was generated per regulation.
 - The near alignment with control totals indicates chunking behavior is stable and not excessively fragmenting text.
-- This is a context chart (↔); use it to detect parser/chunker drift over time.
+- Clear distinction: total chunks being higher or lower is not inherently better by itself.
+- Better result definition: chunk/control behavior stays stable over time (low drift, low inflation spikes, no sudden skew by source).
+- This is a context chart; use it to detect parser/chunker drift over time.
 
 ## Fig 3. Phase 2 Metric Distribution by Level
 
@@ -68,7 +73,9 @@ What this means:
 
 - This chart shows where metric emphasis currently sits across user, system, and organization layers.
 - Organization-heavy distribution indicates stronger governance/process representation relative to system instrumentation.
-- This is a context chart (↔) used for coverage mix decisions, not a direct performance score.
+- Clear distinction: no single level being larger is universally better across all runs.
+- Better result definition: the mix remains intentional and complete for the target operating model (no critical level underrepresented).
+- This is a context chart used for coverage mix decisions, not a direct performance score.
 
 ## Fig 4. Phase 2 Risk-Band Distribution (Metric Rows)
 
@@ -78,6 +85,8 @@ What this means:
 
 - This chart shows the current risk profile from baseline metric rows.
 - Desired trend over time: low risk count ↑ and high risk count ↓ as controls and scoring quality improve.
+- Clear distinction: for this chart, low-risk and high-risk move in opposite "good" directions.
+- Better result definition: low-risk share increases and high-risk share decreases; use shares when run sizes differ.
 - Medium risk often represents transitional cases that should be reduced through better feature coverage and calibration.
 
 Regeneration command:
