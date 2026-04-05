@@ -14,16 +14,16 @@ Provide a visual and tabular status view of dataset shape and held-out classifie
 
 ## Executive Summary
 
-| Area    | Metric                      |    Current Value |
-| ------- | --------------------------- | ---------------: |
-| Dataset | Total rows                  |             5000 |
-| Dataset | Class mix (org/system/user) | 4194 / 206 / 600 |
-| Split   | Train / Validation / Test   | 3872 / 437 / 691 |
-| Model   | Validation accuracy         |         0.885584 |
-| Model   | Validation macro F1         |          0.69043 |
-| Model   | Test accuracy               |         0.716353 |
-| Model   | Test macro F1               |         0.573119 |
-| Leakage | Policy overlap (all pairs)  |                0 |
+| Area    | Metric                      |                                            Current Value |
+| ------- | --------------------------- | -------------------------------------------------------: |
+| Dataset | Total rows                  |                                                     5000 |
+| Dataset | Class mix (org/system/user) | 83.88% / 4.12% / 12.00% (0.838800 / 0.041200 / 0.120000) |
+| Split   | Train / Validation / Test   | 77.44% / 8.74% / 13.82% (0.774400 / 0.087400 / 0.138200) |
+| Model   | Validation accuracy         |                                        88.56% (0.885584) |
+| Model   | Validation macro F1         |                                        69.04% (0.690430) |
+| Model   | Test accuracy               |                                        71.64% (0.716353) |
+| Model   | Test macro F1               |                                        57.31% (0.573119) |
+| Leakage | Policy overlap (all pairs)  |                                                        0 |
 
 ## Figure Table
 
@@ -58,25 +58,25 @@ What this means:
 What this means:
 
 - Correct organization predictions are high in absolute count (420), but many organization clauses shift into user/system.
-- User recall is moderate on test (0.661765), while user precision remains low (0.277778).
-- System recall is strong on test (0.810811), with lower precision (0.379747).
+- User recall is moderate on test (66.18% (0.661765)), while user precision remains low (27.78% (0.277778)).
+- System recall is strong on test (81.08% (0.810811)), with lower precision (37.97% (0.379747)).
 
 ## Held-Out Quality Indicator Tables
 
 ### Table A. Aggregate Held-Out Metrics
 
-| Split      | Rows | Accuracy | Macro Precision | Macro Recall | Macro F1 |
-| ---------- | ---: | -------: | --------------: | -----------: | -------: |
-| Validation |  437 | 0.885584 |        0.665276 |     0.732948 |  0.69043 |
-| Test       |  691 | 0.716353 |        0.530286 |     0.729766 | 0.573119 |
+| Split      | Rows |          Accuracy |   Macro Precision |      Macro Recall |          Macro F1 |
+| ---------- | ---: | ----------------: | ----------------: | ----------------: | ----------------: |
+| Validation |  437 | 88.56% (0.885584) | 66.53% (0.665276) | 73.29% (0.732948) | 69.04% (0.690430) |
+| Test       |  691 | 71.64% (0.716353) | 53.03% (0.530286) | 72.98% (0.729766) | 57.31% (0.573119) |
 
 ### Table B. Test Per-Class Metrics
 
-| Label        | Precision |   Recall |       F1 | Support |
-| ------------ | --------: | -------: | -------: | ------: |
-| user         |  0.277778 | 0.661765 | 0.391304 |      68 |
-| system       |  0.379747 | 0.810811 | 0.517241 |      37 |
-| organization |  0.933333 | 0.716724 | 0.810811 |     586 |
+| Label        |         Precision |            Recall |                F1 | Support |
+| ------------ | ----------------: | ----------------: | ----------------: | ------: |
+| user         | 27.78% (0.277778) | 66.18% (0.661765) | 39.13% (0.391304) |      68 |
+| system       | 37.97% (0.379747) | 81.08% (0.810811) | 51.72% (0.517241) |      37 |
+| organization | 93.33% (0.933333) | 71.67% (0.716724) | 81.08% (0.810811) |     586 |
 
 ## Next Measurement Targets
 
