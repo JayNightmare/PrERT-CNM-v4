@@ -27,6 +27,7 @@ dev = [
 prert-extract = "prert.cli.extract:main"
 prert-migrate = "prert.cli.migrate:main"
 prert-phase2 = "prert.cli.phase2:main"
+prert-opp115 = "prert.cli.opp115:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

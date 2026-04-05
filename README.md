@@ -130,6 +130,27 @@ PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
 	--public-input path/to/public_breach_data.csv
 ```
 
+## 6) Preprocess OPP-115 For Phase 2 Public Mapping
+
+Generate flat OPP-115 exports compatible with `--public-input`:
+
+```bash
+PYTHONPATH=src python3 scripts/process_opp115_for_phase2.py
+```
+
+Equivalent package script:
+
+```bash
+prert-opp115
+```
+
+Then run Phase 2 with processed OPP-115:
+
+```bash
+PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+	--public-input data/processed/opp115_public_mapping.csv
+```
+
 ## Expected Console Output
 
 ## Extraction (example)

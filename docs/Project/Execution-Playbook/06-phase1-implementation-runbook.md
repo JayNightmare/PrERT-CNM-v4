@@ -101,6 +101,22 @@ Run tests:
 PYTHONPATH=src python3 -m pytest tests -q
 ```
 
+## Phase 1 Visual Snapshot
+
+```mermaid
+pie showData
+     title Phase 1 Controls by Regulation (n=237)
+     "GDPR" : 103
+     "ISO 27001" : 68
+     "NIST PF 1.1" : 66
+```
+
+| Figure                         | What it shows                                | Result                                                                 |
+| ------------------------------ | -------------------------------------------- | ---------------------------------------------------------------------- |
+| Phase 1 Extraction Composition | Control distribution across source standards | GDPR contributes the largest share while ISO and NIST remain balanced. |
+
+For the full multi-figure dashboard (progress + quality indicators), see `09-phase1-phase2-progress-dashboard.md`.
+
 ## Chroma MCP (Optional)
 
 For improved doc search while developing, see:

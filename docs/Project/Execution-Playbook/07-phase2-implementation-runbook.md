@@ -18,26 +18,61 @@ Required:
 Optional:
 
 - Public breach dataset as `.csv` or `.jsonl` (for example ENISA/PRC extracts)
+- OPP-115 raw corpus available at `data/raw/OPP-115` (reference corpus)
 
-## Command
+## Using OPP-115
 
-Run with default inputs and outputs:
+- The raw OPP-115 corpus is present in this repo under `data/raw/OPP-115`.
+- Raw OPP-115 files are not directly consumable by `--public-input`, which expects a flat `.csv` or `.jsonl` table.
+- Use the OPP-115 preprocessing command below to create canonical flat exports with required fields (`event_date`, `sector`, `records_affected`).
+- If you do not have that processed export yet, run Phase 2 without `--public-input` and use OPP-115 only as a reference corpus.
+
+## Commands
+
+Create processed OPP-115 flat files (default: consolidation threshold 0.75):
+
+```bash
+PYTHONPATH=src python3 scripts/process_opp115_for_phase2.py
+```
+
+Create processed OPP-115 files from the raw annotation set instead of consolidated annotations:
+
+```bash
+PYTHONPATH=src python3 scripts/process_opp115_for_phase2.py \
+  --input-set annotations
+```
+
+Equivalent package command:
+
+```bash
+prert-opp115
+```
+
+Run Phase 2 using OPP-115 as a reference corpus only (no `--public-input`):
 
 ```bash
 PYTHONPATH=src python3 scripts/run_phase2_metrics.py
 ```
 
-Run with optional public dataset mapping:
+Run Phase 2 with a processed OPP-115 CSV export:
 
 ```bash
 PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
-  --public-input path/to/public_breach_data.csv
+  --public-input data/processed/opp115_public_mapping.csv
 ```
 
-Run with custom output directory:
+Run Phase 2 with a processed OPP-115 JSONL export:
 
 ```bash
 PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+  --public-input data/processed/opp115_public_mapping.jsonl
+```
+
+Run Phase 2 with processed OPP-115 input and a custom output folder:
+
+```bash
+PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+  --public-input data/processed/opp115_public_mapping.csv \
   --output-dir artifacts/phase-2
 ```
 

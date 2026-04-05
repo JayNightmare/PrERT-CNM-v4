@@ -31,6 +31,8 @@ Provide practical guidance to complete each of the 4 phases with:
       - Commands and operational steps for running the implemented Phase 2 pipeline.
 8. `08-phase2-technical-documentation.md`
       - Architecture, rationale, data contracts, scoring logic, and quality gates for Phase 2.
+9. `09-phase1-phase2-progress-dashboard.md`
+      - Visual progress dashboard with charts and figure tables for Phase 1 and Phase 2 quality indicators.
 
 ## Suggested Working Rhythm
 
@@ -81,4 +83,4 @@ project-root/
 
 ## Navigation
 
-[⬅ Back](08-phase2-technical-documentation.md) | [Next ⮕](01-tech-stack.md)
+[⬅ Back](09-phase1-phase2-progress-dashboard.md) | [Next ⮕](01-tech-stack.md)

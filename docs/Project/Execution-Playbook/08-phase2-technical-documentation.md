@@ -52,6 +52,22 @@ From the latest `phase2_manifest.json` run:
 - Synthetic events: 711
 - Baseline score rows: 723
 
+## Phase 2 Visual Snapshot
+
+```mermaid
+pie showData
+  title Phase 2 Risk Bands (Metric Rows, n=711)
+  "Low" : 251
+  "Medium" : 389
+  "High" : 71
+```
+
+| Figure                             | What it shows                                 | Result                                                               |
+| ---------------------------------- | --------------------------------------------- | -------------------------------------------------------------------- |
+| Phase 2 Baseline Risk Distribution | Risk-band spread from metric-level score rows | Most rows are medium risk (389), with a smaller high-risk tail (71). |
+
+For the full cross-phase visual report and figure tables, see `09-phase1-phase2-progress-dashboard.md`.
+
 ## Module Responsibilities
 
 - `metrics.py`: Metric creation, level classification, coverage accounting.
@@ -233,4 +249,4 @@ Recommended enhancements:
 
 ## Navigation
 
-[⬅ Back](07-phase2-implementation-runbook.md) | [Next ⮕](README.md)
+[⬅ Back](07-phase2-implementation-runbook.md) | [Next ⮕](09-phase1-phase2-progress-dashboard.md)
