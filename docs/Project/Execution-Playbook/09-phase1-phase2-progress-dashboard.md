@@ -27,51 +27,33 @@ Provide a visual and tabular status view of project progress and model quality i
 
 ## Figure Table
 
-| Figure ID | Focus                                     | Visual Type | Key Takeaway                                                                              |
-| --------- | ----------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
-| Fig 1     | Phase 1 control composition by regulation | Pie chart   | GDPR is the largest single control source (103), with ISO and NIST balanced (68/66).      |
-| Fig 2     | Phase 1 chunk composition by regulation   | Pie chart   | Chunk split closely matches control split, indicating stable chunking behavior.           |
-| Fig 3     | Phase 2 metric level distribution         | Pie chart   | Organization-level metrics are the largest share (100), then user (82), then system (55). |
-| Fig 4     | Phase 2 risk-band distribution            | Pie chart   | Most rows are medium risk at baseline (389), with 251 low and 71 high.                    |
+| Figure ID | Figure Preview                                             | Visual Type | Key Takeaway                                                                              |
+| --------- | ---------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
+| Fig 1     | ![Fig 1](figures/fig-01-phase1-controls-by-regulation.png) | Bar chart   | GDPR is the largest single control source (103), with ISO and NIST balanced (68/66).      |
+| Fig 2     | ![Fig 2](figures/fig-02-phase1-chunks-by-regulation.png)   | Bar chart   | Chunk split closely matches control split, indicating stable chunking behavior.           |
+| Fig 3     | ![Fig 3](figures/fig-03-phase2-metric-levels.png)          | Bar chart   | Organization-level metrics are the largest share (100), then user (82), then system (55). |
+| Fig 4     | ![Fig 4](figures/fig-04-phase2-risk-bands.png)             | Bar chart   | Most rows are medium risk at baseline (389), with 251 low and 71 high.                    |
 
 ## Fig 1. Phase 1 Controls by Regulation
 
-```mermaid
-pie showData
-    title Phase 1 Controls by Regulation (n=237)
-    "GDPR" : 103
-    "ISO 27001" : 68
-    "NIST PF 1.1" : 66
-```
+![Figure 1: Phase 1 Controls by Regulation](figures/fig-01-phase1-controls-by-regulation.png)
 
 ## Fig 2. Phase 1 Chunks by Regulation
 
-```mermaid
-pie showData
-    title Phase 1 Chunks by Regulation (n=239)
-    "GDPR" : 103
-    "ISO 27001" : 69
-    "NIST PF 1.1" : 67
-```
+![Figure 2: Phase 1 Chunks by Regulation](figures/fig-02-phase1-chunks-by-regulation.png)
 
 ## Fig 3. Phase 2 Metric Distribution by Level
 
-```mermaid
-pie showData
-    title Phase 2 Metric Levels (n=237)
-    "User" : 82
-    "System" : 55
-    "Organization" : 100
-```
+![Figure 3: Phase 2 Metric Levels](figures/fig-03-phase2-metric-levels.png)
 
 ## Fig 4. Phase 2 Risk-Band Distribution (Metric Rows)
 
-```mermaid
-pie showData
-    title Phase 2 Risk Bands (n=711)
-    "Low" : 251
-    "Medium" : 389
-    "High" : 71
+![Figure 4: Phase 2 Risk Bands](figures/fig-04-phase2-risk-bands.png)
+
+Regeneration command:
+
+```bash
+python3 scripts/generate_phase12_dashboard_figures.py
 ```
 
 ## Accuracy/Quality Indicator Tables
