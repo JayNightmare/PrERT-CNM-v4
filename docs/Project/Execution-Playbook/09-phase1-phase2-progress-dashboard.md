@@ -25,30 +25,60 @@ Provide a visual and tabular status view of project progress and model quality i
 | Phase 2 | Public mapping validity (OPP-115) | 115 / 115 valid (100%) |
 | Phase 2 |               Baseline score rows |                    723 |
 
+## Legend
+
+- ↑ higher is better
+- ↓ lower is better
+- ↔ directional-neutral context metric (distribution/mix visibility)
+
 ## Figure Table
 
-| Figure ID | Figure Preview                                             | Visual Type | Key Takeaway                                                                              |
-| --------- | ---------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
-| Fig 1     | ![Fig 1](figures/fig-01-phase1-controls-by-regulation.png) | Bar chart   | GDPR is the largest single control source (103), with ISO and NIST balanced (68/66).      |
-| Fig 2     | ![Fig 2](figures/fig-02-phase1-chunks-by-regulation.png)   | Bar chart   | Chunk split closely matches control split, indicating stable chunking behavior.           |
-| Fig 3     | ![Fig 3](figures/fig-03-phase2-metric-levels.png)          | Bar chart   | Organization-level metrics are the largest share (100), then user (82), then system (55). |
-| Fig 4     | ![Fig 4](figures/fig-04-phase2-risk-bands.png)             | Bar chart   | Most rows are medium risk at baseline (389), with 251 low and 71 high.                    |
+| Figure ID | Figure Preview                                             | Direction      | Key Takeaway                                                                              |
+| --------- | ---------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------- |
+| Fig 1     | ![Fig 1](figures/fig-01-phase1-controls-by-regulation.png) | ↔              | GDPR is the largest single control source (103), with ISO and NIST balanced (68/66).      |
+| Fig 2     | ![Fig 2](figures/fig-02-phase1-chunks-by-regulation.png)   | ↔              | Chunk split closely matches control split, indicating stable chunking behavior.           |
+| Fig 3     | ![Fig 3](figures/fig-03-phase2-metric-levels.png)          | ↔              | Organization-level metrics are the largest share (100), then user (82), then system (55). |
+| Fig 4     | ![Fig 4](figures/fig-04-phase2-risk-bands.png)             | ↑ low / ↓ high | Most rows are medium risk at baseline (389), with 251 low and 71 high.                    |
 
 ## Fig 1. Phase 1 Controls by Regulation
 
 ![Figure 1: Phase 1 Controls by Regulation](figures/fig-01-phase1-controls-by-regulation.png)
 
+What this means:
+
+- This chart shows how extracted controls are distributed across regulations.
+- A balanced mix is useful for coverage confidence; extreme skew would indicate potential under-extraction in one source.
+- This is a context chart (↔), not a direct better/worse score.
+
 ## Fig 2. Phase 1 Chunks by Regulation
 
 ![Figure 2: Phase 1 Chunks by Regulation](figures/fig-02-phase1-chunks-by-regulation.png)
+
+What this means:
+
+- Chunk totals track how much searchable content was generated per regulation.
+- The near alignment with control totals indicates chunking behavior is stable and not excessively fragmenting text.
+- This is a context chart (↔); use it to detect parser/chunker drift over time.
 
 ## Fig 3. Phase 2 Metric Distribution by Level
 
 ![Figure 3: Phase 2 Metric Levels](figures/fig-03-phase2-metric-levels.png)
 
+What this means:
+
+- This chart shows where metric emphasis currently sits across user, system, and organization layers.
+- Organization-heavy distribution indicates stronger governance/process representation relative to system instrumentation.
+- This is a context chart (↔) used for coverage mix decisions, not a direct performance score.
+
 ## Fig 4. Phase 2 Risk-Band Distribution (Metric Rows)
 
 ![Figure 4: Phase 2 Risk Bands](figures/fig-04-phase2-risk-bands.png)
+
+What this means:
+
+- This chart shows the current risk profile from baseline metric rows.
+- Desired trend over time: low risk count ↑ and high risk count ↓ as controls and scoring quality improve.
+- Medium risk often represents transitional cases that should be reduced through better feature coverage and calibration.
 
 Regeneration command:
 
@@ -74,19 +104,19 @@ Notes:
 
 ### Table B. Scenario Stability Indicators
 
-| Scenario    | Composite Compliance | Composite Risk | Risk Band |
-| ----------- | -------------------: | -------------: | --------- |
-| normal      |             0.776494 |       0.223506 | low       |
-| stressed    |             0.569538 |       0.430462 | medium    |
-| adversarial |             0.373206 |       0.626794 | medium    |
+| Scenario    | Composite Compliance (↑) | Composite Risk (↓) | Risk Band |
+| ----------- | -----------------------: | -----------------: | --------- |
+| normal      |                 0.776494 |           0.223506 | low       |
+| stressed    |                 0.569538 |           0.430462 | medium    |
+| adversarial |                 0.373206 |           0.626794 | medium    |
 
 ### Table C. Average Metric-Level Scores by Scenario
 
-| Scenario    | Mean Confidence-Adjusted Score | Mean Risk Score |
-| ----------- | -----------------------------: | --------------: |
-| normal      |                         0.7757 |          0.2243 |
-| stressed    |                         0.5703 |          0.4297 |
-| adversarial |                         0.3705 |          0.6295 |
+| Scenario    | Mean Confidence-Adjusted Score (↑) | Mean Risk Score (↓) |
+| ----------- | ---------------------------------: | ------------------: |
+| normal      |                             0.7757 |              0.2243 |
+| stressed    |                             0.5703 |              0.4297 |
+| adversarial |                             0.3705 |              0.6295 |
 
 Interpretation:
 
