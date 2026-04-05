@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prert-cnm-v4"
+version = "0.1.0"
+description = "Phase 1 regulation extraction and Chroma Cloud ingestion for privacy ground truth"
+readme = "docs/Project/Execution-Playbook/README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "chromadb>=1.5.5",
+  "httpx>=0.28.1",
+  "python-dotenv>=1.2.2",
+  "pypdf>=6.9.2",
+  "pytest>=9.0.2",
+  "ruff>=0.15.9"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.0.2",
+  "ruff>=0.15.9"
+]
+
+[project.scripts]
+prert-extract = "prert.cli.extract:main"
+prert-migrate = "prert.cli.migrate:main"
+prert-phase2 = "prert.cli.phase2:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
