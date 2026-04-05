@@ -115,17 +115,17 @@ Notes:
 
 | Scenario    | Composite Compliance (↑) | Composite Risk (↓) | Risk Band |
 | ----------- | -----------------------: | -----------------: | --------- |
-| normal      |                 0.776494 |           0.223506 | low       |
-| stressed    |                 0.569538 |           0.430462 | medium    |
-| adversarial |                 0.373206 |           0.626794 | medium    |
+| normal      |         77.6% (0.776494) |   22.4% (0.223506) | low       |
+| stressed    |         57.0% (0.569538) |   43.0% (0.430462) | medium    |
+| adversarial |         37.3% (0.373206) |   62.7% (0.626794) | medium    |
 
 ### Table C. Average Metric-Level Scores by Scenario
 
 | Scenario    | Mean Confidence-Adjusted Score (↑) | Mean Risk Score (↓) |
 | ----------- | ---------------------------------: | ------------------: |
-| normal      |                             0.7757 |              0.2243 |
-| stressed    |                             0.5703 |              0.4297 |
-| adversarial |                             0.3705 |              0.6295 |
+| normal      |                     77.6% (0.7757) |              0.2243 |
+| stressed    |                     57.0% (0.5703) |              0.4297 |
+| adversarial |                     37.3% (0.3705) |              0.6295 |
 
 Interpretation:
 
