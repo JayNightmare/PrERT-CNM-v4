@@ -18,6 +18,14 @@ def main() -> None:
         input_set=args.input_set,
         source_dir=args.source_dir,
         labeled_input_path=args.labeled_input_path,
+        model_type=args.model_type,
+        random_state=args.random_state,
+        max_features=args.max_features,
+        ngram_max=args.ngram_max,
+        min_df=args.min_df,
+        max_df=args.max_df,
+        c=args.c,
+        max_iter=args.max_iter,
         seed=args.seed,
         max_rows=args.max_rows,
     )
@@ -72,6 +80,55 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=42,
         help="Random seed for deterministic split behavior.",
+    )
+    parser.add_argument(
+        "--model-type",
+        type=str,
+        default="naive_bayes",
+        choices=("naive_bayes", "logreg_tfidf"),
+        help="Classifier backend for Phase 3.",
+    )
+    parser.add_argument(
+        "--random-state",
+        type=int,
+        default=42,
+        help="Random state for classifier initialization.",
+    )
+    parser.add_argument(
+        "--max-features",
+        type=int,
+        default=20000,
+        help="Maximum number of TF-IDF features for logreg_tfidf.",
+    )
+    parser.add_argument(
+        "--ngram-max",
+        type=int,
+        default=2,
+        help="Upper bound for n-gram range in TF-IDF vectorization.",
+    )
+    parser.add_argument(
+        "--min-df",
+        type=int,
+        default=2,
+        help="Minimum document frequency for TF-IDF terms.",
+    )
+    parser.add_argument(
+        "--max-df",
+        type=float,
+        default=0.95,
+        help="Maximum document frequency for TF-IDF terms.",
+    )
+    parser.add_argument(
+        "--c",
+        type=float,
+        default=1.0,
+        help="Inverse regularization strength for logistic regression.",
+    )
+    parser.add_argument(
+        "--max-iter",
+        type=int,
+        default=1000,
+        help="Maximum iterations for logistic regression solver.",
     )
     parser.add_argument(
         "--max-rows",

@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from prert.phase3.pipeline import run_phase3_pipeline
 
 
@@ -77,3 +79,44 @@ def test_phase3_metrics_in_range(tmp_path: Path) -> None:
     assert overlap["train_validation"] == 0
     assert overlap["train_test"] == 0
     assert overlap["validation_test"] == 0
+
+
+def test_phase3_manifest_includes_model_metadata(tmp_path: Path) -> None:
+    input_path = tmp_path / "labeled.jsonl"
+    output_dir = tmp_path / "phase-3"
+    _write_labeled_dataset(input_path)
+
+    manifest = run_phase3_pipeline(
+        output_dir=output_dir,
+        labeled_input_path=input_path,
+        seed=13,
+        model_type="naive_bayes",
+    )
+
+    assert manifest["inputs"]["model_type"] == "naive_bayes"
+    assert manifest["model_summary"]["model_type"] == "multinomial_naive_bayes"
+    assert manifest["model_summary"]["training_config"]["max_features"] == 20000
+
+
+def test_phase3_logreg_tfidf_pipeline(tmp_path: Path) -> None:
+    pytest.importorskip("sklearn")
+
+    input_path = tmp_path / "labeled.jsonl"
+    output_dir = tmp_path / "phase-3-logreg"
+    _write_labeled_dataset(input_path)
+
+    manifest = run_phase3_pipeline(
+        output_dir=output_dir,
+        labeled_input_path=input_path,
+        seed=17,
+        model_type="logreg_tfidf",
+        min_df=1,
+        max_df=1.0,
+        max_features=500,
+        max_iter=500,
+    )
+
+    assert manifest["inputs"]["model_type"] == "logreg_tfidf"
+    assert manifest["model_summary"]["model_type"] == "logreg_tfidf"
+    assert manifest["model_summary"]["checkpoint_path"].endswith("model.pkl")
+    assert (output_dir / "classifier_checkpoint" / "model.pkl").exists()

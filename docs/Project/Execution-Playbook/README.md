@@ -15,14 +15,15 @@ Provide practical guidance to complete each of the 4 phases with:
 ## Visualisations
 
 - [Phase 1-2 Progress and Accuracy Dashboard](09-phase1-phase2-progress-dashboard.md) - Charts and figure tables for extraction progress, mapping coverage, risk distribution, and scenario stability.
-- [Phase 3 Baseline Visual Dashboard](11-phase3-visual-dashboard.md) - Dataset mix, split profile, held-out quality indicators, and test confusion flow.
+- [Phase 3 Visual Dashboard](11-phase3-visual-dashboard.md) - Dataset mix, split profile, held-out quality indicators, baseline-vs-upgraded model comparisons, and confusion flow.
 
 ## Implementation Status Snapshot
 
 - Phase 1: implemented and operational via `scripts/run_phase1_pipeline.py`.
 - Phase 2: implemented and operational via `scripts/run_phase2_metrics.py`.
-- Phase 3 baseline: implemented and operational via `scripts/run_phase3_baseline.py`.
-- Latest recorded combined regression command completed successfully: - `PYTHONPATH=src pytest -q tests/test_phase2_pipeline.py tests/test_phase3_pipeline.py`
+- Phase 3 baseline and upgraded model path: implemented and operational via `scripts/run_phase3_baseline.py` (`--model-type naive_bayes|logreg_tfidf`).
+- Latest comparable benchmark artifacts: `artifacts/phase-3-nb/` and `artifacts/phase-3-logreg/`.
+- Latest recorded combined regression command completed successfully: `PYTHONPATH=src pytest -q tests/test_phase2_pipeline.py tests/test_phase3_pipeline.py`
 - Phase 3 next increment (Bayesian scoring and API integration): planned but not yet implemented.
 
 ## Document Index

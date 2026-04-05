@@ -4,7 +4,7 @@ Timeline target: Month 3
 
 ## Status Update
 
-Phase 3 baseline implementation is now in place using a deterministic multinomial Naive Bayes pipeline (see `10-phase3-implementation-runbook.md`).
+Phase 3 implementation now includes a deterministic multinomial Naive Bayes baseline and an upgraded TF-IDF + weighted logistic regression path (see `10-phase3-implementation-runbook.md` and `11-phase3-visual-dashboard.md`).
 
 This document remains the target plan for the next increment: PrivacyBERT-oriented modeling, Bayesian risk scoring, explainability hardening, and service-level integration.
 

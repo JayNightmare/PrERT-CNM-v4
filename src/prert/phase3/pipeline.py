@@ -23,6 +23,14 @@ def run_phase3_pipeline(
     input_set: str = "consolidation-0.75",
     source_dir: Optional[Path] = None,
     labeled_input_path: Optional[Path] = None,
+    model_type: str = "naive_bayes",
+    random_state: int = 42,
+    max_features: int = 20000,
+    ngram_max: int = 2,
+    min_df: int = 2,
+    max_df: float = 0.95,
+    c: float = 1.0,
+    max_iter: int = 1000,
     seed: int = 42,
     max_rows: Optional[int] = None,
 ) -> Dict[str, Any]:
@@ -62,11 +70,23 @@ def run_phase3_pipeline(
     write_jsonl(output_dir / "test_dataset.jsonl", test_rows)
     write_json(output_dir / "dataset_manifest.json", dataset_manifest)
 
-    checkpoint_path = output_dir / "classifier_checkpoint" / "model.json"
+    checkpoint_suffix = "model.json"
+    if model_type.strip().lower() in {"logreg_tfidf", "logistic_regression", "lr_tfidf"}:
+        checkpoint_suffix = "model.pkl"
+    checkpoint_path = output_dir / "classifier_checkpoint" / checkpoint_suffix
+
     model, training_summary = train_classifier(
         examples=splits["train"],
         labels=LABELS,
         output_path=checkpoint_path,
+        model_type=model_type,
+        random_state=random_state,
+        max_features=max_features,
+        ngram_max=ngram_max,
+        min_df=min_df,
+        max_df=max_df,
+        c=c,
+        max_iter=max_iter,
     )
 
     validation_metrics = evaluate_classifier(model, splits["validation"], LABELS)
@@ -77,11 +97,20 @@ def run_phase3_pipeline(
 
     metrics_payload = {
         "phase": "phase-3",
-        "model_type": "multinomial_naive_bayes",
+        "model_type": training_summary["model_type"],
         "labels": list(LABELS),
         "training": {
             "rows": len(splits["train"]),
             "vocabulary_size": int(training_summary["vocabulary_size"]),
+            "config": {
+                "seed": random_state,
+                "max_features": max_features,
+                "ngram_max": ngram_max,
+                "min_df": min_df,
+                "max_df": max_df,
+                "c": c,
+                "max_iter": max_iter,
+            },
         },
         "validation": validation_metrics,
         "test": test_metrics,
@@ -122,6 +151,7 @@ def run_phase3_pipeline(
             "input_set": input_set,
             "source_dir": str(source_dir) if source_dir else "",
             "labeled_input_path": str(labeled_input_path) if labeled_input_path else "",
+            "model_type": model_type,
         },
         "dataset_manifest": {
             "total_rows": dataset_manifest["total_rows"],
@@ -134,6 +164,7 @@ def run_phase3_pipeline(
             "labels": list(LABELS),
             "vocabulary_size": metrics_payload["training"]["vocabulary_size"],
             "checkpoint_path": str(checkpoint_path),
+            "training_config": metrics_payload["training"]["config"],
         },
         "metrics": {
             "validation_macro_f1": metrics_payload["validation"]["macro_f1"],
