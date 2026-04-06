@@ -44,7 +44,7 @@ Optional source:
 Run Phase 3 baseline using OPP-115 default input set:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py
+PYTHONPATH=src python scripts/run_phase3_baseline.py
 ```
 
 Equivalent package command:
@@ -56,7 +56,7 @@ prert-phase3
 Run with a custom labeled JSONL dataset:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --labeled-input-path data/processed/phase3_labeled.jsonl \
   --output-dir artifacts/phase-3
 ```
@@ -64,7 +64,7 @@ PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
 Run a bounded sample for quick iteration:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --max-rows 5000 \
   --seed 42
 ```
@@ -72,7 +72,7 @@ PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
 Run with the upgraded TF-IDF + weighted logistic regression model:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --model-type logreg_tfidf \
   --max-features 20000 \
   --ngram-max 2 \
@@ -83,7 +83,7 @@ PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
 Run with the PrivacyBERT backend scaffold:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --model-type privacybert \
   --privacybert-model-name bert-base-uncased \
   --privacybert-epochs 2 \
@@ -96,7 +96,7 @@ PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
 Run with custom Bayesian priors (enabled by default):
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --model-type logreg_tfidf \
   --bayesian-priors-path configs/phase3_bayesian_priors.json \
   --bayesian-top-k 5 \
@@ -106,7 +106,7 @@ PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
 Disable Bayesian scoring output (benchmark/diagnostic only):
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --model-type logreg_tfidf \
   --disable-bayesian-scoring \
   --output-dir artifacts/phase-3-no-bayes
@@ -115,7 +115,7 @@ PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
 Run a comparable full-data Naive Bayes baseline for side-by-side benchmarking:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --model-type naive_bayes \
   --output-dir artifacts/phase-3-nb
 ```
@@ -123,7 +123,7 @@ PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
 Run a proposal-aligned Phase 3 acceptance freeze (PrivacyBERT + Bayesian-primary checks):
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_acceptance_freeze.py \
+PYTHONPATH=src python scripts/run_phase3_acceptance_freeze.py \
   --model-type privacybert \
   --strict \
   --output-dir artifacts/phase-3-freeze

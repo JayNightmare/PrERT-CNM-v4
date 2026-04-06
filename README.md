@@ -83,13 +83,13 @@ Required environment variables:
 From repository root:
 
 ```bash
-python3 -m pip install -e .
+python -m pip install -e .
 ```
 
 Optional development dependencies:
 
 ```bash
-python3 -m pip install -e .[dev]
+python -m pip install -e .[dev]
 ```
 
 ## Commands To Run
@@ -97,7 +97,7 @@ python3 -m pip install -e .[dev]
 ## 1) Extract Controls and Chunks
 
 ```bash
-PYTHONPATH=src python3 scripts/extract_phase1_controls.py \
+PYTHONPATH=src python scripts/extract_phase1_controls.py \
   --chunk \
   --output-dir artifacts/phase-1
 ```
@@ -111,13 +111,13 @@ prert-extract --chunk --output-dir artifacts/phase-1
 ## 2) Run Unit Tests
 
 ```bash
-PYTHONPATH=src python3 -m pytest tests -q
+PYTHONPATH=src python -m pytest tests -q
 ```
 
 ## 3) Dry-Run Migration to Chroma (No Writes)
 
 ```bash
-PYTHONPATH=src python3 scripts/migrate_to_chroma.py \
+PYTHONPATH=src python scripts/migrate_to_chroma.py \
   --input-dir artifacts/phase-1 \
   --dry-run
 ```
@@ -131,14 +131,14 @@ prert-migrate --input-dir artifacts/phase-1 --dry-run
 ## 4) Live Migration to Chroma
 
 ```bash
-PYTHONPATH=src python3 scripts/migrate_to_chroma.py \
+PYTHONPATH=src python scripts/migrate_to_chroma.py \
   --input-dir artifacts/phase-1
 ```
 
 Optional collection prefix:
 
 ```bash
-PYTHONPATH=src python3 scripts/migrate_to_chroma.py \
+PYTHONPATH=src python scripts/migrate_to_chroma.py \
   --input-dir artifacts/phase-1 \
   --collection-prefix prert_
 ```
@@ -148,7 +148,7 @@ PYTHONPATH=src python3 scripts/migrate_to_chroma.py \
 Default run (uses Phase 1 controls and writes to `artifacts/phase-2`):
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py
+PYTHONPATH=src python scripts/run_phase2_metrics.py
 ```
 
 Equivalent package script:
@@ -160,7 +160,7 @@ prert-phase2
 Optional public dataset mapping:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+PYTHONPATH=src python scripts/run_phase2_metrics.py \
 	--public-input path/to/public_breach_data.csv
 ```
 
@@ -169,7 +169,7 @@ PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
 Generate flat OPP-115 exports compatible with `--public-input`:
 
 ```bash
-PYTHONPATH=src python3 scripts/process_opp115_for_phase2.py
+PYTHONPATH=src python scripts/process_opp115_for_phase2.py
 ```
 
 Equivalent package script:
@@ -181,7 +181,7 @@ prert-opp115
 Then run Phase 2 with processed OPP-115:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+PYTHONPATH=src python scripts/run_phase2_metrics.py \
 	--public-input data/processed/opp115_public_mapping.csv
 ```
 

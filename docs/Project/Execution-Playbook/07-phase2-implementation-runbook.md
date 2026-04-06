@@ -32,13 +32,13 @@ Optional:
 Create processed OPP-115 flat files (default: consolidation threshold 0.75):
 
 ```bash
-PYTHONPATH=src python3 scripts/process_opp115_for_phase2.py
+PYTHONPATH=src python scripts/process_opp115_for_phase2.py
 ```
 
 Create processed OPP-115 files from the raw annotation set instead of consolidated annotations:
 
 ```bash
-PYTHONPATH=src python3 scripts/process_opp115_for_phase2.py \
+PYTHONPATH=src python scripts/process_opp115_for_phase2.py \
   --input-set annotations
 ```
 
@@ -51,27 +51,27 @@ prert-opp115
 Run Phase 2 using OPP-115 as a reference corpus only (no `--public-input`):
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py
+PYTHONPATH=src python scripts/run_phase2_metrics.py
 ```
 
 Run Phase 2 with a processed OPP-115 CSV export:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+PYTHONPATH=src python scripts/run_phase2_metrics.py \
   --public-input data/processed/opp115_public_mapping.csv
 ```
 
 Run Phase 2 with a processed OPP-115 JSONL export:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+PYTHONPATH=src python scripts/run_phase2_metrics.py \
   --public-input data/processed/opp115_public_mapping.jsonl
 ```
 
 Run Phase 2 with processed OPP-115 input and a custom output folder:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+PYTHONPATH=src python scripts/run_phase2_metrics.py \
   --public-input data/processed/opp115_public_mapping.csv \
   --output-dir artifacts/phase-2
 ```

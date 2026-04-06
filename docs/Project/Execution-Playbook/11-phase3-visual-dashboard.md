@@ -131,7 +131,7 @@ What this means:
 Regeneration command:
 
 ```bash
-PYTHONPATH=src python3 scripts/generate_phase3_dashboard_figures.py
+PYTHONPATH=src python scripts/generate_phase3_dashboard_figures.py
 ```
 
 ---

@@ -196,20 +196,20 @@ Row quality metadata:
 Default execution:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py
+PYTHONPATH=src python scripts/run_phase2_metrics.py
 ```
 
 With public dataset:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+PYTHONPATH=src python scripts/run_phase2_metrics.py \
   --public-input path/to/public_breach_data.csv
 ```
 
 Custom output directory:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase2_metrics.py \
+PYTHONPATH=src python scripts/run_phase2_metrics.py \
   --output-dir artifacts/phase-2
 ```
 

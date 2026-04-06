@@ -92,7 +92,7 @@ What this means:
 Regeneration command:
 
 ```bash
-python3 scripts/generate_phase12_dashboard_figures.py
+python scripts/generate_phase12_dashboard_figures.py
 ```
 
 ## Accuracy/Quality Indicator Tables

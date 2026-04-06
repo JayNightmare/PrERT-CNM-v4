@@ -35,19 +35,19 @@ This runbook covers the implementation that was added for:
 From repo root:
 
 ```bash
-python3 -m pip install -e .
+python -m pip install -e .
 ```
 
 Optional dev tools:
 
 ```bash
-python3 -m pip install -e .[dev]
+python -m pip install -e .[dev]
 ```
 
 ## Run Extraction (Phase 1)
 
 ```bash
-PYTHONPATH=src python3 scripts/extract_phase1_controls.py \
+PYTHONPATH=src python scripts/extract_phase1_controls.py \
   --chunk \
   --output-dir artifacts/phase-1
 ```
@@ -65,7 +65,7 @@ Expected outputs:
 ## Dry-Run Chroma Migration
 
 ```bash
-PYTHONPATH=src python3 scripts/migrate_to_chroma.py \
+PYTHONPATH=src python scripts/migrate_to_chroma.py \
   --input-dir artifacts/phase-1 \
   --dry-run
 ```
@@ -75,7 +75,7 @@ This verifies collection sharding and row counts without writing to cloud.
 ## Live Chroma Migration
 
 ```bash
-PYTHONPATH=src python3 scripts/migrate_to_chroma.py \
+PYTHONPATH=src python scripts/migrate_to_chroma.py \
   --input-dir artifacts/phase-1
 ```
 
@@ -88,7 +88,7 @@ Default collection shards:
 Optional prefix:
 
 ```bash
-PYTHONPATH=src python3 scripts/migrate_to_chroma.py \
+PYTHONPATH=src python scripts/migrate_to_chroma.py \
   --input-dir artifacts/phase-1 \
   --collection-prefix prert_
 ```
@@ -98,7 +98,7 @@ PYTHONPATH=src python3 scripts/migrate_to_chroma.py \
 Run tests:
 
 ```bash
-PYTHONPATH=src python3 -m pytest tests -q
+PYTHONPATH=src python -m pytest tests -q
 ```
 
 ## Phase 1 Visual Snapshot

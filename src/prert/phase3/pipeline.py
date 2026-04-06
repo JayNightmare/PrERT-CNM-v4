@@ -324,13 +324,13 @@ def _write_prototype_demo(path: Path) -> None:
 Run the baseline pipeline:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py
+PYTHONPATH=src python scripts/run_phase3_baseline.py
 ```
 
 Run with a custom labeled dataset:
 
 ```bash
-PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --labeled-input-path path/to/labeled_dataset.jsonl \
   --output-dir artifacts/phase-3
 ```
