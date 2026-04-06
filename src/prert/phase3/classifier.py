@@ -323,7 +323,7 @@ class PrivacyBertClassifier:
         with tempfile.TemporaryDirectory(prefix="phase3-privacybert-") as tmpdir:
             training_args = self._training_args_cls(
                 output_dir=tmpdir,
-                overwrite_output_dir=True,
+                # overwrite_output_dir=True,
                 learning_rate=self.learning_rate,
                 per_device_train_batch_size=self.batch_size,
                 num_train_epochs=self.num_train_epochs,
@@ -337,7 +337,7 @@ class PrivacyBertClassifier:
                 model=self.model,
                 args=training_args,
                 train_dataset=dataset,
-                tokenizer=self.tokenizer,
+                # tokenizer=self.tokenizer,
             )
             trainer.train()
             self.model = trainer.model

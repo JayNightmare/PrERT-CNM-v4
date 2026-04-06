@@ -7,7 +7,7 @@ import json
 import random
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 from prert.phase2.opp115 import INPUT_SET_TO_SUBDIR
 from prert.phase3.io import read_jsonl
@@ -174,7 +174,7 @@ def split_examples_by_policy(
 
 
 def build_dataset_manifest(
-    splits: Dict[str, Sequence[ClauseExample]],
+    splits: Mapping[str, Sequence[ClauseExample]],
     seed: int,
     source: str,
     input_set: str,
@@ -286,7 +286,7 @@ def _collect_split_examples(by_policy: Dict[str, List[ClauseExample]], policy_id
     return rows
 
 
-def _policy_overlap_report(splits: Dict[str, Sequence[ClauseExample]]) -> Dict[str, int]:
+def _policy_overlap_report(splits: Mapping[str, Sequence[ClauseExample]]) -> Dict[str, int]:
     split_ids: Dict[str, Set[str]] = {
         split: {row.policy_uid for row in rows}
         for split, rows in splits.items()

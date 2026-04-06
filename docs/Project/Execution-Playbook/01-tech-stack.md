@@ -139,4 +139,4 @@ This minimum still supports full proposal goals while reducing operational compl
 
 ## Navigation
 
-[⬅ Back](README.md) | [Next ⮕](02-phase-1-standards-mapping.md)
+[⬅ Back](../../README.md) | [Next ⮕](02-phase-1-standards-mapping.md)

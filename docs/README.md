@@ -17,8 +17,6 @@ Provide practical guidance to complete each of the 4 phases with:
 > [!NOTE]
 > This document is still being worked on. The index now includes implementation runbooks, technical documentation, and a visual progress dashboard.
 
-[Overall](./Project/Execution-Playbook/README.md) project execution playbook with phase-by-phase guides and runbooks.
-
 ### Phase Execution Guides
 
 1. [Tech Stack](./Project/Execution-Playbook/01-tech-stack.md)
@@ -46,6 +44,13 @@ Provide practical guidance to complete each of the 4 phases with:
       - Commands and operational steps for running the implemented Phase 2 pipeline.
 2. [Phase 2: Technical Documentation](./Project/Execution-Playbook/08-phase2-technical-documentation.md)
       - Architecture, rationale, data contracts, scoring logic, and quality gates for Phase 2.
+
+#### Phase 3
+
+1. [Phase 3: Implementation Runbook](./Project/Execution-Playbook/10-phase3-implementation-runbook.md)
+      - Commands and operational steps for running the implemented Phase 3 pipeline.
+      - Includes acceptance-freeze workflow for proposal-aligned Phase 3 handoff into validation.
+      - Note: Phase 3 technical documentation is still in progress and will be added soon.
 
 ### Visualisations
 

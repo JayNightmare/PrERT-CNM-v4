@@ -120,6 +120,15 @@ PYTHONPATH=src python3 scripts/run_phase3_baseline.py \
   --output-dir artifacts/phase-3-nb
 ```
 
+Run a proposal-aligned Phase 3 acceptance freeze (PrivacyBERT + Bayesian-primary checks):
+
+```bash
+PYTHONPATH=src python3 scripts/run_phase3_acceptance_freeze.py \
+  --model-type privacybert \
+  --strict \
+  --output-dir artifacts/phase-3-freeze
+```
+
 ## Outputs
 
 Written to the selected `--output-dir` (for example `artifacts/phase-3/`, `artifacts/phase-3-nb/`, or `artifacts/phase-3-logreg/`):
@@ -141,6 +150,8 @@ Written to the selected `--output-dir` (for example `artifacts/phase-3/`, `artif
 - `scoring_spec.md`
 - `prototype_demo.md`
 - `phase3_manifest.json`
+- `phase3_acceptance_report.json` (acceptance-freeze runs)
+- `phase3_acceptance_report.md` (acceptance-freeze runs)
 
 ## Quality Checks
 

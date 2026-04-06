@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "prert-cnm-v4"
 version = "0.1.0"
 description = "Phase 1 regulation extraction and Chroma Cloud ingestion for privacy ground truth"
-readme = "docs/Project/Execution-Playbook/README.md"
+readme = "docs/README.md"
 requires-python = ">=3.11"
 dependencies = [
   "accelerate>=1.1.0",
@@ -34,6 +34,7 @@ prert-extract = "prert.cli.extract:main"
 prert-migrate = "prert.cli.migrate:main"
 prert-phase2 = "prert.cli.phase2:main"
 prert-phase3 = "prert.cli.phase3:main"
+prert-phase3-freeze = "prert.cli.phase3_freeze:main"
 prert-opp115 = "prert.cli.opp115:main"
 
 [tool.setuptools]

@@ -1,0 +1,54 @@
+{
+  "phase": "phase-3",
+  "seed": 42,
+  "source": "opp115::consolidation-0.75",
+  "input_set": "consolidation-0.75",
+  "total_rows": 19720,
+  "class_distribution": {
+    "organization": 16601,
+    "system": 752,
+    "user": 2367
+  },
+  "splits": {
+    "train": {
+      "split": "train",
+      "rows": 15645,
+      "unique_policies": 92,
+      "class_distribution": {
+        "organization": 13180,
+        "system": 630,
+        "user": 1835
+      }
+    },
+    "validation": {
+      "split": "validation",
+      "rows": 1803,
+      "unique_policies": 11,
+      "class_distribution": {
+        "organization": 1501,
+        "system": 51,
+        "user": 251
+      }
+    },
+    "test": {
+      "split": "test",
+      "rows": 2272,
+      "unique_policies": 12,
+      "class_distribution": {
+        "organization": 1920,
+        "system": 71,
+        "user": 281
+      }
+    }
+  },
+  "policy_overlap": {
+    "train_validation": 0,
+    "train_test": 0,
+    "validation_test": 0
+  },
+  "labels": [
+    "user",
+    "system",
+    "organization"
+  ]
+}
