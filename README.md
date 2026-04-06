@@ -1,14 +1,48 @@
 # PrERT-CNM-v4
 
+> This repository contains the implementation for Phase 1 of the Privacy Evaluation and Risk Quantification Tool (PrERT) project, focused on regulation-specific control extraction, chunking, and Chroma Cloud ingestion. It also includes initial work towards Phase 2 metrics definition and synthetic data generation.
+
+## Total Time Spent on Project PrERT
+
+|                                                                                                                           v1                                                                                                                            |                                                                                                                        v2                                                                                                                         |                                                                                                                        v3                                                                                                                         |                                                                                                                        v4                                                                                                                         |
+| :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e) | [![v2](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55) | [![v3](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411) | [![v4](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/bbab7b0b-e4bf-4f9e-ba2a-507491705ea4.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/bbab7b0b-e4bf-4f9e-ba2a-507491705ea4) |
+
+|     Total     |
+| :-----------: |
+| **2d 2h 56m** |
+
+## Phase Breakdowns
+
+### Phase 1: Control Extraction and Chroma Ingestion
+
 Phase 1 implementation for regulation-specific control extraction and Chroma Cloud ingestion.
 
-This repository extracts ground-truth controls from:
+This extracts ground-truth controls from:
 
 - GDPR (articles and sub-clauses)
 - ISO/IEC 27001
 - NIST Privacy Framework 1.1
 
 It then normalizes and chunks the controls for search and ingestion into Chroma Cloud.
+
+### Phase 2: Metrics Definition, Synthetic Data Generation, and Baseline Scoring
+
+Phase 2 implementation for multi-level privacy metrics definition, synthetic data generation, and baseline scoring.
+
+This defines user, system, and organization-level metrics based on Phase 1 controls, generates synthetic observations for testing, and produces baseline scoring outputs. It also supports optional enrichment with public breach datasets.
+
+### Phase 3: AI Prototype for Privacy Clause Classification and Risk Scoring
+
+Phase 3 implementation for an AI prototype that combines PrivacyBERT-based clause classification with Bayesian/probabilistic risk modeling.
+
+This fine-tunes PrivacyBERT on OPP-115 and Polisis datasets for clause classification, then integrates it with a risk scoring model to produce user privacy quantification outputs.
+
+### Phase 4: Prototype Validation, Benchmarking, and Final Reporting
+
+Phase 4 implementation for validating the Phase 3 prototype, benchmarking against defined metrics, and delivering final project outputs.
+
+This tests the prototype on real and synthetic data, benchmarks outputs against defined metrics, refines the model based on validation findings, and delivers the final report and validated tool.
 
 ## What Is Implemented
 
