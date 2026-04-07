@@ -26,6 +26,19 @@ Classifier metrics remain the baseline quality surface. Bayesian posterior outpu
 - `artifacts/phase-3-privacybert/dataset_manifest.json`
 - `artifacts/phase-3-privacybert/classifier_metrics.json`
 - `artifacts/phase-3-privacybert/bayesian_risk_test.json`
+- `artifacts/phase-3-nb/calibration_test.json`
+- `artifacts/phase-3-logreg/calibration_test.json`
+- `artifacts/phase-3-no-bayes/calibration_test.json`
+- `artifacts/phase-3-privacybert/calibration_test.json`
+- `artifacts/phase-3-nb/threshold_sweep_test.json`
+- `artifacts/phase-3-logreg/threshold_sweep_test.json`
+- `artifacts/phase-3-no-bayes/threshold_sweep_test.json`
+- `artifacts/phase-3-privacybert/threshold_sweep_test.json`
+- `artifacts/phase-3-nb/bootstrap_ci_test.json`
+- `artifacts/phase-3-logreg/bootstrap_ci_test.json`
+- `artifacts/phase-3-no-bayes/bootstrap_ci_test.json`
+- `artifacts/phase-3-privacybert/bootstrap_ci_test.json`
+- `artifacts/phase3_run_history.jsonl`
 
 ## Executive Summary
 
@@ -46,16 +59,21 @@ Classifier metrics remain the baseline quality surface. Bayesian posterior outpu
 
 ## Figure Table
 
-| Figure ID | Figure Preview                                                             | Key Takeaway                                                                                                              |
-| --------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Fig 5     | ![Fig 5](figures/fig-05-phase3-class-distribution.png)                     | Corpus remains organization-heavy, so macro and per-class metrics are still required for fair model comparison.           |
-| Fig 6     | ![Fig 6](figures/fig-06-phase3-split-sizes.png)                            | Train-heavy split is stable for learning while preserving validation/test hold-outs with zero policy overlap.             |
-| Fig 7     | ![Fig 7](figures/fig-07-phase3-model-comparison-overall-4way.png)          | PrivacyBERT leads aggregate quality; LogReg and No-Bayes are classifier-identical and both improve over NB.               |
-| Fig 8     | ![Fig 8](figures/fig-08-phase3-macro-metric-heatmap-4way.png)              | Heatmap highlights strongest macro precision/recall/F1 concentration in PrivacyBERT and mid-tier gains from LogReg.       |
-| Fig 9     | ![Fig 9](figures/fig-09-phase3-per-class-f1-4way.png)                      | Minority-class F1 gains are largest when moving from NB to LogReg/PrivacyBERT, especially on `system`.                    |
-| Fig 10    | ![Fig 10](figures/fig-10-phase3-confusion-matrix-small-multiples-4way.png) | Confusion small multiples show spillover reduction from NB to LogReg and strongest diagonal concentration in PrivacyBERT. |
-| Fig 11    | ![Fig 11](figures/fig-11-phase3-bayesian-posterior-intervals.png)          | Bayesian posterior means/intervals separate model uncertainty profiles; No-Bayes is intentionally excluded as N/A.        |
-| Fig 12    | ![Fig 12](figures/fig-12-phase3-delta-vs-nb-heatmap.png)                   | Delta map makes improvement vs NB explicit and shows that classifier gains for LogReg and No-Bayes are identical.         |
+| Figure ID | Figure Preview                                                              | Key Takeaway                                                                                                              |
+| --------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Fig 5     | ![Fig 5](figures/fig-05-phase3-class-distribution.png)                      | Corpus remains organization-heavy, so macro and per-class metrics are still required for fair model comparison.           |
+| Fig 6     | ![Fig 6](figures/fig-06-phase3-split-sizes.png)                             | Train-heavy split is stable for learning while preserving validation/test hold-outs with zero policy overlap.             |
+| Fig 7     | ![Fig 7](figures/fig-07-phase3-model-comparison-overall-4way.png)           | PrivacyBERT leads aggregate quality; LogReg and No-Bayes are classifier-identical and both improve over NB.               |
+| Fig 8     | ![Fig 8](figures/fig-08-phase3-macro-metric-heatmap-4way.png)               | Heatmap highlights strongest macro precision/recall/F1 concentration in PrivacyBERT and mid-tier gains from LogReg.       |
+| Fig 9     | ![Fig 9](figures/fig-09-phase3-per-class-f1-4way.png)                       | Minority-class F1 gains are largest when moving from NB to LogReg/PrivacyBERT, especially on `system`.                    |
+| Fig 10    | ![Fig 10](figures/fig-10-phase3-confusion-matrix-small-multiples-4way.png)  | Confusion small multiples show spillover reduction from NB to LogReg and strongest diagonal concentration in PrivacyBERT. |
+| Fig 11    | ![Fig 11](figures/fig-11-phase3-bayesian-posterior-intervals.png)           | Bayesian posterior means/intervals separate model uncertainty profiles; No-Bayes is intentionally excluded as N/A.        |
+| Fig 12    | ![Fig 12](figures/fig-12-phase3-delta-vs-nb-heatmap.png)                    | Delta map makes improvement vs NB explicit and shows that classifier gains for LogReg and No-Bayes are identical.         |
+| Fig 13    | ![Fig 13](figures/fig-13-phase3-calibration-reliability-curves-4way.png)    | Reliability curves expose calibration quality by comparing predicted confidence vs observed accuracy per model.           |
+| Fig 14    | ![Fig 14](figures/fig-14-phase3-expected-calibration-error-summary.png)     | ECE summary highlights which variants are most/least calibrated on held-out predictions.                                  |
+| Fig 15    | ![Fig 15](figures/fig-15-phase3-threshold-sensitivity-user-system-4way.png) | Threshold sweeps show user/system precision-recall operating point tradeoffs across models.                               |
+| Fig 16    | ![Fig 16](figures/fig-16-phase3-bootstrap-confidence-intervals-metrics.png) | Bootstrap intervals quantify uncertainty around held-out accuracy and macro F1 comparisons.                               |
+| Fig 17    | ![Fig 17](figures/fig-17-phase3-run-trend-snapshots-timeline.png)           | Dated trend snapshots track run-to-run metric drift and ranking stability over time.                                      |
 
 ## Fig 5. Dataset Class Distribution
 
@@ -135,6 +153,51 @@ What this means:
 - LogReg and No-Bayes have equal deltas everywhere (same classifier outputs).
 - PrivacyBERT produces the largest gains, especially for minority classes.
 
+## Fig 13. Reliability Curves (All Models)
+
+![Figure 13: Reliability Curves (All Models)](figures/fig-13-phase3-calibration-reliability-curves-4way.png)
+
+What this means:
+
+- Curves closer to the diagonal indicate better calibration.
+- Divergence from the diagonal identifies confidence over/under-estimation regions.
+
+## Fig 14. Expected Calibration Error Summary
+
+![Figure 14: Expected Calibration Error Summary](figures/fig-14-phase3-expected-calibration-error-summary.png)
+
+What this means:
+
+- Lower ECE indicates better confidence calibration.
+- Side-by-side ECE helps separate ranking by calibration quality from ranking by pure classifier accuracy.
+
+## Fig 15. Threshold Sensitivity (User/System)
+
+![Figure 15: Threshold Sensitivity (User/System)](figures/fig-15-phase3-threshold-sensitivity-user-system-4way.png)
+
+What this means:
+
+- Threshold sweeps surface precision-recall tradeoffs for minority classes.
+- Best operating points can be selected by mission needs (precision-protective vs recall-protective).
+
+## Fig 16. Bootstrap Confidence Intervals (Held-Out Metrics)
+
+![Figure 16: Bootstrap Confidence Intervals (Held-Out Metrics)](figures/fig-16-phase3-bootstrap-confidence-intervals-metrics.png)
+
+What this means:
+
+- Confidence intervals quantify uncertainty on held-out metric estimates.
+- Overlapping intervals indicate where ranking claims should be treated cautiously.
+
+## Fig 17. Dated Run Trend Snapshots
+
+![Figure 17: Dated Run Trend Snapshots](figures/fig-17-phase3-run-trend-snapshots-timeline.png)
+
+What this means:
+
+- Trend lines monitor drift and ranking stability across sequential runs.
+- Run metadata is sourced from `artifacts/phase3_run_history.jsonl` written by each pipeline execution.
+
 ## Held-Out Quality Indicator Tables
 
 ### Table A. Aggregate Held-Out Metrics by Model
@@ -167,12 +230,12 @@ What this means:
 | logreg_tfidf (no bayesian) |                    N/A |                           N/A |                           N/A |                           N/A |
 | privacybert                |               0.987510 | 0.972697 [0.954701, 0.990694] | 0.925694 [0.870264, 0.981124] | 0.992613 [0.988749, 0.996478] |
 
-## Next Measurement Targets
+## Measurement Target Status
 
-1. Add calibration visuals (reliability curves + expected calibration error) for all four classifier variants.
-2. Add threshold-sensitivity sweeps focused on minority-class precision/recall operating points.
-3. Add bootstrap confidence bands for classifier metrics to quantify sampling uncertainty between close variants.
-4. Add dated run trend snapshots to monitor drift and ranking stability over time.
+1. Calibration visuals implemented (`fig-13`, `fig-14`) with reliability bins and ECE summaries.
+2. Threshold-sensitivity sweeps implemented (`fig-15`) focused on user/system classes.
+3. Bootstrap confidence bands implemented (`fig-16`) for held-out accuracy and macro F1.
+4. Dated run trend snapshots implemented (`fig-17`) backed by canonical run-history indexing.
 
 Regeneration command:
 

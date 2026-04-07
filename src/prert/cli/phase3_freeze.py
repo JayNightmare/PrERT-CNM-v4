@@ -37,6 +37,9 @@ def main() -> None:
         bayesian_top_k=args.bayesian_top_k,
         seed=args.seed,
         max_rows=args.max_rows,
+        run_id=args.run_id,
+        calibration_bins=args.calibration_bins,
+        bootstrap_resamples=args.bootstrap_resamples,
     )
 
     report = evaluate_phase3_acceptance(
@@ -143,6 +146,24 @@ def _parse_args() -> argparse.Namespace:
         help="Top contributing clauses retained per level in Bayesian outputs.",
     )
     parser.add_argument("--max-rows", type=int, default=None, help="Optional maximum number of examples to ingest.")
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Optional explicit run identifier recorded in run history artifacts.",
+    )
+    parser.add_argument(
+        "--calibration-bins",
+        type=int,
+        default=10,
+        help="Number of bins for reliability and ECE calibration analytics.",
+    )
+    parser.add_argument(
+        "--bootstrap-resamples",
+        type=int,
+        default=1000,
+        help="Number of bootstrap resamples for confidence interval estimation.",
+    )
     parser.add_argument(
         "--strict",
         action="store_true",

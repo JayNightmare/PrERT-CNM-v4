@@ -35,7 +35,17 @@ def evaluate_classifier(
     for example in examples:
         predicted_label = model.predict(example.text)
         proba = model.predict_proba(example.text)
-        confidence = float(proba.get(predicted_label, 0.0))
+        probabilities = {label: float(proba.get(label, 0.0)) for label in labels}
+        total_probability = sum(probabilities.values())
+        if total_probability > 0:
+            probabilities = {
+                label: (value / total_probability)
+                for label, value in probabilities.items()
+            }
+        else:
+            uniform = 1.0 / max(len(labels), 1)
+            probabilities = {label: uniform for label in labels}
+        confidence = float(probabilities.get(predicted_label, 0.0))
         actual_label = example.label
 
         if actual_label in confusion and predicted_label in confusion[actual_label]:
@@ -51,6 +61,10 @@ def evaluate_classifier(
                 "actual_label": actual_label,
                 "predicted_label": predicted_label,
                 "confidence": round(confidence, 6),
+                "probabilities": {
+                    label: round(float(probabilities.get(label, 0.0)), 6)
+                    for label in labels
+                },
                 "text": example.text,
             }
         )

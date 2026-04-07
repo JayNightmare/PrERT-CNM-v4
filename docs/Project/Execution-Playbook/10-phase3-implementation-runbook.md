@@ -8,6 +8,8 @@ This runbook executes the Phase 3 classifier-and-risk pipeline in an isolated ou
 - Create deterministic train, validation, and test splits with policy-level leakage protection.
 - Train a text classifier backend for user/system/organization labels (`naive_bayes`, `logreg_tfidf`, or `privacybert`).
 - Evaluate held-out classifier metrics and emit Bayesian posterior risk outputs.
+- Emit calibration reports (reliability bins, ECE, Brier), threshold sweeps, and bootstrap confidence intervals.
+- Append canonical run history metadata for dated trend snapshot generation.
 - Write reproducible Phase 3 artifacts and manifest-level provenance.
 
 ## Current Snapshot (Comparable Baseline vs Upgraded)
@@ -67,6 +69,16 @@ Run a bounded sample for quick iteration:
 PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --max-rows 5000 \
   --seed 42
+```
+
+Run with explicit run metadata and measurement controls:
+
+```bash
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
+  --run-id phase3-2026-04-07-a \
+  --calibration-bins 10 \
+  --bootstrap-resamples 1000 \
+  --output-dir artifacts/phase-3-nb
 ```
 
 Run with the upgraded TF-IDF + weighted logistic regression model:
@@ -144,12 +156,19 @@ Written to the selected `--output-dir` (for example `artifacts/phase-3/`, `artif
 - `classifier_metrics.jsonl`
 - `validation_predictions.jsonl`
 - `test_predictions.jsonl`
+- `calibration_validation.json`
+- `calibration_test.json`
+- `threshold_sweep_validation.json`
+- `threshold_sweep_test.json`
+- `bootstrap_ci_validation.json`
+- `bootstrap_ci_test.json`
 - `bayesian_risk_validation.json` (when Bayesian scoring enabled)
 - `bayesian_risk_test.json` (when Bayesian scoring enabled)
 - `model_card.md`
 - `scoring_spec.md`
 - `prototype_demo.md`
 - `phase3_manifest.json`
+- `artifacts/phase3_run_history.jsonl` (canonical run-history index)
 - `phase3_acceptance_report.json` (acceptance-freeze runs)
 - `phase3_acceptance_report.md` (acceptance-freeze runs)
 
@@ -159,15 +178,19 @@ Written to the selected `--output-dir` (for example `artifacts/phase-3/`, `artif
 - `classifier_metrics.json.validation.macro_f1` and `classifier_metrics.json.test.macro_f1` are in [0, 1]
 - `classifier_metrics.json.bayesian.enabled == true` for Bayesian-primary runs
 - `classifier_metrics.json.bayesian.primary_score` is in [0, 1] when enabled
+- `calibration_test.json.overall.ece` and `calibration_test.json.overall.brier` are in [0, 1]
+- `threshold_sweep_test.json.by_label.*[].precision|recall|f1` are in [0, 1]
+- `bootstrap_ci_test.json.metrics.*.interval_95.lower <= upper`
 - `phase3_manifest.json` includes input config, split counts, and output file references
 - `phase3_manifest.json.primary_metric_surface` is `bayesian_posterior` for default runs
+- `phase3_manifest.json.execution_metadata.run_id` and `executed_at` are populated
 
 ## Verification
 
 Run pipeline tests:
 
 ```bash
-PYTHONPATH=src pytest -q tests/test_phase3_pipeline.py
+PYTHONPATH=src pytest -q tests/test_phase3_pipeline.py tests/test_phase3_analytics.py
 ```
 
 Run the cross-phase regression check used in this workspace:
@@ -176,11 +199,17 @@ Run the cross-phase regression check used in this workspace:
 PYTHONPATH=src pytest -q tests/test_phase2_pipeline.py tests/test_phase3_pipeline.py
 ```
 
+Regenerate dashboard figures (Figure 5-17):
+
+```bash
+PYTHONPATH=src python scripts/generate_phase3_dashboard_figures.py
+```
+
 ## Notes
 
-- Bayesian posterior scoring is now integrated as a first implementation slice and is enabled by default.
-- Classifier held-out metrics remain available for benchmark comparison and regression checks.
-- Full PrivacyBERT benchmark hardening, Bayesian calibration governance, and API endpoints remain next-increment work.
+- Bayesian posterior scoring remains enabled by default and is tracked alongside classifier metrics.
+- Calibration, threshold-sensitivity, bootstrap confidence intervals, and run-history indexing are now emitted in Phase 3 outputs.
+- Dashboard generation now includes Figure 13-17 when comparable model artifacts are present.
 
 ---
 

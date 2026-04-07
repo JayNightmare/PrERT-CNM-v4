@@ -5,7 +5,13 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+from prert.phase3.analytics import (
+    compute_bootstrap_confidence_intervals,
+    compute_calibration_report,
+    compute_threshold_sweep,
+)
 
 plt = importlib.import_module("matplotlib.pyplot")
 colors = importlib.import_module("matplotlib.colors")
@@ -44,6 +50,20 @@ def _load_json_if_exists(path: Path) -> Optional[Dict]:
     if not path.exists():
         return None
     return _load_json(path)
+
+
+def _load_jsonl_if_exists(path: Path) -> Optional[List[Dict[str, Any]]]:
+    if not path.exists():
+        return None
+
+    rows: List[Dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            rows.append(json.loads(line))
+    return rows
 
 
 def _validate_metrics(metrics: Dict, labels: List[str], model_label: str) -> None:
@@ -236,7 +256,7 @@ def _plot_confusion_small_multiples(models: List[Dict], labels: List[str], title
 
 
 def _plot_delta_vs_nb_heatmap(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
-    baseline = next(model for model in models if model["key"] == "nb")
+    baseline = next((model for model in models if model["key"] == "nb"), models[0])
     delta_columns = [
         ("test", "accuracy", "Test Accuracy"),
         ("test", "macro_f1", "Test Macro F1"),
@@ -328,6 +348,266 @@ def _plot_bayesian_intervals(models: List[Dict], level_order: List[str], title: 
     plt.close()
 
 
+def _resolve_calibration_payload(model: Dict, labels: List[str]) -> Optional[Dict[str, Any]]:
+    payload = model.get("calibration_test")
+    if payload is not None:
+        return payload
+    predictions = model.get("predictions_test")
+    if not predictions:
+        return None
+    return compute_calibration_report(predictions, labels=labels, num_bins=10)
+
+
+def _resolve_threshold_payload(model: Dict, labels: List[str]) -> Optional[Dict[str, Any]]:
+    payload = model.get("threshold_test")
+    if payload is not None:
+        return payload
+    predictions = model.get("predictions_test")
+    if not predictions:
+        return None
+    return compute_threshold_sweep(predictions, labels=labels)
+
+
+def _resolve_bootstrap_payload(model: Dict, labels: List[str]) -> Optional[Dict[str, Any]]:
+    payload = model.get("bootstrap_test")
+    if payload is not None:
+        return payload
+    predictions = model.get("predictions_test")
+    if not predictions:
+        return None
+    return compute_bootstrap_confidence_intervals(predictions, labels=labels, n_resamples=500, seed=42)
+
+
+def _plot_reliability_curves(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+    plt.figure(figsize=(9.8, 6.8))
+    plotted = False
+    plt.plot([0.0, 1.0], [0.0, 1.0], linestyle="--", linewidth=1.2, color="gray", label="Perfect calibration")
+
+    for model in models:
+        payload = _resolve_calibration_payload(model, labels)
+        if payload is None:
+            continue
+        bins = payload.get("overall", {}).get("bins", [])
+        x_values = [float(bin_row["avg_confidence"]) for bin_row in bins if int(bin_row.get("count", 0)) > 0]
+        y_values = [float(bin_row["accuracy"]) for bin_row in bins if int(bin_row.get("count", 0)) > 0]
+        if not x_values:
+            continue
+        plotted = True
+        plt.plot(
+            x_values,
+            y_values,
+            marker="o",
+            linewidth=1.8,
+            markersize=5,
+            label=f"{model['label']} (ECE={float(payload['overall']['ece']):.3f})",
+        )
+
+    if not plotted:
+        plt.text(0.5, 0.5, "Calibration data unavailable", ha="center", va="center", fontsize=12)
+
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+    plt.xlabel("Predicted confidence")
+    plt.ylabel("Observed accuracy")
+    plt.title(title)
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(out_path, dpi=170)
+    plt.close()
+
+
+def _plot_ece_summary(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+    model_labels: List[str] = []
+    ece_values: List[float] = []
+    macro_ece_values: List[float] = []
+
+    for model in models:
+        payload = _resolve_calibration_payload(model, labels)
+        if payload is None:
+            continue
+        model_labels.append(model["label"])
+        ece_values.append(float(payload.get("overall", {}).get("ece", 0.0)))
+        macro_ece_values.append(float(payload.get("macro_ece", 0.0)))
+
+    plt.figure(figsize=(9.8, 6.5))
+    if not model_labels:
+        plt.text(0.5, 0.5, "ECE data unavailable", ha="center", va="center", fontsize=12)
+    else:
+        x_positions = list(range(len(model_labels)))
+        width = 0.35
+        bars_overall = plt.bar([x - (width / 2) for x in x_positions], ece_values, width, label="Overall ECE")
+        bars_macro = plt.bar([x + (width / 2) for x in x_positions], macro_ece_values, width, label="Macro ECE")
+
+        for bars in (bars_overall, bars_macro):
+            for bar in bars:
+                value = bar.get_height()
+                plt.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    value + 0.005,
+                    f"{value:.3f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                )
+
+        plt.xticks(x_positions, model_labels, rotation=15)
+        plt.ylim(0, max(0.05, max(ece_values + macro_ece_values) + 0.03))
+        plt.ylabel("ECE")
+        plt.legend(loc="upper left")
+
+    plt.title(title)
+    plt.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(out_path, dpi=170)
+    plt.close()
+
+
+def _plot_threshold_sensitivity(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+    payloads = {
+        model["key"]: _resolve_threshold_payload(model, labels)
+        for model in models
+    }
+    focus_labels = ["user", "system"]
+
+    figure, axes = plt.subplots(1, len(focus_labels), figsize=(12.0, 5.8), constrained_layout=True)
+    if len(focus_labels) == 1:
+        axes = [axes]
+
+    for axis, focus_label in zip(axes, focus_labels):
+        has_data = False
+        for model in models:
+            payload = payloads.get(model["key"])
+            if payload is None:
+                continue
+            series = payload.get("by_label", {}).get(focus_label, [])
+            if not series:
+                continue
+
+            has_data = True
+            recalls = [float(row.get("recall", 0.0)) for row in series]
+            precisions = [float(row.get("precision", 0.0)) for row in series]
+            axis.plot(recalls, precisions, marker="o", linewidth=1.6, markersize=4, label=model["label"])
+
+            best_row = max(series, key=lambda row: float(row.get("f1", 0.0)))
+            axis.text(
+                float(best_row.get("recall", 0.0)),
+                float(best_row.get("precision", 0.0)),
+                f"t={float(best_row.get('threshold', 0.0)):.2f}",
+                fontsize=8,
+            )
+
+        axis.set_title(f"{focus_label.title()} Threshold Sweep")
+        axis.set_xlim(0, 1)
+        axis.set_ylim(0, 1)
+        axis.set_xlabel("Recall")
+        axis.set_ylabel("Precision")
+        axis.grid(alpha=0.25)
+        if not has_data:
+            axis.text(0.5, 0.5, "No threshold data", ha="center", va="center", fontsize=11)
+
+    handles, labels_text = axes[0].get_legend_handles_labels()
+    if handles:
+        figure.legend(handles, labels_text, loc="lower center", ncol=2, frameon=False)
+    figure.suptitle(title, fontsize=13)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(out_path, dpi=170)
+    plt.close(figure)
+
+
+def _plot_bootstrap_confidence(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+    figure, axes = plt.subplots(1, 2, figsize=(12.0, 5.8), constrained_layout=True)
+    metric_keys = ["accuracy", "macro_f1"]
+    metric_titles = ["Test Accuracy 95% CI", "Test Macro F1 95% CI"]
+
+    for axis, metric_key, metric_title in zip(axes, metric_keys, metric_titles):
+        x_positions: List[int] = []
+        labels_text: List[str] = []
+        for index, model in enumerate(models):
+            payload = _resolve_bootstrap_payload(model, labels)
+            if payload is None:
+                continue
+            metric_row = payload.get("metrics", {}).get(metric_key)
+            if not metric_row:
+                continue
+
+            baseline = float(metric_row.get("baseline", metric_row.get("mean", 0.0)))
+            lower = float(metric_row.get("interval_95", {}).get("lower", baseline))
+            upper = float(metric_row.get("interval_95", {}).get("upper", baseline))
+
+            x_positions.append(index)
+            labels_text.append(model["label"])
+            axis.errorbar(
+                index,
+                baseline,
+                yerr=[[max(0.0, baseline - lower)], [max(0.0, upper - baseline)]],
+                fmt="o",
+                capsize=4,
+                markersize=6,
+                linewidth=1.4,
+            )
+            axis.text(index, min(1.0, upper + 0.01), f"[{lower:.3f}, {upper:.3f}]", ha="center", fontsize=8)
+
+        axis.set_title(metric_title)
+        axis.set_ylim(0, 1.02)
+        axis.set_ylabel("Score")
+        axis.set_xticks(x_positions)
+        axis.set_xticklabels(labels_text, rotation=15)
+        axis.grid(alpha=0.25)
+
+    figure.suptitle(title, fontsize=13)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(out_path, dpi=170)
+    plt.close(figure)
+
+
+def _load_run_history(path: Path) -> List[Dict[str, Any]]:
+    rows = _load_jsonl_if_exists(path) or []
+    return sorted(rows, key=lambda row: str(row.get("executed_at", "")))
+
+
+def _plot_run_trends(models: List[Dict], history_rows: List[Dict[str, Any]], title: str, out_path: Path) -> None:
+    figure, axes = plt.subplots(1, 2, figsize=(12.8, 6.0), constrained_layout=True)
+    metric_keys = ["test_accuracy", "test_macro_f1"]
+    metric_titles = ["Test Accuracy Trend", "Test Macro F1 Trend"]
+
+    for axis, metric_key, metric_title in zip(axes, metric_keys, metric_titles):
+        plotted = False
+        for model in models:
+            model_rows = [
+                row for row in history_rows
+                if str(row.get("artifact_dir", "")) == str(model.get("artifact_dir", ""))
+            ]
+            if not model_rows:
+                continue
+
+            plotted = True
+            x_positions = list(range(len(model_rows)))
+            y_values = [float(row.get("metrics", {}).get(metric_key, 0.0)) for row in model_rows]
+            x_labels = [str(row.get("executed_at", ""))[:10] for row in model_rows]
+
+            axis.plot(x_positions, y_values, marker="o", linewidth=1.7, markersize=5, label=model["label"])
+            axis.set_xticks(x_positions)
+            axis.set_xticklabels(x_labels, rotation=30)
+
+        axis.set_title(metric_title)
+        axis.set_ylim(0, 1.02)
+        axis.set_ylabel("Score")
+        axis.grid(alpha=0.25)
+        if not plotted:
+            axis.text(0.5, 0.5, "No run history yet", ha="center", va="center", fontsize=11)
+
+    handles, labels_text = axes[0].get_legend_handles_labels()
+    if handles:
+        figure.legend(handles, labels_text, loc="lower center", ncol=2, frameon=False)
+    figure.suptitle(title, fontsize=13)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(out_path, dpi=170)
+    plt.close(figure)
+
+
 def main() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     artifacts_root = repo_root / "artifacts"
@@ -336,18 +616,37 @@ def main() -> None:
     models = []
     for config in MODEL_CONFIG:
         artifact_dir = artifacts_root / config["artifact_dir"]
-        manifest = _load_json(artifact_dir / "dataset_manifest.json")
-        metrics = _load_json(artifact_dir / "classifier_metrics.json")
+        manifest_path = artifact_dir / "dataset_manifest.json"
+        metrics_path = artifact_dir / "classifier_metrics.json"
+        if not manifest_path.exists() or not metrics_path.exists():
+            print(f"Skipping {config['label']}: missing required artifacts in {artifact_dir}")
+            continue
+
+        manifest = _load_json(manifest_path)
+        metrics = _load_json(metrics_path)
         bayesian_test = _load_json_if_exists(artifact_dir / "bayesian_risk_test.json")
+        calibration_test = _load_json_if_exists(artifact_dir / "calibration_test.json")
+        threshold_test = _load_json_if_exists(artifact_dir / "threshold_sweep_test.json")
+        bootstrap_test = _load_json_if_exists(artifact_dir / "bootstrap_ci_test.json")
+        predictions_test = _load_jsonl_if_exists(artifact_dir / "test_predictions.jsonl")
         models.append(
             {
                 "key": config["key"],
                 "label": config["label"],
+                "artifact_dir": config["artifact_dir"],
                 "manifest": manifest,
                 "metrics": metrics,
                 "bayesian_test": bayesian_test,
+                "calibration_test": calibration_test,
+                "threshold_test": threshold_test,
+                "bootstrap_test": bootstrap_test,
+                "predictions_test": predictions_test,
             }
         )
+
+    if not models:
+        print("No complete Phase 3 model artifacts found. Run the Phase 3 pipeline variants before generating dashboard figures.")
+        return
 
     baseline_manifest = models[0]["manifest"]
     labels = [str(label) for label in baseline_manifest.get("labels", ["user", "system", "organization"])]
@@ -412,6 +711,38 @@ def main() -> None:
         "Figure 12: Delta vs Naive Bayes (Test Metrics)",
         output_dir / "fig-12-phase3-delta-vs-nb-heatmap.png",
     )
+    _plot_reliability_curves(
+        models,
+        labels,
+        "Figure 13: Reliability Curves (All Models)",
+        output_dir / "fig-13-phase3-calibration-reliability-curves-4way.png",
+    )
+    _plot_ece_summary(
+        models,
+        labels,
+        "Figure 14: Expected Calibration Error Summary",
+        output_dir / "fig-14-phase3-expected-calibration-error-summary.png",
+    )
+    _plot_threshold_sensitivity(
+        models,
+        labels,
+        "Figure 15: Threshold Sensitivity (User/System)",
+        output_dir / "fig-15-phase3-threshold-sensitivity-user-system-4way.png",
+    )
+    _plot_bootstrap_confidence(
+        models,
+        labels,
+        "Figure 16: Bootstrap Confidence Intervals (Held-Out Metrics)",
+        output_dir / "fig-16-phase3-bootstrap-confidence-intervals-metrics.png",
+    )
+
+    run_history_rows = _load_run_history(artifacts_root / "phase3_run_history.jsonl")
+    _plot_run_trends(
+        models,
+        run_history_rows,
+        "Figure 17: Dated Run Trend Snapshots",
+        output_dir / "fig-17-phase3-run-trend-snapshots-timeline.png",
+    )
 
     generated_names = [
         "fig-05-phase3-class-distribution.png",
@@ -422,6 +753,11 @@ def main() -> None:
         "fig-10-phase3-confusion-matrix-small-multiples-4way.png",
         "fig-11-phase3-bayesian-posterior-intervals.png",
         "fig-12-phase3-delta-vs-nb-heatmap.png",
+        "fig-13-phase3-calibration-reliability-curves-4way.png",
+        "fig-14-phase3-expected-calibration-error-summary.png",
+        "fig-15-phase3-threshold-sensitivity-user-system-4way.png",
+        "fig-16-phase3-bootstrap-confidence-intervals-metrics.png",
+        "fig-17-phase3-run-trend-snapshots-timeline.png",
     ]
 
     print("Generated Phase 3 figures:")

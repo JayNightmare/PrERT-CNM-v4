@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
+from uuid import uuid4
 
+from prert.phase3.analytics import (
+    compute_bootstrap_confidence_intervals,
+    compute_calibration_report,
+    compute_threshold_sweep,
+)
 from prert.phase3.classifier import train_classifier
 from prert.phase3.dataset import (
     LABELS,
@@ -14,7 +21,7 @@ from prert.phase3.dataset import (
     split_examples_by_policy,
 )
 from prert.phase3.evaluation import evaluate_classifier
-from prert.phase3.io import write_json, write_jsonl
+from prert.phase3.io import append_phase3_run_history, write_json, write_jsonl
 from prert.phase3.risk import compute_bayesian_risk, load_bayesian_priors
 
 
@@ -42,6 +49,9 @@ def run_phase3_pipeline(
     bayesian_top_k: int = 5,
     seed: int = 42,
     max_rows: Optional[int] = None,
+    run_id: Optional[str] = None,
+    calibration_bins: int = 10,
+    bootstrap_resamples: int = 1000,
 ) -> Dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -114,6 +124,39 @@ def run_phase3_pipeline(
     write_jsonl(output_dir / "validation_predictions.jsonl", validation_predictions)
     write_jsonl(output_dir / "test_predictions.jsonl", test_predictions)
 
+    calibration_validation = compute_calibration_report(
+        validation_predictions,
+        labels=LABELS,
+        num_bins=calibration_bins,
+    )
+    calibration_test = compute_calibration_report(
+        test_predictions,
+        labels=LABELS,
+        num_bins=calibration_bins,
+    )
+    write_json(output_dir / "calibration_validation.json", calibration_validation)
+    write_json(output_dir / "calibration_test.json", calibration_test)
+
+    threshold_validation = compute_threshold_sweep(validation_predictions, labels=LABELS)
+    threshold_test = compute_threshold_sweep(test_predictions, labels=LABELS)
+    write_json(output_dir / "threshold_sweep_validation.json", threshold_validation)
+    write_json(output_dir / "threshold_sweep_test.json", threshold_test)
+
+    bootstrap_validation = compute_bootstrap_confidence_intervals(
+        validation_predictions,
+        labels=LABELS,
+        n_resamples=bootstrap_resamples,
+        seed=seed,
+    )
+    bootstrap_test = compute_bootstrap_confidence_intervals(
+        test_predictions,
+        labels=LABELS,
+        n_resamples=bootstrap_resamples,
+        seed=seed + 1,
+    )
+    write_json(output_dir / "bootstrap_ci_validation.json", bootstrap_validation)
+    write_json(output_dir / "bootstrap_ci_test.json", bootstrap_test)
+
     bayesian_payload: Dict[str, Any] = {
         "enabled": False,
         "validation": {},
@@ -154,11 +197,29 @@ def run_phase3_pipeline(
                 "privacybert_batch_size": privacybert_batch_size,
                 "privacybert_learning_rate": privacybert_learning_rate,
                 "privacybert_max_length": privacybert_max_length,
+                "calibration_bins": calibration_bins,
+                "bootstrap_resamples": bootstrap_resamples,
             },
         },
         "validation": validation_metrics,
         "test": test_metrics,
         "bayesian": bayesian_payload,
+        "measurement_targets": {
+            "calibration": {
+                "validation_ece": calibration_validation["overall"]["ece"],
+                "test_ece": calibration_test["overall"]["ece"],
+                "validation_macro_ece": calibration_validation["macro_ece"],
+                "test_macro_ece": calibration_test["macro_ece"],
+            },
+            "threshold_sweep": {
+                "focus_labels": list(threshold_test.get("focus_labels", [])),
+                "thresholds": list(threshold_test.get("thresholds", [])),
+            },
+            "bootstrap": {
+                "validation_macro_f1_interval_95": bootstrap_validation["metrics"].get("macro_f1", {}).get("interval_95", {}),
+                "test_macro_f1_interval_95": bootstrap_test["metrics"].get("macro_f1", {}).get("interval_95", {}),
+            },
+        },
     }
 
     write_json(output_dir / "classifier_metrics.json", metrics_payload)
@@ -188,9 +249,20 @@ def run_phase3_pipeline(
     _write_scoring_spec(output_dir / "scoring_spec.md", bayesian_enabled=enable_bayesian_scoring)
     _write_prototype_demo(output_dir / "prototype_demo.md")
 
+    resolved_run_id = (run_id or "").strip() or str(uuid4())
+    executed_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    run_history_path = output_dir.parent / "phase3_run_history.jsonl"
+
     manifest = {
         "phase": "phase-3",
         "seed": seed,
+        "execution_metadata": {
+            "run_id": resolved_run_id,
+            "executed_at": executed_at,
+            "artifact_dir": output_dir.name,
+            "output_dir": str(output_dir),
+            "run_history_index": str(run_history_path),
+        },
         "inputs": {
             "opp115_root": str(opp115_root) if opp115_root else "",
             "input_set": input_set,
@@ -198,6 +270,8 @@ def run_phase3_pipeline(
             "labeled_input_path": str(labeled_input_path) if labeled_input_path else "",
             "model_type": model_type,
             "enable_bayesian_scoring": enable_bayesian_scoring,
+            "calibration_bins": calibration_bins,
+            "bootstrap_resamples": bootstrap_resamples,
         },
         "dataset_manifest": {
             "total_rows": dataset_manifest["total_rows"],
@@ -218,6 +292,8 @@ def run_phase3_pipeline(
             "validation_accuracy": metrics_payload["validation"]["accuracy"],
             "test_accuracy": metrics_payload["test"]["accuracy"],
             "bayesian_primary_score": bayesian_payload["primary_score"],
+            "calibration_test_ece": calibration_test["overall"]["ece"],
+            "calibration_test_macro_ece": calibration_test["macro_ece"],
         },
         "primary_metric_surface": "bayesian_posterior" if enable_bayesian_scoring else "classifier_metrics",
         "output_files": {
@@ -230,14 +306,36 @@ def run_phase3_pipeline(
             "classifier_metrics_rows": "classifier_metrics.jsonl",
             "validation_predictions": "validation_predictions.jsonl",
             "test_predictions": "test_predictions.jsonl",
+            "calibration_validation": "calibration_validation.json",
+            "calibration_test": "calibration_test.json",
+            "threshold_sweep_validation": "threshold_sweep_validation.json",
+            "threshold_sweep_test": "threshold_sweep_test.json",
+            "bootstrap_ci_validation": "bootstrap_ci_validation.json",
+            "bootstrap_ci_test": "bootstrap_ci_test.json",
             "bayesian_validation": "bayesian_risk_validation.json" if enable_bayesian_scoring else "",
             "bayesian_test": "bayesian_risk_test.json" if enable_bayesian_scoring else "",
             "model_card": "model_card.md",
             "scoring_spec": "scoring_spec.md",
             "prototype_demo": "prototype_demo.md",
+            "run_history_index": str(run_history_path),
         },
     }
     write_json(output_dir / "phase3_manifest.json", manifest)
+
+    append_phase3_run_history(
+        run_history_path,
+        {
+            "run_id": resolved_run_id,
+            "executed_at": executed_at,
+            "artifact_dir": output_dir.name,
+            "output_dir": str(output_dir),
+            "model_type": model_type,
+            "primary_metric_surface": manifest["primary_metric_surface"],
+            "metrics": manifest["metrics"],
+            "bayesian_enabled": bool(enable_bayesian_scoring),
+        },
+    )
+
     return manifest
 
 
@@ -300,6 +398,7 @@ Each Bayesian output includes:
 - actual_label: ground-truth label from held-out set.
 - predicted_label: model prediction in {user, system, organization}.
 - confidence: predicted class probability.
+- probabilities: per-class probability map for calibration and threshold analysis.
 
 ## Metrics
 
@@ -308,6 +407,9 @@ Each Bayesian output includes:
 - macro_recall
 - macro_f1
 - per-class precision/recall/f1/support
+- calibration_ece and calibration_brier
+- threshold_sweep precision/recall/f1 by threshold
+- bootstrap confidence intervals for key held-out metrics
 """ + bayesian_section + """
 
 ## Constraints
@@ -339,6 +441,9 @@ Inspect outputs:
 
 - artifacts/phase-3/phase3_manifest.json
 - artifacts/phase-3/classifier_metrics.json
+- artifacts/phase-3/calibration_test.json
+- artifacts/phase-3/threshold_sweep_test.json
+- artifacts/phase-3/bootstrap_ci_test.json
 - artifacts/phase-3/model_card.md
 """
     path.write_text(text, encoding="utf-8")

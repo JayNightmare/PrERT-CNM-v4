@@ -50,9 +50,16 @@ def test_phase3_pipeline_writes_outputs(tmp_path: Path) -> None:
     assert (output_dir / "classifier_metrics.jsonl").exists()
     assert (output_dir / "validation_predictions.jsonl").exists()
     assert (output_dir / "test_predictions.jsonl").exists()
+    assert (output_dir / "calibration_validation.json").exists()
+    assert (output_dir / "calibration_test.json").exists()
+    assert (output_dir / "threshold_sweep_validation.json").exists()
+    assert (output_dir / "threshold_sweep_test.json").exists()
+    assert (output_dir / "bootstrap_ci_validation.json").exists()
+    assert (output_dir / "bootstrap_ci_test.json").exists()
     assert (output_dir / "bayesian_risk_validation.json").exists()
     assert (output_dir / "bayesian_risk_test.json").exists()
     assert (output_dir / "phase3_manifest.json").exists()
+    assert (output_dir.parent / "phase3_run_history.jsonl").exists()
 
 
 def test_phase3_metrics_in_range(tmp_path: Path) -> None:
@@ -86,6 +93,11 @@ def test_phase3_metrics_in_range(tmp_path: Path) -> None:
     assert overlap["train_test"] == 0
     assert overlap["validation_test"] == 0
 
+    prediction_row = json.loads((output_dir / "test_predictions.jsonl").read_text(encoding="utf-8").splitlines()[0])
+    probabilities = prediction_row["probabilities"]
+    assert set(probabilities.keys()) == {"user", "system", "organization"}
+    assert abs(sum(float(value) for value in probabilities.values()) - 1.0) < 1e-4
+
 
 def test_phase3_manifest_includes_model_metadata(tmp_path: Path) -> None:
     input_path = tmp_path / "labeled.jsonl"
@@ -104,8 +116,22 @@ def test_phase3_manifest_includes_model_metadata(tmp_path: Path) -> None:
     assert manifest["model_summary"]["training_config"]["max_features"] == 20000
     assert manifest["primary_metric_surface"] == "bayesian_posterior"
     assert manifest["metrics"]["bayesian_primary_score"] is not None
+    assert manifest["metrics"]["calibration_test_ece"] >= 0.0
+    assert manifest["metrics"]["calibration_test_macro_ece"] >= 0.0
+    assert manifest["execution_metadata"]["run_id"]
+    assert manifest["execution_metadata"]["executed_at"].endswith("Z")
     assert manifest["output_files"]["bayesian_validation"] == "bayesian_risk_validation.json"
     assert manifest["output_files"]["bayesian_test"] == "bayesian_risk_test.json"
+    assert manifest["output_files"]["calibration_test"] == "calibration_test.json"
+    assert manifest["output_files"]["threshold_sweep_test"] == "threshold_sweep_test.json"
+    assert manifest["output_files"]["bootstrap_ci_test"] == "bootstrap_ci_test.json"
+
+    history_rows = [
+        json.loads(line)
+        for line in (output_dir.parent / "phase3_run_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert any(row["run_id"] == manifest["execution_metadata"]["run_id"] for row in history_rows)
 
 
 def test_phase3_logreg_tfidf_pipeline(tmp_path: Path) -> None:
@@ -147,6 +173,7 @@ def test_phase3_can_disable_bayesian_scoring(tmp_path: Path) -> None:
     metrics = json.loads((output_dir / "classifier_metrics.json").read_text(encoding="utf-8"))
     assert metrics["bayesian"]["enabled"] is False
     assert metrics["bayesian"]["primary_score"] is None
+    assert "measurement_targets" in metrics
 
     assert not (output_dir / "bayesian_risk_validation.json").exists()
     assert not (output_dir / "bayesian_risk_test.json").exists()
