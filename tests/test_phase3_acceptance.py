@@ -83,3 +83,43 @@ def test_phase3_acceptance_fails_when_privacybert_required_but_missing(tmp_path:
     assert report["acceptance"]["passed"] is False
     failed_names = {c["name"] for c in report["acceptance"]["checks"] if not c["passed"]}
     assert "privacybert_model_required" in failed_names
+
+
+def test_phase3_acceptance_polisis_advisory_is_non_blocking(tmp_path: Path) -> None:
+    output_dir = tmp_path / "phase-3"
+    manifest = _write_minimum_artifacts(output_dir)
+    manifest["dataset_manifest"]["source"] = "opp115::consolidation-0.75"
+
+    report = evaluate_phase3_acceptance(
+        output_dir=output_dir,
+        manifest=manifest,
+        require_privacybert=True,
+        require_bayesian=True,
+        require_polisis=False,
+        polisis_advisory=True,
+    )
+
+    assert report["acceptance"]["passed"] is True
+    checks = {c["name"]: c for c in report["acceptance"]["checks"]}
+    assert "polisis_source_advisory" in checks
+    assert checks["polisis_source_advisory"]["required"] is False
+    assert checks["polisis_source_advisory"]["passed"] is False
+
+
+def test_phase3_acceptance_can_require_polisis_source(tmp_path: Path) -> None:
+    output_dir = tmp_path / "phase-3"
+    manifest = _write_minimum_artifacts(output_dir)
+    manifest["dataset_manifest"]["source"] = "opp115::consolidation-0.75"
+
+    report = evaluate_phase3_acceptance(
+        output_dir=output_dir,
+        manifest=manifest,
+        require_privacybert=True,
+        require_bayesian=True,
+        require_polisis=True,
+        polisis_advisory=False,
+    )
+
+    assert report["acceptance"]["passed"] is False
+    failed_names = {c["name"] for c in report["acceptance"]["checks"] if c["required"] and not c["passed"]}
+    assert "polisis_source_required" in failed_names

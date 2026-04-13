@@ -16,6 +16,8 @@ def evaluate_phase3_acceptance(
     manifest: Mapping[str, Any],
     require_privacybert: bool = True,
     require_bayesian: bool = True,
+    require_polisis: bool = False,
+    polisis_advisory: bool = True,
 ) -> Dict[str, Any]:
     checks: List[Dict[str, Any]] = []
 
@@ -59,6 +61,23 @@ def evaluate_phase3_acceptance(
             {"model_type": inputs.get("model_type")},
         )
 
+    polisis_details = _resolve_polisis_details(dataset=dataset, inputs=inputs)
+    if require_polisis:
+        _add_check(
+            checks,
+            "polisis_source_required",
+            bool(polisis_details["has_polisis"]),
+            polisis_details,
+        )
+    elif polisis_advisory:
+        _add_check(
+            checks,
+            "polisis_source_advisory",
+            bool(polisis_details["has_polisis"]),
+            polisis_details,
+            required=False,
+        )
+
     if require_bayesian:
         _add_check(
             checks,
@@ -85,7 +104,8 @@ def evaluate_phase3_acceptance(
             bayesian_details,
         )
 
-    passed = all(bool(check["passed"]) for check in checks)
+    required_checks = [check for check in checks if bool(check.get("required", True))]
+    passed = all(bool(check["passed"]) for check in required_checks)
     return {
         "phase": "phase-3",
         "acceptance": {
@@ -93,6 +113,10 @@ def evaluate_phase3_acceptance(
             "required": {
                 "privacybert": require_privacybert,
                 "bayesian": require_bayesian,
+                "polisis": require_polisis,
+            },
+            "advisory": {
+                "polisis": bool(polisis_advisory and not require_polisis),
             },
             "checks": checks,
         },
@@ -125,15 +149,16 @@ def _render_markdown(report: Mapping[str, Any]) -> str:
         "",
         "## Checks",
         "",
-        "| Check | Passed | Details |",
-        "| --- | --- | --- |",
+        "| Check | Required | Passed | Details |",
+        "| --- | --- | --- | --- |",
     ]
 
     for check in checks:
         name = str(check.get("name", ""))
+        required = "yes" if check.get("required", True) else "advisory"
         passed = "yes" if check.get("passed") else "no"
         details = json.dumps(check.get("details", {}), ensure_ascii=False)
-        lines.append(f"| {name} | {passed} | {details} |")
+        lines.append(f"| {name} | {required} | {passed} | {details} |")
 
     lines.append("")
     return "\n".join(lines)
@@ -210,9 +235,34 @@ def _in_unit_interval(value: Any) -> bool:
     return 0.0 <= numeric <= 1.0
 
 
-def _add_check(checks: List[Dict[str, Any]], name: str, passed: bool, details: Mapping[str, Any]) -> None:
+def _resolve_polisis_details(dataset: Mapping[str, Any], inputs: Mapping[str, Any]) -> Dict[str, Any]:
+    dataset_source = str(dataset.get("source", "")).strip()
+    polisis_root = str(inputs.get("polisis_root", "")).strip()
+    polisis_source_dir = str(inputs.get("polisis_source_dir", "")).strip()
+    labeled_input_path = str(inputs.get("labeled_input_path", "")).strip()
+
+    indicators = [dataset_source.lower(), polisis_root.lower(), polisis_source_dir.lower(), labeled_input_path.lower()]
+    has_polisis = any("polisis" in indicator for indicator in indicators)
+
+    return {
+        "has_polisis": has_polisis,
+        "dataset_source": dataset_source,
+        "polisis_root": polisis_root,
+        "polisis_source_dir": polisis_source_dir,
+        "labeled_input_path": labeled_input_path,
+    }
+
+
+def _add_check(
+    checks: List[Dict[str, Any]],
+    name: str,
+    passed: bool,
+    details: Mapping[str, Any],
+    required: bool = True,
+) -> None:
     checks.append({
         "name": name,
+        "required": bool(required),
         "passed": bool(passed),
         "details": dict(details),
     })

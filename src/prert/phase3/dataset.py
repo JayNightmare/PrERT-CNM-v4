@@ -29,6 +29,32 @@ CATEGORY_TO_LEVEL = {
     "Other": "organization",
 }
 
+POLISIS_INPUT_SET_TO_SUBDIR = {
+    "normalized": "normalized",
+    "root": ".",
+}
+
+POLISIS_CATEGORY_TO_LEVEL = {
+    "user choice/control": "user",
+    "choice/control": "user",
+    "user access, edit and deletion": "user",
+    "consent": "user",
+    "user rights": "user",
+    "data security": "system",
+    "security": "system",
+    "do not track": "system",
+    "tracking technologies": "system",
+    "cookies and tracking": "system",
+    "first party collection/use": "organization",
+    "first-party collection/use": "organization",
+    "third party sharing/collection": "organization",
+    "third-party sharing/collection": "organization",
+    "data retention": "organization",
+    "policy change": "organization",
+    "international and specific audiences": "organization",
+    "other": "organization",
+}
+
 
 def load_labeled_examples(path: Path, source: str = "labeled_jsonl") -> List[ClauseExample]:
     rows = read_jsonl(path)
@@ -130,6 +156,64 @@ def build_opp115_clause_examples(
     return examples
 
 
+def build_polisis_clause_examples(
+    polisis_root: Path,
+    input_set: str = "normalized",
+    source_dir: Optional[Path] = None,
+    max_rows: Optional[int] = None,
+) -> List[ClauseExample]:
+    dataset_dir = resolve_polisis_source_dir(polisis_root, input_set, source_dir)
+    if not dataset_dir.exists():
+        raise FileNotFoundError(f"Polisis source directory not found: {dataset_dir}")
+
+    examples: List[ClauseExample] = []
+    source_name = f"polisis_{input_set}"
+
+    for jsonl_path in sorted(dataset_dir.rglob("*.jsonl")):
+        rows = read_jsonl(jsonl_path)
+        file_policy_uid = _extract_policy_uid_from_filename(jsonl_path)
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            example = _build_polisis_example(
+                row=row,
+                source_name=source_name,
+                input_file=jsonl_path.name,
+                default_policy_uid=file_policy_uid,
+                index=len(examples),
+            )
+            if example is None:
+                continue
+            examples.append(example)
+            if max_rows is not None and len(examples) >= max_rows:
+                return examples
+
+    for csv_path in sorted(dataset_dir.rglob("*.csv")):
+        file_policy_uid = _extract_policy_uid_from_filename(csv_path)
+        with csv_path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                normalized_row = {
+                    str(key).strip(): value
+                    for key, value in row.items()
+                    if key is not None and str(key).strip()
+                }
+                example = _build_polisis_example(
+                    row=normalized_row,
+                    source_name=source_name,
+                    input_file=csv_path.name,
+                    default_policy_uid=file_policy_uid,
+                    index=len(examples),
+                )
+                if example is None:
+                    continue
+                examples.append(example)
+                if max_rows is not None and len(examples) >= max_rows:
+                    return examples
+
+    return examples
+
+
 def split_examples_by_policy(
     examples: Sequence[ClauseExample],
     seed: int = 42,
@@ -215,6 +299,29 @@ def resolve_input_source_dir(opp115_root: Path, input_set: str, source_dir: Opti
     return opp115_root / INPUT_SET_TO_SUBDIR[input_set]
 
 
+def resolve_polisis_source_dir(polisis_root: Path, input_set: str, source_dir: Optional[Path]) -> Path:
+    if source_dir is not None:
+        return source_dir
+
+    if input_set not in POLISIS_INPUT_SET_TO_SUBDIR:
+        choices = ", ".join(sorted(POLISIS_INPUT_SET_TO_SUBDIR))
+        raise ValueError(f"Unsupported polisis input_set '{input_set}'. Choose one of: {choices}")
+
+    subdir = POLISIS_INPUT_SET_TO_SUBDIR[input_set]
+    if subdir in {"", "."}:
+        return polisis_root
+
+    candidate = polisis_root / subdir
+    if candidate.exists():
+        return candidate
+
+    if input_set == "normalized":
+        # Allow a flat root layout when users keep normalized files directly under polisis_root.
+        return polisis_root
+
+    return candidate
+
+
 def map_category_to_level(category: str) -> Optional[str]:
     normalized = category.strip()
     if not normalized:
@@ -229,6 +336,88 @@ def map_category_to_level(category: str) -> Optional[str]:
     if "security" in lowered or "track" in lowered:
         return "system"
     return "organization"
+
+
+def map_polisis_category_to_level(category: str) -> Optional[str]:
+    normalized = _normalize_space(category).strip().lower()
+    if not normalized:
+        return None
+
+    if normalized in POLISIS_CATEGORY_TO_LEVEL:
+        return POLISIS_CATEGORY_TO_LEVEL[normalized]
+
+    user_tokens = ("user", "consent", "choice", "access", "deletion", "rights", "opt out", "opt-out")
+    system_tokens = ("security", "tracking", "track", "cookie", "authentication", "encryption", "safeguard")
+    organization_tokens = (
+        "collection",
+        "sharing",
+        "retention",
+        "policy",
+        "governance",
+        "third party",
+        "third-party",
+        "international",
+    )
+
+    if any(token in normalized for token in user_tokens):
+        return "user"
+    if any(token in normalized for token in system_tokens):
+        return "system"
+    if any(token in normalized for token in organization_tokens):
+        return "organization"
+
+    # Unknown categories are intentionally skipped for Polisis harmonization.
+    return None
+
+
+def _build_polisis_example(
+    row: Mapping[str, Any],
+    source_name: str,
+    input_file: str,
+    default_policy_uid: Optional[str],
+    index: int,
+) -> Optional[ClauseExample]:
+    text = _normalize_space(str(row.get("text", row.get("clause_text", ""))).strip())
+    if not text:
+        return None
+
+    category = str(row.get("category", row.get("category_name", ""))).strip()
+    label = str(row.get("label", row.get("level", ""))).strip().lower()
+    if label not in LABELS:
+        label = map_polisis_category_to_level(category) or ""
+    if label not in LABELS:
+        return None
+
+    policy_uid = str(row.get("policy_uid", row.get("policy_id", ""))).strip() or (default_policy_uid or "unknown")
+    example_id = str(row.get("example_id", "")).strip() or f"polisis::{policy_uid}::{index:06d}"
+
+    metadata = {
+        key: value
+        for key, value in row.items()
+        if key not in {
+            "example_id",
+            "text",
+            "clause_text",
+            "label",
+            "level",
+            "source",
+            "policy_uid",
+            "policy_id",
+            "category",
+            "category_name",
+        }
+    }
+    metadata["input_file"] = input_file
+
+    return ClauseExample(
+        example_id=example_id,
+        text=text,
+        label=label,
+        source=source_name,
+        policy_uid=policy_uid,
+        category=category or "unknown",
+        metadata=metadata,
+    )
 
 
 def _extract_selected_texts(payload: str) -> List[str]:

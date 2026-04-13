@@ -2,3 +2,4 @@
 *.pkl
 *.safetensors
 *.txt
+synthetic-*/

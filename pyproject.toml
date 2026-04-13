@@ -16,6 +16,7 @@ dependencies = [
   "matplotlib>=3.10.6",
   "scikit-learn>=1.5.2",
   "python-dotenv>=1.2.2",
+  "streamlit>=1.44.1",
   "pypdf>=6.9.2",
   "pytest>=9.0.2",
   "ruff>=0.15.9",
@@ -35,6 +36,9 @@ prert-migrate = "prert.cli.migrate:main"
 prert-phase2 = "prert.cli.phase2:main"
 prert-phase3 = "prert.cli.phase3:main"
 prert-phase3-freeze = "prert.cli.phase3_freeze:main"
+prert-phase4 = "prert.cli.phase4:main"
+prert-phase4-web = "prert.cli.phase4_web:main"
+prert-phase4-synth = "prert.cli.phase4_synthetic:main"
 prert-opp115 = "prert.cli.opp115:main"
 
 [tool.setuptools]

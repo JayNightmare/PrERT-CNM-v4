@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 
 from prert.phase2.opp115 import INPUT_SET_TO_SUBDIR
+from prert.phase3.dataset import POLISIS_INPUT_SET_TO_SUBDIR
 from prert.phase3 import run_phase3_pipeline
 
 
@@ -17,6 +18,9 @@ def main() -> None:
         opp115_root=args.opp115_root,
         input_set=args.input_set,
         source_dir=args.source_dir,
+        polisis_root=args.polisis_root,
+        polisis_input_set=args.polisis_input_set,
+        polisis_source_dir=args.polisis_source_dir,
         labeled_input_path=args.labeled_input_path,
         model_type=args.model_type,
         random_state=args.random_state,
@@ -83,10 +87,29 @@ def _parse_args() -> argparse.Namespace:
         help="Optional override for OPP-115 annotation source directory.",
     )
     parser.add_argument(
+        "--polisis-root",
+        type=Path,
+        default=None,
+        help="Optional root directory for normalized Polisis inputs.",
+    )
+    parser.add_argument(
+        "--polisis-input-set",
+        type=str,
+        default="normalized",
+        choices=sorted(POLISIS_INPUT_SET_TO_SUBDIR.keys()),
+        help="Polisis input set profile used when --polisis-root is provided.",
+    )
+    parser.add_argument(
+        "--polisis-source-dir",
+        type=Path,
+        default=None,
+        help="Optional override for Polisis source directory containing normalized CSV/JSONL files.",
+    )
+    parser.add_argument(
         "--labeled-input-path",
         type=Path,
         default=None,
-        help="Optional pre-labeled JSONL dataset (text,label,policy_uid) to bypass OPP-115 parsing.",
+        help="Optional pre-labeled JSONL dataset (text,label,policy_uid) to bypass OPP-115/Polisis parsing.",
     )
     parser.add_argument(
         "--seed",

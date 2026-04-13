@@ -27,6 +27,30 @@ def _write_labeled_dataset(path: Path) -> None:
             handle.write(json.dumps(row) + "\n")
 
 
+def _write_polisis_normalized_dataset(polisis_root: Path) -> None:
+    normalized_dir = polisis_root / "normalized"
+    normalized_dir.mkdir(parents=True, exist_ok=True)
+
+    rows = [
+        {"text": "Users can opt out of targeted ads.", "category": "User Choice/Control", "policy_uid": "p1"},
+        {"text": "Users may delete their profile information.", "category": "User Access, Edit and Deletion", "policy_uid": "p1"},
+        {"text": "Encryption is used for data in transit.", "category": "Data Security", "policy_uid": "p2"},
+        {"text": "We honor do not track preferences.", "category": "Do Not Track", "policy_uid": "p2"},
+        {"text": "We collect account data to provide services.", "category": "First Party Collection/Use", "policy_uid": "p3"},
+        {"text": "We share limited data with payment providers.", "category": "Third Party Sharing/Collection", "policy_uid": "p3"},
+        {"text": "Users can update notification settings.", "category": "User Choice/Control", "policy_uid": "p4"},
+        {"text": "Policy updates are posted on this page.", "category": "Policy Change", "policy_uid": "p4"},
+        {"text": "Security controls are reviewed quarterly.", "category": "Data Security", "policy_uid": "p5"},
+        {"text": "Retention schedules are enforced across departments.", "category": "Data Retention", "policy_uid": "p5"},
+        {"text": "Users can request account deletion.", "category": "User Access, Edit and Deletion", "policy_uid": "p6"},
+        {"text": "Do not track signals are processed by the platform.", "category": "Do Not Track", "policy_uid": "p6"},
+    ]
+
+    with (normalized_dir / "polisis_normalized.jsonl").open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row) + "\n")
+
+
 def test_phase3_pipeline_writes_outputs(tmp_path: Path) -> None:
     input_path = tmp_path / "labeled.jsonl"
     output_dir = tmp_path / "phase-3"
@@ -156,6 +180,26 @@ def test_phase3_logreg_tfidf_pipeline(tmp_path: Path) -> None:
     assert manifest["model_summary"]["model_type"] == "logreg_tfidf"
     assert manifest["model_summary"]["checkpoint_path"].endswith("model.pkl")
     assert (output_dir / "classifier_checkpoint" / "model.pkl").exists()
+
+
+def test_phase3_pipeline_accepts_polisis_normalized_source(tmp_path: Path) -> None:
+    polisis_root = tmp_path / "Polisis"
+    output_dir = tmp_path / "phase-3-polisis"
+    _write_polisis_normalized_dataset(polisis_root)
+
+    manifest = run_phase3_pipeline(
+        output_dir=output_dir,
+        polisis_root=polisis_root,
+        polisis_input_set="normalized",
+        seed=23,
+    )
+
+    assert manifest["dataset_manifest"]["source"] == "polisis::normalized"
+    assert manifest["dataset_manifest"]["input_set"] == "normalized"
+    assert manifest["inputs"]["polisis_root"] == str(polisis_root)
+    assert manifest["inputs"]["labeled_input_path"] == ""
+    assert (output_dir / "dataset_manifest.json").exists()
+    assert (output_dir / "phase3_manifest.json").exists()
 
 
 def test_phase3_can_disable_bayesian_scoring(tmp_path: Path) -> None:

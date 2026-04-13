@@ -26,6 +26,52 @@ Out of scope:
 - Synthetic and public/real evaluation datasets.
 - Benchmark definitions and acceptance thresholds.
 
+## MVP Validation Tool (Artifact-Based)
+
+The current Phase 4 MVP validates existing Phase 3 artifacts and compares one-or-more runs without retraining.
+
+Primary command:
+
+```bash
+PYTHONPATH=src python scripts/run_phase4_validation.py \
+     --baseline-dir artifacts/phase-3-freeze \
+     --comparison-dirs artifacts/phase-3-nb artifacts/phase-3-logreg artifacts/phase-3-privacybert \
+     --output-dir artifacts/phase-4
+```
+
+Equivalent package command:
+
+```bash
+prert-phase4 \
+     --baseline-dir artifacts/phase-3-freeze \
+     --comparison-dirs artifacts/phase-3-nb artifacts/phase-3-logreg artifacts/phase-3-privacybert \
+     --output-dir artifacts/phase-4
+```
+
+MVP outputs:
+
+- `artifacts/phase-4/phase4_validation_report.json`
+- `artifacts/phase-4/phase4_validation_report.md`
+- `artifacts/phase-4/phase4_leaderboard.jsonl`
+
+Supervisor-facing GUI workflow:
+
+```bash
+PYTHONPATH=src python scripts/run_phase4_web.py --port 8501
+```
+
+The GUI allows uploads for:
+
+- company privacy policy documents
+- database schema files
+
+and returns an evidence-backed compliance score with detected risks.
+
+Notes:
+
+- `--require-bayesian` upgrades Bayesian evidence checks from advisory to required.
+- `--strict` exits with status code `2` when baseline required checks fail.
+
 ## Steps to Complete
 
 1. Build validation test plan

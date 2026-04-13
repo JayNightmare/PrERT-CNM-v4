@@ -5,6 +5,7 @@ This runbook executes the Phase 3 classifier-and-risk pipeline in an isolated ou
 ## Scope
 
 - Build a clause-level labeled dataset from OPP-115 annotations or a provided labeled JSONL.
+- Build a clause-level labeled dataset from OPP-115 annotations, normalized Polisis JSONL/CSV files, or a provided labeled JSONL.
 - Create deterministic train, validation, and test splits with policy-level leakage protection.
 - Train a text classifier backend for user/system/organization labels (`naive_bayes`, `logreg_tfidf`, or `privacybert`).
 - Evaluate held-out classifier metrics and emit Bayesian posterior risk outputs.
@@ -40,6 +41,14 @@ Default source:
 Optional source:
 
 - Labeled JSONL with fields: `text`, `label`, `policy_uid` (optional: `example_id`, `category`)
+- Normalized Polisis folder (default profile: `data/raw/Polisis/normalized`) with `.jsonl` and/or `.csv` files.
+
+Normalized Polisis row contract:
+
+- Required: `text`
+- Preferred for harmonization: `category`
+- Optional: `label` (`user|system|organization`), `policy_uid`, `example_id`
+- Unknown categories are skipped by the Polisis harmonization path.
 
 ## Commands
 
@@ -60,6 +69,15 @@ Run with a custom labeled JSONL dataset:
 ```bash
 PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --labeled-input-path data/processed/phase3_labeled.jsonl \
+  --output-dir artifacts/phase-3
+```
+
+Run with normalized Polisis source files:
+
+```bash
+PYTHONPATH=src python scripts/run_phase3_baseline.py \
+  --polisis-root data/raw/Polisis \
+  --polisis-input-set normalized \
   --output-dir artifacts/phase-3
 ```
 
@@ -138,6 +156,15 @@ Run a proposal-aligned Phase 3 acceptance freeze (PrivacyBERT + Bayesian-primary
 PYTHONPATH=src python scripts/run_phase3_acceptance_freeze.py \
   --model-type privacybert \
   --strict \
+  --output-dir artifacts/phase-3-freeze
+```
+
+Run acceptance freeze with Polisis advisory reporting (non-blocking for current milestone):
+
+```bash
+PYTHONPATH=src python scripts/run_phase3_acceptance_freeze.py \
+  --polisis-root data/raw/Polisis \
+  --polisis-input-set normalized \
   --output-dir artifacts/phase-3-freeze
 ```
 

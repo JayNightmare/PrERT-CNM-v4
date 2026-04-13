@@ -36,7 +36,7 @@ This defines user, system, and organization-level metrics based on Phase 1 contr
 
 Phase 3 implementation for an AI prototype that combines PrivacyBERT-based clause classification with Bayesian/probabilistic risk modeling.
 
-This fine-tunes PrivacyBERT on OPP-115 and Polisis datasets for clause classification, then integrates it with a risk scoring model to produce user privacy quantification outputs.
+This fine-tunes PrivacyBERT on OPP-115 data and supports first-class Polisis ingestion through normalized JSONL/CSV inputs, then integrates outputs with a risk scoring model to produce user privacy quantification outputs.
 
 ### Phase 4: Prototype Validation, Benchmarking, and Final Reporting
 
@@ -184,6 +184,111 @@ Then run Phase 2 with processed OPP-115:
 PYTHONPATH=src python scripts/run_phase2_metrics.py \
 	--public-input data/processed/opp115_public_mapping.csv
 ```
+
+## 7) Run Phase 3 Baseline / Freeze
+
+Run Phase 3 baseline:
+
+```bash
+PYTHONPATH=src python scripts/run_phase3_baseline.py
+```
+
+Equivalent package script:
+
+```bash
+prert-phase3
+```
+
+Run Phase 3 acceptance freeze:
+
+```bash
+PYTHONPATH=src python scripts/run_phase3_acceptance_freeze.py \
+  --strict
+```
+
+Equivalent package script:
+
+```bash
+prert-phase3-freeze --strict
+```
+
+## 8) Run Phase 4 Validation Tool (MVP)
+
+Validate one or more Phase 3 artifact folders without retraining:
+
+```bash
+PYTHONPATH=src python scripts/run_phase4_validation.py \
+  --baseline-dir artifacts/phase-3-freeze \
+  --comparison-dirs artifacts/phase-3-nb artifacts/phase-3-logreg artifacts/phase-3-privacybert \
+  --output-dir artifacts/phase-4
+```
+
+Equivalent package script:
+
+```bash
+prert-phase4 \
+  --baseline-dir artifacts/phase-3-freeze \
+  --comparison-dirs artifacts/phase-3-nb artifacts/phase-3-logreg artifacts/phase-3-privacybert \
+  --output-dir artifacts/phase-4
+```
+
+## 9) Run Compliance Web GUI (Supervisor Workflow)
+
+Launch a browser-based interface that accepts:
+
+- A company privacy policy file (`.txt`, `.md`, `.pdf`)
+- A database schema file (`.sql`, `.txt`, `.json`, `.yaml`, `.yml`)
+
+Script launch:
+
+```bash
+PYTHONPATH=src python scripts/run_phase4_web.py --port 8501
+```
+
+Equivalent package command:
+
+```bash
+prert-phase4-web --port 8501
+```
+
+Then open:
+
+```text
+http://localhost:8501
+```
+
+## 10) Generate Synthetic Policy/Schema Compliance Data
+
+Generate synthetic privacy-policy and database-schema pairs with low/medium/high compliance bands:
+
+```bash
+PYTHONPATH=src python scripts/run_phase4_synthetic_data.py \
+  --output-dir artifacts/phase-4/synthetic-compliance \
+  --low-count 8 \
+  --medium-count 8 \
+  --high-count 8 \
+  --seed 42 \
+  --export-upload-fixtures
+```
+
+Equivalent package command:
+
+```bash
+prert-phase4-synth \
+  --output-dir artifacts/phase-4/synthetic-compliance \
+  --low-count 8 \
+  --medium-count 8 \
+  --high-count 8 \
+  --seed 42 \
+  --export-upload-fixtures
+```
+
+Generated outputs include:
+
+- `synthetic_policy_schema_pairs.jsonl`
+- `synthetic_policy_schema_manifest.json`
+- `synthetic_policy_schema_dictionary.md`
+- `upload-fixtures/` (policy/schema files for direct GUI upload testing when enabled)
 
 ## Expected Console Output
 

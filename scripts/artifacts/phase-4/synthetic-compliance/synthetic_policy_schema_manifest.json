@@ -1,0 +1,58 @@
+{
+  "phase": "phase-4",
+  "artifact_type": "synthetic_policy_schema_dataset",
+  "generated_at": "2026-04-11T01:44:34.439017Z",
+  "seed": 42,
+  "counts_by_band": {
+    "low": 6,
+    "medium": 6,
+    "high": 6
+  },
+  "target_score_ranges": {
+    "low": {
+      "min": 0.0,
+      "max": 40.0
+    },
+    "medium": {
+      "min": 45.0,
+      "max": 74.0
+    },
+    "high": {
+      "min": 75.0,
+      "max": 100.0
+    }
+  },
+  "score_summary": {
+    "low": {
+      "count": 6,
+      "in_target_band": 6,
+      "minimum": 4.76,
+      "mean": 8.0267,
+      "maximum": 9.66
+    },
+    "medium": {
+      "count": 6,
+      "in_target_band": 6,
+      "minimum": 49.22,
+      "mean": 51.7467,
+      "maximum": 56.8
+    },
+    "high": {
+      "count": 6,
+      "in_target_band": 6,
+      "minimum": 95.0,
+      "mean": 95.0,
+      "maximum": 95.0
+    }
+  },
+  "upload_fixtures": {
+    "enabled": true,
+    "output_dir": "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\scripts\\artifacts\\phase-4\\synthetic-compliance\\upload-fixtures",
+    "files_written": 36
+  },
+  "output_files": {
+    "dataset": "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\scripts\\artifacts\\phase-4\\synthetic-compliance\\synthetic_policy_schema_pairs.jsonl",
+    "manifest": "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\scripts\\artifacts\\phase-4\\synthetic-compliance\\synthetic_policy_schema_manifest.json",
+    "dictionary": "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\scripts\\artifacts\\phase-4\\synthetic-compliance\\synthetic_policy_schema_dictionary.md"
+  }
+}

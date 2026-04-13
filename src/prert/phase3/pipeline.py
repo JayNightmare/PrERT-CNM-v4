@@ -17,6 +17,7 @@ from prert.phase3.dataset import (
     LABELS,
     build_dataset_manifest,
     build_opp115_clause_examples,
+    build_polisis_clause_examples,
     load_labeled_examples,
     split_examples_by_policy,
 )
@@ -30,6 +31,9 @@ def run_phase3_pipeline(
     opp115_root: Optional[Path] = None,
     input_set: str = "consolidation-0.75",
     source_dir: Optional[Path] = None,
+    polisis_root: Optional[Path] = None,
+    polisis_input_set: str = "normalized",
+    polisis_source_dir: Optional[Path] = None,
     labeled_input_path: Optional[Path] = None,
     model_type: str = "naive_bayes",
     random_state: int = 42,
@@ -54,10 +58,23 @@ def run_phase3_pipeline(
     bootstrap_resamples: int = 1000,
 ) -> Dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    manifest_input_set = input_set
 
     if labeled_input_path is not None:
         examples = load_labeled_examples(labeled_input_path)
         source_name = f"labeled::{labeled_input_path.name}"
+        manifest_input_set = "labeled"
+    elif polisis_root is not None or polisis_source_dir is not None:
+        if polisis_root is None:
+            raise ValueError("polisis_root is required when polisis_source_dir is not provided")
+        examples = build_polisis_clause_examples(
+            polisis_root=polisis_root,
+            input_set=polisis_input_set,
+            source_dir=polisis_source_dir,
+            max_rows=max_rows,
+        )
+        source_name = f"polisis::{polisis_input_set}"
+        manifest_input_set = polisis_input_set
     else:
         if opp115_root is None:
             raise ValueError("opp115_root is required when labeled_input_path is not provided")
@@ -77,7 +94,7 @@ def run_phase3_pipeline(
         splits=splits,
         seed=seed,
         source=source_name,
-        input_set=input_set,
+        input_set=manifest_input_set,
     )
 
     training_rows = [row.as_dict() for row in splits["train"]]
@@ -267,6 +284,9 @@ def run_phase3_pipeline(
             "opp115_root": str(opp115_root) if opp115_root else "",
             "input_set": input_set,
             "source_dir": str(source_dir) if source_dir else "",
+            "polisis_root": str(polisis_root) if polisis_root else "",
+            "polisis_input_set": polisis_input_set,
+            "polisis_source_dir": str(polisis_source_dir) if polisis_source_dir else "",
             "labeled_input_path": str(labeled_input_path) if labeled_input_path else "",
             "model_type": model_type,
             "enable_bayesian_scoring": enable_bayesian_scoring,
@@ -274,6 +294,8 @@ def run_phase3_pipeline(
             "bootstrap_resamples": bootstrap_resamples,
         },
         "dataset_manifest": {
+            "source": dataset_manifest["source"],
+            "input_set": dataset_manifest["input_set"],
             "total_rows": dataset_manifest["total_rows"],
             "class_distribution": dataset_manifest["class_distribution"],
             "splits": dataset_manifest["splits"],
