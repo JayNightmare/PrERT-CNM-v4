@@ -16,6 +16,7 @@ def main() -> None:
         baseline_dir=args.baseline_dir,
         comparison_dirs=args.comparison_dirs,
         require_bayesian=args.require_bayesian,
+        require_polisis=args.require_polisis,
         polisis_advisory=not args.disable_polisis_advisory,
         ece_threshold=args.ece_threshold,
     )
@@ -66,6 +67,11 @@ def _parse_args() -> argparse.Namespace:
         "--disable-polisis-advisory",
         action="store_true",
         help="Disable non-blocking Polisis advisory check.",
+    )
+    parser.add_argument(
+        "--require-polisis",
+        action="store_true",
+        help="Require Polisis source evidence as a blocking validation check.",
     )
     parser.add_argument(
         "--ece-threshold",

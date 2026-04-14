@@ -4,13 +4,14 @@
 
 ## Total Time Spent on Project PrERT
 
-|                                                                                                                           v1                                                                                                                            |                                                                                                                        v2                                                                                                                         |                                                                                                                        v3                                                                                                                         |                                                                                                                        v4                                                                                                                         |
-| :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e) | [![v2](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55) | [![v3](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411) | [![v4](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/bbab7b0b-e4bf-4f9e-ba2a-507491705ea4.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/bbab7b0b-e4bf-4f9e-ba2a-507491705ea4) |
-
-|     Total     |
-| :-----------: |
-| **2d 2h 56m** |
+|  Version  | Coding Time Spent                                                                                                                                                                                                                                       | Research Time Spent |
+| :-------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------: |
+|    v1     | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e) |            20 hours |
+|    v2     | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55) |            15 hours |
+|    v3     | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411) |            25 hours |
+|    v4     | [![wakatime](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4.svg)](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4)                                                                                                             |            10 hours |
+|           |                                                                                                                                                                                                                                                         |                     |
+| **Total** | **126 hrs 56 mins** |
 
 ## Phase Breakdowns
 
@@ -232,6 +233,17 @@ prert-phase4 \
   --output-dir artifacts/phase-4
 ```
 
+Require Polisis source evidence as a blocking benchmark criterion:
+
+```bash
+PYTHONPATH=src python scripts/run_phase4_validation.py \
+  --baseline-dir artifacts/phase-3-freeze \
+  --comparison-dirs artifacts/phase-3-nb artifacts/phase-3-logreg artifacts/phase-3-privacybert \
+  --output-dir artifacts/phase-4 \
+  --require-polisis \
+  --strict
+```
+
 ## 9) Run Compliance Web GUI (Supervisor Workflow)
 
 Launch a browser-based interface that accepts:
@@ -348,6 +360,19 @@ If variables are not set, the app auto-falls back to bundled deployment paths fi
 4. Add optional app environment variables from section 12 (use `.streamlit/secrets.toml.example` as a template).
 5. Runtime defaults are preconfigured in `.streamlit/config.toml`.
 6. Deploy and share the generated URL with your supervisor.
+
+## 14) Auto-Update WakaTime Total (No Manual Summing)
+
+Update the `Total` row in this README by summing all `v*` WakaTime badges:
+
+```bash
+PYTHONPATH=src python scripts/update_wakatime_totals.py --write
+```
+
+This repo also includes a scheduled workflow at `.github/workflows/update-wakatime-total.yml`.
+
+- Runs daily and on manual dispatch.
+- Commits README changes only when the total has changed.
 
 ## Expected Console Output
 

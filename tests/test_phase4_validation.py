@@ -225,13 +225,14 @@ def test_phase4_validation_passes_on_valid_artifacts(tmp_path: Path) -> None:
     report = evaluate_phase4_validation(
         artifact_dir=artifact_dir,
         require_bayesian=True,
+        require_polisis=True,
         polisis_advisory=True,
     )
 
     assert report["validation"]["passed"] is True
     checks = {item["name"]: item for item in report["validation"]["checks"]}
     assert checks["bayesian_evidence_available"]["passed"] is True
-    assert checks["polisis_source_advisory"]["passed"] is True
+    assert checks["polisis_source_required"]["passed"] is True
 
 
 def test_phase4_validation_fails_when_prediction_count_mismatch(tmp_path: Path) -> None:
@@ -269,6 +270,24 @@ def test_phase4_polisis_advisory_is_non_blocking(tmp_path: Path) -> None:
     checks = {item["name"]: item for item in report["validation"]["checks"]}
     assert checks["polisis_source_advisory"]["required"] is False
     assert checks["polisis_source_advisory"]["passed"] is False
+
+
+def test_phase4_polisis_requirement_is_blocking(tmp_path: Path) -> None:
+    artifact_dir = tmp_path / "phase-3"
+    _write_phase3_artifacts(artifact_dir, include_bayesian=False, source="opp115::consolidation-0.75")
+
+    report = evaluate_phase4_validation(
+        artifact_dir=artifact_dir,
+        require_bayesian=False,
+        require_polisis=True,
+        polisis_advisory=True,
+    )
+
+    assert report["validation"]["passed"] is False
+    checks = {item["name"]: item for item in report["validation"]["checks"]}
+    assert checks["polisis_source_required"]["required"] is True
+    assert checks["polisis_source_required"]["passed"] is False
+    assert "polisis_source_advisory" not in checks
 
 
 def test_phase4_pipeline_writes_reports_and_leaderboard(tmp_path: Path) -> None:

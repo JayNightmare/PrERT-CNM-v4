@@ -16,6 +16,7 @@ def run_phase4_validation(
     baseline_dir: Path,
     comparison_dirs: Optional[Sequence[Path]] = None,
     require_bayesian: bool = False,
+    require_polisis: bool = False,
     polisis_advisory: bool = True,
     ece_threshold: float = 0.20,
 ) -> Dict[str, Any]:
@@ -24,6 +25,7 @@ def run_phase4_validation(
     baseline_report = evaluate_phase4_validation(
         artifact_dir=baseline_dir,
         require_bayesian=require_bayesian,
+        require_polisis=require_polisis,
         polisis_advisory=polisis_advisory,
         ece_threshold=ece_threshold,
     )
@@ -33,6 +35,7 @@ def run_phase4_validation(
         evaluate_phase4_validation(
             artifact_dir=artifact_dir,
             require_bayesian=require_bayesian,
+            require_polisis=require_polisis,
             polisis_advisory=polisis_advisory,
             ece_threshold=ece_threshold,
         )

@@ -20,6 +20,7 @@ def evaluate_phase4_validation(
     artifact_dir: Path,
     manifest: Optional[Mapping[str, Any]] = None,
     require_bayesian: bool = False,
+    require_polisis: bool = False,
     polisis_advisory: bool = True,
     ece_threshold: float = 0.20,
 ) -> Dict[str, Any]:
@@ -41,8 +42,13 @@ def evaluate_phase4_validation(
                 "artifact_dir": str(artifact_dir),
                 "validation": {
                     "passed": False,
-                    "required": {"bayesian": require_bayesian},
-                    "advisory": {"polisis": bool(polisis_advisory and not require_bayesian)},
+                    "required": {
+                        "bayesian": require_bayesian,
+                        "polisis": bool(require_polisis),
+                    },
+                    "advisory": {
+                        "polisis": bool(polisis_advisory and not require_polisis),
+                    },
                     "checks": checks,
                 },
                 "summary": {
@@ -245,8 +251,16 @@ def evaluate_phase4_validation(
         bayes_ok, bayes_details = _validate_bayesian_evidence(bayesian_payload)
         _add_check(checks, "bayesian_evidence_available", bayes_ok, bayes_details, required=False)
 
-    if polisis_advisory:
-        source = _resolve_dataset_source(loaded_manifest, merged_dataset)
+    source = _resolve_dataset_source(loaded_manifest, merged_dataset)
+    if require_polisis:
+        has_polisis = "polisis" in source.lower()
+        _add_check(
+            checks,
+            "polisis_source_required",
+            has_polisis,
+            {"source": source},
+        )
+    elif polisis_advisory:
         has_polisis = "polisis" in source.lower()
         _add_check(
             checks,
@@ -263,7 +277,7 @@ def evaluate_phase4_validation(
     passed = all(bool(check["passed"]) for check in required_checks)
 
     summary = {
-        "source": _resolve_dataset_source(loaded_manifest, merged_dataset),
+        "source": source,
         "model_type": str(inputs.get("model_type", loaded_manifest.get("model_summary", {}).get("model_type", ""))),
         "metrics": {
             "validation_macro_f1": merged_metrics.get("validation_macro_f1"),
@@ -286,9 +300,10 @@ def evaluate_phase4_validation(
             "passed": passed,
             "required": {
                 "bayesian": require_bayesian,
+                "polisis": bool(require_polisis),
             },
             "advisory": {
-                "polisis": bool(polisis_advisory),
+                "polisis": bool(polisis_advisory and not require_polisis),
             },
             "checks": checks,
         },

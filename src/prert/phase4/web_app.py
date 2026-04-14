@@ -119,6 +119,11 @@ def main() -> None:
                 "Require Bayesian evidence checks",
                 value=False,
             )
+            benchmark_settings["require_polisis"] = st.checkbox(
+                "Require Polisis source checks",
+                value=False,
+                help="When enabled, baseline validation fails if artifact source is not Polisis-based.",
+            )
             benchmark_settings["polisis_advisory"] = st.checkbox(
                 "Enable Polisis source advisory check",
                 value=True,
@@ -313,6 +318,7 @@ def _render_benchmark_screen(settings: Dict[str, Any]) -> None:
                 baseline_dir=baseline_dir,
                 comparison_dirs=comparison_dirs,
                 require_bayesian=bool(settings.get("require_bayesian", False)),
+                require_polisis=bool(settings.get("require_polisis", False)),
                 polisis_advisory=bool(settings.get("polisis_advisory", True)),
                 ece_threshold=float(settings.get("ece_threshold", 0.20)),
             )
