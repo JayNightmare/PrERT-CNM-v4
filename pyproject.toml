@@ -41,6 +41,9 @@ prert-phase4-web = "prert.cli.phase4_web:main"
 prert-phase4-synth = "prert.cli.phase4_synthetic:main"
 prert-opp115 = "prert.cli.opp115:main"
 
+[tool.poetry]
+packages = [{ include = "prert", from = "src" }]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
