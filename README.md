@@ -4,14 +4,16 @@
 
 ## Total Time Spent on Project PrERT
 
-|  Version  | Coding Time Spent                                                                                                                                                                                                                                       | Research Time Spent |
-| :-------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------: |
-|    v1     | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e) |            20 hours |
-|    v2     | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55) |            15 hours |
-|    v3     | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411) |            25 hours |
-|    v4     | [![wakatime](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4.svg)](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4)                                                                                                             |            10 hours |
-|           |                                                                                                                                                                                                                                                         |                     |
-| **Total** | **126 hrs 56 mins** |
+|    Version     |                                                                                                                                                                                                                                       Coding Time Spent | Research Time Spent |
+| :------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ------------------: |
+|       v1       | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e) |            20 hours |
+|       v2       | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55) |            15 hours |
+|       v3       | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411) |            25 hours |
+|       v4       |                                                                                                             [![wakatime](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4.svg)](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4) |            10 hours |
+|                |
+| **Total Sums** |                                                                                                                                                                                                                                      **56 hrs 56 mins** |          **70 hrs** |
+|                |
+|   **Total**    |                                                                                                                                                                                                                                     **126 hrs 56 mins** |                     |
 
 ## Phase Breakdowns
 

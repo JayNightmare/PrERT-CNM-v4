@@ -19,6 +19,7 @@ from urllib.request import Request, urlopen
 
 VERSION_ROW_RE = re.compile(r"^\|\s*(v\d+)\s*\|", re.IGNORECASE)
 BADGE_URL_RE = re.compile(r"https://wakatime\.com/badge/[^\s)]+\.svg", re.IGNORECASE)
+TOTAL_S_ROW_RE = re.compile(r"^\|\s*\*\*Total Sums\*\*\s*\|.*\|$", re.IGNORECASE | re.MULTILINE)
 TOTAL_ROW_RE = re.compile(r"^\|\s*\*\*Total\*\*\s*\|.*\|$", re.IGNORECASE | re.MULTILINE)
 SVG_TEXT_RE = re.compile(r"<text[^>]*>([^<]+)</text>", re.IGNORECASE)
 TIME_TOKEN_RE = re.compile(
@@ -114,11 +115,32 @@ def format_minutes(total_minutes: int) -> str:
     return " ".join(parts)
 
 
-def update_total_row(readme_text: str, total_text: str) -> str:
-    new_row = f"| **Total** | **{total_text}** |"
-    if not TOTAL_ROW_RE.search(readme_text):
-        raise RuntimeError("README does not contain a '| **Total** | ... |' row to update.")
-    return TOTAL_ROW_RE.sub(new_row, readme_text, count=1)
+def _replace_row(readme_text: str, pattern: re.Pattern[str], new_row: str, label: str) -> str:
+    if not pattern.search(readme_text):
+        raise RuntimeError(f"README does not contain a '{label}' row to update.")
+    return pattern.sub(new_row, readme_text, count=1)
+
+
+def update_total_rows(
+    readme_text: str,
+    total_coding_text: str,
+    total_research_text: str,
+    total_text: str,
+) -> str:
+    updated = readme_text
+    updated = _replace_row(
+        updated,
+        TOTAL_S_ROW_RE,
+        f"|  **Total Sums**  | **{total_coding_text}** | **{total_research_text}** |",
+        "| **Total Sums** | ... |",
+    )
+    updated = _replace_row(
+        updated,
+        TOTAL_ROW_RE,
+        f"|     **Total**      | **{total_text}** |                     |",
+        "| **Total** | ... |",
+    )
+    return updated
 
 
 def compute_badge_minutes(badges: Iterable[Tuple[str, str]], timeout_seconds: float) -> Dict[str, int]:
@@ -149,20 +171,28 @@ def main() -> int:
     print(f"Found {len(badges)} version badges and {len(research_minutes_by_version)} research-time rows")
     
     try:
-        version_minutes = compute_badge_minutes(badges=badges, timeout_seconds=float(args.timeout))
+        versions_minutes = compute_badge_minutes(badges=badges, timeout_seconds=float(args.timeout))
     except (HTTPError, URLError, TimeoutError, RuntimeError) as exc:
         raise RuntimeError(f"Failed to fetch or parse WakaTime badges: {exc}") from exc
 
     research_minutes = sum(research_minutes_by_version.get(version, 0) for version, _ in badges)
-    total_minutes = sum(version_minutes.values()) + research_minutes
+    value_minutes = sum(versions_minutes.values())
+    total_minutes = value_minutes + research_minutes
+    total_coding_text = format_minutes(value_minutes)
+    total_research_text = format_minutes(research_minutes)
     total_text = format_minutes(total_minutes)
-    updated = update_total_row(original, total_text)
+    updated = update_total_rows(
+        original,
+        total_coding_text=total_coding_text,
+        total_research_text=total_research_text,
+        total_text=total_text,
+    )
 
     print("Parsed version durations:")
-    for version in sorted(version_minutes):
+    for version in sorted(versions_minutes):
         research_for_version = research_minutes_by_version.get(version, 0)
         print(
-            f"- {version}: coding={format_minutes(version_minutes[version])} ({version_minutes[version]} mins), "
+            f"- {version}: coding={format_minutes(versions_minutes[version])} ({versions_minutes[version]} mins), "
             f"research={format_minutes(research_for_version)} ({research_for_version} mins)"
         )
     print(f"Research total: {format_minutes(research_minutes)} ({research_minutes} mins)")
