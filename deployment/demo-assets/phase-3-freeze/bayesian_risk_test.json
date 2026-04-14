@@ -1,0 +1,201 @@
+{
+  "method": "beta_posterior_evidence_aggregation",
+  "levels": {
+    "user": {
+      "level": "user",
+      "indicators": [
+        "consent_control",
+        "user_access_deletion"
+      ],
+      "prior": {
+        "alpha": 1.5,
+        "beta": 2.5
+      },
+      "posterior": {
+        "alpha": 300.355223,
+        "beta": 7.644777,
+        "mean": 0.975179,
+        "interval_95": {
+          "lower": 0.957833,
+          "upper": 0.992526
+        }
+      },
+      "evidence_count": 304,
+      "top_contributors": [
+        {
+          "example_id": "opp115::3821::10678",
+          "policy_uid": "3821",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 0.999193,
+          "text": "you can unsubscribe With respect to your communications preferences, you can unsubscribe from newsletters by following the instructions included in the newsletter you receive from newsletters communications preferences"
+        },
+        {
+          "example_id": "opp115::3861::14806",
+          "policy_uid": "3861",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 0.99919,
+          "text": "you can click the \"unsubscribe\" link at the bottom of the email you receive. If you do not want to receive our newsletter or marketing communications from us, your account. marketing email"
+        },
+        {
+          "example_id": "opp115::3861::17887",
+          "policy_uid": "3861",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 0.999187,
+          "text": "click the \"unsubscribe\" link you do not want to receive null receive our newsletter or marketing communications email"
+        },
+        {
+          "example_id": "opp115::3737::24461",
+          "policy_uid": "3737",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 0.999185,
+          "text": "If you choose to adjust your Flash privacy settings in your device, adjust your Flash privacy settings Not selected enabling a Flash feature Flash cookies"
+        },
+        {
+          "example_id": "opp115::3737::24462",
+          "policy_uid": "3737",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 0.999185,
+          "text": "If you choose to adjust your Flash privacy settings in your device, adjust your Flash privacy settings Not selected remembering your preferences. Flash cookies"
+        }
+      ]
+    },
+    "system": {
+      "level": "system",
+      "indicators": [
+        "security_controls",
+        "tracking_controls"
+      ],
+      "prior": {
+        "alpha": 1.4,
+        "beta": 2.6
+      },
+      "posterior": {
+        "alpha": 72.817316,
+        "beta": 6.182684,
+        "mean": 0.921738,
+        "interval_95": {
+          "lower": 0.862883,
+          "upper": 0.980593
+        }
+      },
+      "evidence_count": 75,
+      "top_contributors": [
+        {
+          "example_id": "opp115::3821::9503",
+          "policy_uid": "3821",
+          "actual_label": "system",
+          "predicted_label": "system",
+          "confidence": 0.994638,
+          "text": "Data Security"
+        },
+        {
+          "example_id": "opp115::3836::20875",
+          "policy_uid": "3836",
+          "actual_label": "system",
+          "predicted_label": "system",
+          "confidence": 0.994329,
+          "text": "This information is protected while being transmitted through a Secured Sockets Layer (SSL) connection."
+        },
+        {
+          "example_id": "opp115::3821::C2530",
+          "policy_uid": "3821",
+          "actual_label": "system",
+          "predicted_label": "system",
+          "confidence": 0.994219,
+          "text": "All information you provide to us is stored on our secure servers."
+        },
+        {
+          "example_id": "opp115::3908::20088",
+          "policy_uid": "3908",
+          "actual_label": "system",
+          "predicted_label": "system",
+          "confidence": 0.994129,
+          "text": "utilizing electronic security systems, and using password protections that guard against unauthorized access."
+        },
+        {
+          "example_id": "opp115::3836::23258",
+          "policy_uid": "3836",
+          "actual_label": "system",
+          "predicted_label": "system",
+          "confidence": 0.994101,
+          "text": "We have installed safeguards to secure and protect the credit card information used for your transactions."
+        }
+      ]
+    },
+    "organization": {
+      "level": "organization",
+      "indicators": [
+        "collection_use",
+        "third_party_sharing",
+        "retention_governance"
+      ],
+      "prior": {
+        "alpha": 1.2,
+        "beta": 2.8
+      },
+      "posterior": {
+        "alpha": 1882.070721,
+        "beta": 14.929279,
+        "mean": 0.99213,
+        "interval_95": {
+          "lower": 0.988155,
+          "upper": 0.996105
+        }
+      },
+      "evidence_count": 1893,
+      "top_contributors": [
+        {
+          "example_id": "opp115::3821::9529",
+          "policy_uid": "3821",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 0.999807,
+          "text": "We may also collect your Internet Protocol (IP) address to diagnose problems with our servers"
+        },
+        {
+          "example_id": "opp115::3701::4598",
+          "policy_uid": "3701",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 0.999806,
+          "text": "3rd party vendors track activities based on pages you visit aggregated form allows us to track activities Tracking pixels redeliver advertising and notifications through 3rd party vendors"
+        },
+        {
+          "example_id": "opp115::3821::10777",
+          "policy_uid": "3821",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 0.999805,
+          "text": "Social Media Features, Our Websites include Social Media Features, such as the Add This button or interactive mini-programs that run on our Websites. These features may collect your IP address, which pages you are visiting on our Websites, and may set cookies to enable the features to function properly your IP address may collect"
+        },
+        {
+          "example_id": "opp115::3836::16845",
+          "policy_uid": "3836",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 0.999805,
+          "text": "to financial service providers (for example, banks, vendors or service companies null hat provide statement printing and mailing or other types of services) for your accounts with AHFC, or with the affiliate to which your account may be assigned and for which AHFC provides servicing. all of the information (see 1-3, above) that we collect about you as a present or former custome We may also disclose:"
+        },
+        {
+          "example_id": "opp115::3908::20060",
+          "policy_uid": "3908",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 0.999805,
+          "text": "null collects and stores some information Sally Ride Science collects and stores some information about your daughter or son, to allow her or him to participate in some activities."
+        }
+      ]
+    }
+  },
+  "overall": {
+    "posterior_mean": 0.987538,
+    "evidence_count": 2272,
+    "primary_score": 0.987538
+  },
+  "primary_metric": "overall.posterior_mean"
+}

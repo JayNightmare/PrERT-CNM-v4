@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-04-14T09:41:59.571057Z",
+  "source_freeze_dir": "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\artifacts\\phase-3-freeze",
+  "source_nb_dir": "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\artifacts\\phase-3-nb",
+  "output_root": "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets",
+  "include_nb_artifacts": true,
+  "files": {
+    "baseline_required": [
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-freeze\\phase3_manifest.json",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-freeze\\dataset_manifest.json",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-freeze\\classifier_metrics.json",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-freeze\\validation_predictions.jsonl",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-freeze\\test_predictions.jsonl"
+    ],
+    "baseline_optional": [
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-freeze\\bayesian_risk_test.json",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-freeze\\classifier_metrics.jsonl"
+    ],
+    "nb_required": [
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-nb\\phase3_manifest.json",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-nb\\dataset_manifest.json",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-nb\\classifier_metrics.json",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-nb\\validation_predictions.jsonl",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-nb\\test_predictions.jsonl"
+    ],
+    "nb_optional": [
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-nb\\bayesian_risk_test.json",
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-nb\\classifier_metrics.jsonl"
+    ],
+    "model_checkpoint": [
+      "V:\\Documents\\Personal Projects\\PrERT-CNM-v4\\deployment\\demo-assets\\phase-3-nb\\classifier_checkpoint\\model.json"
+    ]
+  }
+}

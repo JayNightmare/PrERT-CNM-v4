@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 import json
+import os
 import re
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -13,6 +14,7 @@ from prert.phase3.classifier import NaiveBayesTextClassifier
 
 
 LABELS: tuple[str, str, str] = ("user", "system", "organization")
+MODEL_PATH_ENV: str = "PRERT_PHASE4_MODEL_PATH"
 
 
 PII_FIELD_PATTERNS: tuple[str, ...] = (
@@ -322,7 +324,17 @@ def classify_schema_fields(fields: Sequence[str]) -> Tuple[List[str], List[str]]
 
 def resolve_default_model_path(project_root: Optional[Path] = None) -> Optional[Path]:
     root = project_root or Path.cwd()
+    env_model_path = os.getenv(MODEL_PATH_ENV, "").strip()
+
+    if env_model_path:
+        candidate = Path(env_model_path).expanduser()
+        if not candidate.is_absolute():
+            candidate = root / candidate
+        if candidate.exists():
+            return candidate
+
     candidates = [
+        root / "deployment/demo-assets/phase-3-nb/classifier_checkpoint/model.json",
         root / "artifacts/phase-3-nb/classifier_checkpoint/model.json",
         root / "artifacts/phase-3/classifier_checkpoint/model.json",
     ]

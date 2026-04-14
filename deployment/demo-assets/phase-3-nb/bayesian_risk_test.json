@@ -1,0 +1,201 @@
+{
+  "method": "beta_posterior_evidence_aggregation",
+  "levels": {
+    "user": {
+      "level": "user",
+      "indicators": [
+        "consent_control",
+        "user_access_deletion"
+      ],
+      "prior": {
+        "alpha": 1.5,
+        "beta": 2.5
+      },
+      "posterior": {
+        "alpha": 393.093234,
+        "beta": 35.906766,
+        "mean": 0.916301,
+        "interval_95": {
+          "lower": 0.890126,
+          "upper": 0.942477
+        }
+      },
+      "evidence_count": 425,
+      "top_contributors": [
+        {
+          "example_id": "opp115::3714::8446",
+          "policy_uid": "3714",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 1.0,
+          "text": "opt-in MediaNews advertisers User registration with MediaNews Web sites is completed and membership activated upon clicking a link e-mailed to the address provided in registration. At that time you have the opportunity to opt-in to e-mail newsletters and alerts and have e-mail offers sent to you on behalf of MediaNews advertisers, however, you can update your preferences at a later time. newsletters and alerts and have e-mail offers sent to you on behalf of MediaNews advertisers e-mail"
+        },
+        {
+          "example_id": "opp115::3714::10279",
+          "policy_uid": "3714",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 1.0,
+          "text": "you may opt-out of such messages by going to the \"Manage an Account\" page and simply unclicking an opt-in box If, at any time, you do not want us to share your information with third parties who wish to send you information about their products and services, \"Manage an Account\" page who wish to send you information about their products and services your information"
+        },
+        {
+          "example_id": "opp115::3714::25270",
+          "policy_uid": "3714",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 1.0,
+          "text": "you may opt-out of such messages by going to the \"Manage an Account\" page and simply unclicking an opt-in box If, at any time, you do not want us to share your information with third parties Account who wish to send you information about their products and services, information"
+        },
+        {
+          "example_id": "opp115::3714::C2721",
+          "policy_uid": "3714",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 1.0,
+          "text": "opt-out of such messages by going to the \"Manage an Account\" page and simply unclicking an opt-in box you do not want to receive information about special offers and new products and features from MediaNews receive information about special offers and new products and features from MediaNews"
+        },
+        {
+          "example_id": "opp115::3714::25274",
+          "policy_uid": "3714",
+          "actual_label": "user",
+          "predicted_label": "user",
+          "confidence": 1.0,
+          "text": "you may opt-out of such messages by going to the \"Manage an Account\" page and simply unclicking an opt-in box If, at any time, you do not want to receive information about special offers and new products and features from MediaNews, Account to receive information about special offers and new products and features receive"
+        }
+      ]
+    },
+    "system": {
+      "level": "system",
+      "indicators": [
+        "security_controls",
+        "tracking_controls"
+      ],
+      "prior": {
+        "alpha": 1.4,
+        "beta": 2.6
+      },
+      "posterior": {
+        "alpha": 140.52987,
+        "beta": 12.47013,
+        "mean": 0.918496,
+        "interval_95": {
+          "lower": 0.875283,
+          "upper": 0.961709
+        }
+      },
+      "evidence_count": 149,
+      "top_contributors": [
+        {
+          "example_id": "opp115::3701::C1458",
+          "policy_uid": "3701",
+          "actual_label": "system",
+          "predicted_label": "system",
+          "confidence": 1.0,
+          "text": "Security accuracy of personal and confidential information Although no computer system is 100 percent secure, Austin Community College has deployed extensive security measures to protect against the loss, misuse, or alteration of the information under our control."
+        },
+        {
+          "example_id": "opp115::3701::15891",
+          "policy_uid": "3701",
+          "actual_label": "system",
+          "predicted_label": "system",
+          "confidence": 1.0,
+          "text": "deployed extensive security measures to protect against the loss, misuse, or alteration of the information under our control."
+        },
+        {
+          "example_id": "opp115::3714::C2725",
+          "policy_uid": "3714",
+          "actual_label": "system",
+          "predicted_label": "system",
+          "confidence": 1.0,
+          "text": "SECURITY MediaNews uses procedures to safeguard and help prevent unauthorized access to the information collected on the MediaNews Web sites. Although such protective measures have been put in place, MediaNews cannot ensure that the information collected will never be disclosed in a manner inconsistent with this Privacy Policy."
+        },
+        {
+          "example_id": "opp115::3724::6218",
+          "policy_uid": "3724",
+          "actual_label": "organization",
+          "predicted_label": "system",
+          "confidence": 1.0,
+          "text": "nformation regarding Steam billing, a users Steam account, a users Internet connection and the Valve software installed on a users computer is uploaded to the server in connection with the users use of Steam and Valve software. is uploaded to the server in connection with the users use of Steam and Valve software. billing Steam billing, a users Steam account, Information regarding Steam billing, a users Steam account, a users Internet connection and the Valve software installed on a users computer is uploaded to the server in connection with the users use of Steam and Valve software. V in connection with the users use of Steam and Valve software."
+        },
+        {
+          "example_id": "opp115::3724::6219",
+          "policy_uid": "3724",
+          "actual_label": "organization",
+          "predicted_label": "system",
+          "confidence": 1.0,
+          "text": "nformation regarding Steam billing, a users Steam account, a users Internet connection and the Valve software installed on a users computer is uploaded to the server in connection with the users use of Steam and Valve software. is uploaded to the server in connection with the users use of Steam and Valve software. a users Steam account Steam billing, a users Steam account, Information regarding Steam billing, a users Steam account, a users Internet connection and the Valve software installed on a users computer is uploaded to the server in connection with the users use of Steam and Valve software. V in connection with the users use of Steam and Valve software."
+        }
+      ]
+    },
+    "organization": {
+      "level": "organization",
+      "indicators": [
+        "collection_use",
+        "third_party_sharing",
+        "retention_governance"
+      ],
+      "prior": {
+        "alpha": 1.2,
+        "beta": 2.8
+      },
+      "posterior": {
+        "alpha": 1641.911379,
+        "beta": 60.088621,
+        "mean": 0.964695,
+        "interval_95": {
+          "lower": 0.95593,
+          "upper": 0.97346
+        }
+      },
+      "evidence_count": 1698,
+      "top_contributors": [
+        {
+          "example_id": "opp115::3701::4573",
+          "policy_uid": "3701",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 1.0,
+          "text": "Open Records law to release information Open Records law information collected from Web-based forms including summary server log information, emails, and information collected from Web-based forms we may be compelled by Open Records law to release release"
+        },
+        {
+          "example_id": "opp115::3701::4578",
+          "policy_uid": "3701",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 1.0,
+          "text": "collected and stored automatically from all users accessing the ACC website Internet address of computer being used Web pages requested Referring web page Date and time Type of web browser being used Information we gather"
+        },
+        {
+          "example_id": "opp115::3701::C1454",
+          "policy_uid": "3701",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 1.0,
+          "text": "This information is used create summary statistics which are used for purposes such as assessing what information is of most interest to users, determining technical design specifications, and identifying system performance or problem areas"
+        },
+        {
+          "example_id": "opp115::3701::C1455",
+          "policy_uid": "3701",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 1.0,
+          "text": "This information is used to create summary statistics which are used for purposes such as assessing what information is of most interest to users, determining technical design specifications, and identifying system performance or problem areas."
+        },
+        {
+          "example_id": "opp115::3701::15876",
+          "policy_uid": "3701",
+          "actual_label": "organization",
+          "predicted_label": "organization",
+          "confidence": 1.0,
+          "text": "This information is used to create summary statistics which are used for purposes such as assessing what information is of most interest to users, determining technical design specifications, and identifying system performance or problem areas."
+        }
+      ]
+    }
+  },
+  "overall": {
+    "posterior_mean": 0.952613,
+    "evidence_count": 2272,
+    "primary_score": 0.952613
+  },
+  "primary_metric": "overall.posterior_mean"
+}

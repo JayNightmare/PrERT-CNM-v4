@@ -1,0 +1,522 @@
+{
+  "phase": "phase-3",
+  "model_type": "multinomial_naive_bayes",
+  "labels": [
+    "user",
+    "system",
+    "organization"
+  ],
+  "training": {
+    "rows": 15645,
+    "vocabulary_size": 5851,
+    "config": {
+      "seed": 42,
+      "max_features": 20000,
+      "ngram_max": 2,
+      "min_df": 2,
+      "max_df": 0.95,
+      "c": 1.0,
+      "max_iter": 1000,
+      "privacybert_model_name": "bert-base-uncased",
+      "privacybert_epochs": 2.0,
+      "privacybert_batch_size": 8,
+      "privacybert_learning_rate": 5e-05,
+      "privacybert_max_length": 256
+    }
+  },
+  "validation": {
+    "rows": 1803,
+    "accuracy": 0.816417,
+    "macro_precision": 0.587961,
+    "macro_recall": 0.761608,
+    "macro_f1": 0.625907,
+    "per_class": {
+      "user": {
+        "precision": 0.580292,
+        "recall": 0.633466,
+        "f1": 0.605714,
+        "support": 251
+      },
+      "system": {
+        "precision": 0.253086,
+        "recall": 0.803922,
+        "f1": 0.384977,
+        "support": 51
+      },
+      "organization": {
+        "precision": 0.930505,
+        "recall": 0.847435,
+        "f1": 0.887029,
+        "support": 1501
+      }
+    },
+    "confusion": {
+      "user": {
+        "user": 159,
+        "system": 6,
+        "organization": 86
+      },
+      "system": {
+        "user": 1,
+        "system": 41,
+        "organization": 9
+      },
+      "organization": {
+        "user": 114,
+        "system": 115,
+        "organization": 1272
+      }
+    }
+  },
+  "test": {
+    "rows": 2272,
+    "accuracy": 0.814701,
+    "macro_precision": 0.586193,
+    "macro_recall": 0.758442,
+    "macro_f1": 0.640117,
+    "per_class": {
+      "user": {
+        "precision": 0.458824,
+        "recall": 0.69395,
+        "f1": 0.552408,
+        "support": 281
+      },
+      "system": {
+        "precision": 0.355705,
+        "recall": 0.746479,
+        "f1": 0.481818,
+        "support": 71
+      },
+      "organization": {
+        "precision": 0.944052,
+        "recall": 0.834896,
+        "f1": 0.886125,
+        "support": 1920
+      }
+    },
+    "confusion": {
+      "user": {
+        "user": 195,
+        "system": 5,
+        "organization": 81
+      },
+      "system": {
+        "user": 4,
+        "system": 53,
+        "organization": 14
+      },
+      "organization": {
+        "user": 226,
+        "system": 91,
+        "organization": 1603
+      }
+    }
+  },
+  "bayesian": {
+    "enabled": true,
+    "validation": {
+      "method": "beta_posterior_evidence_aggregation",
+      "levels": {
+        "user": {
+          "level": "user",
+          "indicators": [
+            "consent_control",
+            "user_access_deletion"
+          ],
+          "prior": {
+            "alpha": 1.5,
+            "beta": 2.5
+          },
+          "posterior": {
+            "alpha": 250.714791,
+            "beta": 27.285209,
+            "mean": 0.901852,
+            "interval_95": {
+              "lower": 0.866941,
+              "upper": 0.936762
+            }
+          },
+          "evidence_count": 274,
+          "top_contributors": [
+            {
+              "example_id": "opp115::3637::3747",
+              "policy_uid": "3637",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "clicking on a link ou can unsubscribe from any email newsletter list at any time by clicking on a link provided in all email newsletters sent to you Personal Information"
+            },
+            {
+              "example_id": "opp115::3637::4158",
+              "policy_uid": "3637",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "For example, you can unsubscribe from any email newsletter list at any time by clicking on a link provided in all email newsletters sent to you."
+            },
+            {
+              "example_id": "opp115::3705::7625",
+              "policy_uid": "3705",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "you may, sign up for a free eNewsletter, which contains product update information and a birthday greetings email on your birthday from Caribou Coffee. free eNewsletter, which contains product update information and a birthday greetings email on your birthday from Caribou Coffee you may, sign up for a free eNewsletter, which contains product update information"
+            },
+            {
+              "example_id": "opp115::3705::8623",
+              "policy_uid": "3705",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "If you do not sign up for the product update or birthday greeting emails you will not receive them. When registering your Caribou Gift Card, you may, sign up for a free eNewsletter, which contains product update information and a birthday greetings email on your birthday from Caribou Coffee. When registering your Caribou Gift Card contains product update information and a birthday greetings email greeting emails you will not receive them."
+            },
+            {
+              "example_id": "opp115::3705::7634",
+              "policy_uid": "3705",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "simply notifying us of their preference or responding STOP to 65017. send our customers text messages regarding promotional offers or other news promotional offers or other news Cell Phone </strong> Caribou will only send our customers text messages regarding promotional offers or other news if a customer specifically grants us permission."
+            }
+          ]
+        },
+        "system": {
+          "level": "system",
+          "indicators": [
+            "security_controls",
+            "tracking_controls"
+          ],
+          "prior": {
+            "alpha": 1.4,
+            "beta": 2.6
+          },
+          "posterior": {
+            "alpha": 148.29455,
+            "beta": 17.70545,
+            "mean": 0.893341,
+            "interval_95": {
+              "lower": 0.846524,
+              "upper": 0.940157
+            }
+          },
+          "evidence_count": 162,
+          "top_contributors": [
+            {
+              "example_id": "opp115::3637::C2091",
+              "policy_uid": "3637",
+              "actual_label": "system",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "Whenever we obtain your Personal Information, we use commercially reasonable efforts to protect it from unauthorized access or disclosure. However, we are not insurers of the security of your Personal Information. Accordingly, we assume no liability for any disclosure of data due to errors in transmission, unauthorized third party access or other acts of third parties, or acts or omissions beyond our reasonable control."
+            },
+            {
+              "example_id": "opp115::3637::C2092",
+              "policy_uid": "3637",
+              "actual_label": "system",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "However, we cannot guarantee compliance with this policy and no method of transmission over the Internet, or method of electronic storage, is 100% secure. Therefore, while we strive to use commercially acceptable means to protect your Personal Information, we cannot guarantee its absolute security."
+            },
+            {
+              "example_id": "opp115::3637::C2093",
+              "policy_uid": "3637",
+              "actual_label": "system",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "Our policy is to require our third party service providers, such as the online store and personals providers, to encrypt sensitive information such as a credit card numbers using secure socket layer technology (SSL"
+            },
+            {
+              "example_id": "opp115::3637::4153",
+              "policy_uid": "3637",
+              "actual_label": "system",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "to encrypt sensitive information such as a credit card numbers using secure socket layer technology (SSL)."
+            },
+            {
+              "example_id": "opp115::3705::C631",
+              "policy_uid": "3705",
+              "actual_label": "system",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "These third parties do not have the right to use the personally identifiable information beyond what is necessary to assist us. They are contractually obligated to maintain the confidentiality and security of such information, and are prohibited from using such information in any way not expressly authorized by Caribou Coffee."
+            }
+          ]
+        },
+        "organization": {
+          "level": "organization",
+          "indicators": [
+            "collection_use",
+            "third_party_sharing",
+            "retention_governance"
+          ],
+          "prior": {
+            "alpha": 1.2,
+            "beta": 2.8
+          },
+          "posterior": {
+            "alpha": 1315.853285,
+            "beta": 55.146715,
+            "mean": 0.959776,
+            "interval_95": {
+              "lower": 0.94938,
+              "upper": 0.970173
+            }
+          },
+          "evidence_count": 1367,
+          "top_contributors": [
+            {
+              "example_id": "opp115::3637::C2088",
+              "policy_uid": "3637",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "The Disinformation Company Ltd. (Disinformation) values the users of our website (the Website). Your privacy and trust are very important to us. We recognize that you may be concerned about our collection, use, and disclosure of the personally identifiable information (Personal Information) that we collect when you use the Website and the services offered on the Website (Disinformation Services). This Privacy Policy describes the information that we collect from you, how we collect this information, and what we do with it after we collect it. By using the Website you are accepting the practices described in this Privacy Policy. If you have any questions or comments regarding this Privacy Policy, please contact us using our Contact Form."
+            },
+            {
+              "example_id": "opp115::3637::3737",
+              "policy_uid": "3637",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "may collect any Personal Information that you provide to us as well as the Internet protocol (IP) Address f We which you post stories and/or comments to the Website."
+            },
+            {
+              "example_id": "opp115::3637::3740",
+              "policy_uid": "3637",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "service provider partners which you post stories and/or comments to the Website. nternet protocol (IP) Address may collect any Personal Information that you provide to us,"
+            },
+            {
+              "example_id": "opp115::3637::4166",
+              "policy_uid": "3637",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "We and/or our service provider partners may collect your name, mailing address, phone number, email address Personal Information We and/or our service provider partners may collect any Personal Information that you provide to us, such as your name, mailing address, phone number, email address, and credit card number, as well as the Internet protocol (IP) Address from which you post stories and/or comments to the Website."
+            },
+            {
+              "example_id": "opp115::3637::4167",
+              "policy_uid": "3637",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "We and/or our service provider partners may collect credit card number Personal Information We and/or our service provider partners may collect any Personal Information that you provide to us, such as your name, mailing address, phone number, email address, and credit card number, as well as the Internet protocol (IP) Address from which you post stories and/or comments to the Website."
+            }
+          ]
+        }
+      },
+      "overall": {
+        "posterior_mean": 0.945004,
+        "evidence_count": 1803,
+        "primary_score": 0.945004
+      },
+      "primary_metric": "overall.posterior_mean"
+    },
+    "test": {
+      "method": "beta_posterior_evidence_aggregation",
+      "levels": {
+        "user": {
+          "level": "user",
+          "indicators": [
+            "consent_control",
+            "user_access_deletion"
+          ],
+          "prior": {
+            "alpha": 1.5,
+            "beta": 2.5
+          },
+          "posterior": {
+            "alpha": 393.093234,
+            "beta": 35.906766,
+            "mean": 0.916301,
+            "interval_95": {
+              "lower": 0.890126,
+              "upper": 0.942477
+            }
+          },
+          "evidence_count": 425,
+          "top_contributors": [
+            {
+              "example_id": "opp115::3714::8446",
+              "policy_uid": "3714",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "opt-in MediaNews advertisers User registration with MediaNews Web sites is completed and membership activated upon clicking a link e-mailed to the address provided in registration. At that time you have the opportunity to opt-in to e-mail newsletters and alerts and have e-mail offers sent to you on behalf of MediaNews advertisers, however, you can update your preferences at a later time. newsletters and alerts and have e-mail offers sent to you on behalf of MediaNews advertisers e-mail"
+            },
+            {
+              "example_id": "opp115::3714::10279",
+              "policy_uid": "3714",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "you may opt-out of such messages by going to the \"Manage an Account\" page and simply unclicking an opt-in box If, at any time, you do not want us to share your information with third parties who wish to send you information about their products and services, \"Manage an Account\" page who wish to send you information about their products and services your information"
+            },
+            {
+              "example_id": "opp115::3714::25270",
+              "policy_uid": "3714",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "you may opt-out of such messages by going to the \"Manage an Account\" page and simply unclicking an opt-in box If, at any time, you do not want us to share your information with third parties Account who wish to send you information about their products and services, information"
+            },
+            {
+              "example_id": "opp115::3714::C2721",
+              "policy_uid": "3714",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "opt-out of such messages by going to the \"Manage an Account\" page and simply unclicking an opt-in box you do not want to receive information about special offers and new products and features from MediaNews receive information about special offers and new products and features from MediaNews"
+            },
+            {
+              "example_id": "opp115::3714::25274",
+              "policy_uid": "3714",
+              "actual_label": "user",
+              "predicted_label": "user",
+              "confidence": 1.0,
+              "text": "you may opt-out of such messages by going to the \"Manage an Account\" page and simply unclicking an opt-in box If, at any time, you do not want to receive information about special offers and new products and features from MediaNews, Account to receive information about special offers and new products and features receive"
+            }
+          ]
+        },
+        "system": {
+          "level": "system",
+          "indicators": [
+            "security_controls",
+            "tracking_controls"
+          ],
+          "prior": {
+            "alpha": 1.4,
+            "beta": 2.6
+          },
+          "posterior": {
+            "alpha": 140.52987,
+            "beta": 12.47013,
+            "mean": 0.918496,
+            "interval_95": {
+              "lower": 0.875283,
+              "upper": 0.961709
+            }
+          },
+          "evidence_count": 149,
+          "top_contributors": [
+            {
+              "example_id": "opp115::3701::C1458",
+              "policy_uid": "3701",
+              "actual_label": "system",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "Security accuracy of personal and confidential information Although no computer system is 100 percent secure, Austin Community College has deployed extensive security measures to protect against the loss, misuse, or alteration of the information under our control."
+            },
+            {
+              "example_id": "opp115::3701::15891",
+              "policy_uid": "3701",
+              "actual_label": "system",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "deployed extensive security measures to protect against the loss, misuse, or alteration of the information under our control."
+            },
+            {
+              "example_id": "opp115::3714::C2725",
+              "policy_uid": "3714",
+              "actual_label": "system",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "SECURITY MediaNews uses procedures to safeguard and help prevent unauthorized access to the information collected on the MediaNews Web sites. Although such protective measures have been put in place, MediaNews cannot ensure that the information collected will never be disclosed in a manner inconsistent with this Privacy Policy."
+            },
+            {
+              "example_id": "opp115::3724::6218",
+              "policy_uid": "3724",
+              "actual_label": "organization",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "nformation regarding Steam billing, a users Steam account, a users Internet connection and the Valve software installed on a users computer is uploaded to the server in connection with the users use of Steam and Valve software. is uploaded to the server in connection with the users use of Steam and Valve software. billing Steam billing, a users Steam account, Information regarding Steam billing, a users Steam account, a users Internet connection and the Valve software installed on a users computer is uploaded to the server in connection with the users use of Steam and Valve software. V in connection with the users use of Steam and Valve software."
+            },
+            {
+              "example_id": "opp115::3724::6219",
+              "policy_uid": "3724",
+              "actual_label": "organization",
+              "predicted_label": "system",
+              "confidence": 1.0,
+              "text": "nformation regarding Steam billing, a users Steam account, a users Internet connection and the Valve software installed on a users computer is uploaded to the server in connection with the users use of Steam and Valve software. is uploaded to the server in connection with the users use of Steam and Valve software. a users Steam account Steam billing, a users Steam account, Information regarding Steam billing, a users Steam account, a users Internet connection and the Valve software installed on a users computer is uploaded to the server in connection with the users use of Steam and Valve software. V in connection with the users use of Steam and Valve software."
+            }
+          ]
+        },
+        "organization": {
+          "level": "organization",
+          "indicators": [
+            "collection_use",
+            "third_party_sharing",
+            "retention_governance"
+          ],
+          "prior": {
+            "alpha": 1.2,
+            "beta": 2.8
+          },
+          "posterior": {
+            "alpha": 1641.911379,
+            "beta": 60.088621,
+            "mean": 0.964695,
+            "interval_95": {
+              "lower": 0.95593,
+              "upper": 0.97346
+            }
+          },
+          "evidence_count": 1698,
+          "top_contributors": [
+            {
+              "example_id": "opp115::3701::4573",
+              "policy_uid": "3701",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "Open Records law to release information Open Records law information collected from Web-based forms including summary server log information, emails, and information collected from Web-based forms we may be compelled by Open Records law to release release"
+            },
+            {
+              "example_id": "opp115::3701::4578",
+              "policy_uid": "3701",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "collected and stored automatically from all users accessing the ACC website Internet address of computer being used Web pages requested Referring web page Date and time Type of web browser being used Information we gather"
+            },
+            {
+              "example_id": "opp115::3701::C1454",
+              "policy_uid": "3701",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "This information is used create summary statistics which are used for purposes such as assessing what information is of most interest to users, determining technical design specifications, and identifying system performance or problem areas"
+            },
+            {
+              "example_id": "opp115::3701::C1455",
+              "policy_uid": "3701",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "This information is used to create summary statistics which are used for purposes such as assessing what information is of most interest to users, determining technical design specifications, and identifying system performance or problem areas."
+            },
+            {
+              "example_id": "opp115::3701::15876",
+              "policy_uid": "3701",
+              "actual_label": "organization",
+              "predicted_label": "organization",
+              "confidence": 1.0,
+              "text": "This information is used to create summary statistics which are used for purposes such as assessing what information is of most interest to users, determining technical design specifications, and identifying system performance or problem areas."
+            }
+          ]
+        }
+      },
+      "overall": {
+        "posterior_mean": 0.952613,
+        "evidence_count": 2272,
+        "primary_score": 0.952613
+      },
+      "primary_metric": "overall.posterior_mean"
+    },
+    "primary_score": 0.952613,
+    "priors_source": "default"
+  }
+}

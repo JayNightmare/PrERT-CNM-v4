@@ -290,6 +290,65 @@ Generated outputs include:
 - `synthetic_policy_schema_dictionary.md`
 - `upload-fixtures/` (policy/schema files for direct GUI upload testing when enabled)
 
+## 11) Prepare Live Demo Bundle (Supervisor Presentation)
+
+Create a deployment-safe bundle that includes:
+
+- Baseline benchmark files for Phase 4 validation
+- Naive Bayes `model.json` checkpoint for model-signal scoring in the web app
+
+Run:
+
+```bash
+PYTHONPATH=src python scripts/prepare_phase4_demo_bundle.py \
+  --include-nb-artifacts \
+  --overwrite
+```
+
+This writes files under:
+
+```text
+deployment/demo-assets/
+```
+
+Generated structure includes:
+
+- `deployment/demo-assets/phase-3-freeze/` (baseline benchmark files)
+- `deployment/demo-assets/phase-3-nb/` (optional comparison benchmark files)
+- `deployment/demo-assets/phase-3-nb/classifier_checkpoint/model.json` (web app model signal)
+
+## 12) Launch Web App With Deployment Paths
+
+The app now supports environment-variable overrides for hosted demos:
+
+- `PRERT_PHASE4_MODEL_PATH`
+- `PRERT_PHASE4_BASELINE_DIR`
+- `PRERT_PHASE4_COMPARISON_DIRS` (comma or newline separated)
+- `PRERT_PHASE4_OUTPUT_DIR`
+
+Example:
+
+```bash
+export PRERT_PHASE4_MODEL_PATH="deployment/demo-assets/phase-3-nb/classifier_checkpoint/model.json"
+export PRERT_PHASE4_BASELINE_DIR="deployment/demo-assets/phase-3-freeze"
+export PRERT_PHASE4_COMPARISON_DIRS="deployment/demo-assets/phase-3-nb"
+export PRERT_PHASE4_OUTPUT_DIR="artifacts/phase-4"
+
+prert-phase4-web --port 8501
+```
+
+If variables are not set, the app auto-falls back to bundled deployment paths first, then local `artifacts/` paths.
+
+## 13) Streamlit Community Cloud (Public Demo URL)
+
+1. Push your repository (including `deployment/demo-assets/`) to GitHub.
+2. In Streamlit Community Cloud, create a new app from your repo.
+3. Set the main file path to:
+      - `src/prert/phase4/web_app.py`
+4. Add optional app environment variables from section 12 (use `.streamlit/secrets.toml.example` as a template).
+5. Runtime defaults are preconfigured in `.streamlit/config.toml`.
+6. Deploy and share the generated URL with your supervisor.
+
 ## Expected Console Output
 
 ## Extraction (example)
