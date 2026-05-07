@@ -24,31 +24,31 @@ PYTHONPATH=src python scripts/<wrapper>.py
 prert doctor
 ```
 
-2. Phase 1 extraction and chunking
+1. Phase 1 extraction and chunking
 
 ```bash
 prert extract --chunk --output-dir artifacts/phase-1
 ```
 
-3. Phase 1 Chroma ingestion
+1. Phase 1 Chroma ingestion
 
 ```bash
 prert migrate --input-dir artifacts/phase-1
 ```
 
-4. Phase 2 metrics baseline
+1. Phase 2 metrics baseline
 
 ```bash
 prert phase2
 ```
 
-5. Phase 3 baseline model
+1. Phase 3 baseline model
 
 ```bash
 prert phase3
 ```
 
-6. Phase 4 validation
+1. Phase 4 validation
 
 ```bash
 prert phase4 --baseline-dir artifacts/phase-3-freeze
@@ -60,6 +60,7 @@ prert phase4 --baseline-dir artifacts/phase-3-freeze
 | ------- | ------------------------- | -------------------------------------------------------- | ------------------------------------------ |
 | Setup   | `prert doctor`            | Validate prerequisites and critical inputs               | PASS/FAIL checks                           |
 | Help    | `prert guide --goal full` | Show guided run order                                    | Next-step command list                     |
+| Help    | `prert interactive`       | Pick commands from a guided menu and optionally execute  | Interactive workflow selection             |
 | Phase 1 | `prert extract`           | Extract controls/chunks from DOCX regulation sources     | `artifacts/phase-1/*.jsonl`                |
 | Phase 1 | `prert migrate`           | Load Phase 1 chunks into Chroma Cloud                    | Chroma collections                         |
 | Phase 2 | `prert phase2`            | Generate metric specs, synthetic events, baseline scores | `artifacts/phase-2/*`                      |
@@ -76,6 +77,18 @@ Full workflow:
 
 ```bash
 prert guide --goal full
+```
+
+Interactive full workflow:
+
+```bash
+prert interactive --goal full
+```
+
+Non-interactive selection with direct execution:
+
+```bash
+prert interactive --goal phase1 --select 1 --execute
 ```
 
 Phase-specific examples:

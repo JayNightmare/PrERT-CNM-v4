@@ -63,3 +63,34 @@ def test_prert_doctor_fails_without_env_file(tmp_path) -> None:
 
     code = cli_main.run(["doctor", "--root", str(tmp_path)])
     assert code == 1
+
+
+def test_prert_interactive_lists_phase1_options(capsys) -> None:
+    code = cli_main.run(["interactive", "--goal", "phase1", "--select", "1"])
+    assert code == 0
+
+    output = capsys.readouterr().out
+    assert "PrERT Interactive Runner" in output
+    assert "Phase 1: Extract controls and chunks" in output
+    assert "Use --execute to run selected commands directly." in output
+
+
+def test_prert_interactive_execute_dispatches(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def _stub_dispatch(command: str, command_args: list[str]) -> int:
+        captured["command"] = command
+        captured["args"] = list(command_args)
+        return 0
+
+    monkeypatch.setattr(cli_main, "_dispatch_to_entrypoint", _stub_dispatch)
+
+    code = cli_main.run(["interactive", "--goal", "phase1", "--select", "1", "--execute"])
+    assert code == 0
+    assert captured["command"] == "extract"
+    assert captured["args"] == ["--chunk", "--output-dir", "artifacts/phase-1"]
+
+
+def test_prert_interactive_invalid_selection_fails() -> None:
+    code = cli_main.run(["interactive", "--goal", "phase1", "--select", "99"])
+    assert code == 2

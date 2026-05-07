@@ -215,3 +215,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .streamlit/logs/*
+
+docs/Proposal/*
+!docs/Proposal/*.pdf
+!docs/Proposal/*.bib
+!docs/Proposal/*.tex

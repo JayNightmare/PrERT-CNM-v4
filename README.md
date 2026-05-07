@@ -116,6 +116,12 @@ Guided command order:
 prert guide --goal full
 ```
 
+Interactive command picker:
+
+```bash
+prert interactive
+```
+
 Golden path (recommended):
 
 1. `prert extract --chunk --output-dir artifacts/phase-1`
@@ -127,6 +133,9 @@ Golden path (recommended):
 If you need script wrappers, they are still supported and mapped in the canonical command reference.
 
 ## Detailed Command Examples
+
+The examples below retain script-wrapper forms for compatibility.
+For the canonical command style and the full matrix, use [docs/Project/Execution-Playbook/12-command-reference.md](docs/Project/Execution-Playbook/12-command-reference.md).
 
 ## 1) Extract Controls and Chunks
 

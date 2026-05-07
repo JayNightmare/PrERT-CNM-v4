@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import argparse
 import importlib
-import os
 from pathlib import Path
 import sys
-from typing import Callable, Dict, Iterable, List
+from typing import Callable, Dict, List, Tuple
 
 
 ENTRYPOINTS: Dict[str, str] = {
@@ -63,9 +62,11 @@ def run(argv: List[str] | None = None) -> int:
         _print_help()
         return 0
 
-    if command in {"doctor", "guide"}:
+    if command in {"doctor", "guide", "interactive"}:
         if command == "doctor":
             return _run_doctor(command_args)
+        if command == "interactive":
+            return _run_interactive(command_args)
         return _run_guide(command_args)
 
     canonical = ALIASES.get(command, command)
@@ -172,6 +173,108 @@ def _run_guide(argv: List[str]) -> int:
     return 0
 
 
+def _run_interactive(argv: List[str]) -> int:
+    parser = argparse.ArgumentParser(description="Interactive PrERT command picker")
+    parser.add_argument(
+        "--goal",
+        choices=("full", "phase1", "phase2", "phase3", "phase4", "validation"),
+        default="full",
+        help="Workflow goal to filter interactive options.",
+    )
+    parser.add_argument(
+        "--select",
+        type=int,
+        default=None,
+        help="Option number to select without prompt.",
+    )
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Execute the selected option immediately.",
+    )
+    args = parser.parse_args(argv)
+
+    options = _interactive_options(args.goal)
+    print("PrERT Interactive Runner")
+    print("")
+    for index, (title, command_args) in enumerate(options, start=1):
+        print(f"{index}. {title}")
+        print(f"   prert {' '.join(command_args)}")
+
+    selected_index = args.select
+    if selected_index is None:
+        raw = input("\nSelect an option number (Enter to exit): ").strip()
+        if not raw:
+            print("No selection made.")
+            return 0
+        if not raw.isdigit():
+            print("Invalid selection. Enter a numeric option.")
+            return 2
+        selected_index = int(raw)
+
+    if selected_index < 1 or selected_index > len(options):
+        print(f"Invalid selection: {selected_index}. Choose 1 to {len(options)}.")
+        return 2
+
+    title, selected_command = options[selected_index - 1]
+    print("")
+    print(f"Selected: {title}")
+    print(f"Command: prert {' '.join(selected_command)}")
+
+    should_execute = args.execute
+    if not should_execute and args.select is None:
+        confirm = input("Execute now? [y/N]: ").strip().lower()
+        should_execute = confirm in {"y", "yes"}
+
+    if not should_execute:
+        print("Use --execute to run selected commands directly.")
+        return 0
+
+    return run(selected_command)
+
+
+def _interactive_options(goal: str) -> List[Tuple[str, List[str]]]:
+    options: List[Tuple[str, List[str]]] = []
+
+    if goal in {"full", "phase1"}:
+        options.extend(
+            [
+                ("Phase 1: Extract controls and chunks", ["extract", "--chunk", "--output-dir", "artifacts/phase-1"]),
+                ("Phase 1: Migrate chunks to Chroma", ["migrate", "--input-dir", "artifacts/phase-1"]),
+            ]
+        )
+
+    if goal in {"full", "phase2"}:
+        options.extend(
+            [
+                ("Phase 2: Run baseline metrics pipeline", ["phase2"]),
+                ("Phase 2: Build OPP-115 mapping export", ["opp115"]),
+            ]
+        )
+
+    if goal in {"full", "phase3"}:
+        options.extend(
+            [
+                ("Phase 3: Run baseline training", ["phase3"]),
+                ("Phase 3: Run acceptance freeze", ["phase3-freeze", "--strict"]),
+            ]
+        )
+
+    if goal in {"full", "phase4", "validation"}:
+        options.extend(
+            [
+                ("Phase 4: Validate baseline artifacts", ["phase4", "--baseline-dir", "artifacts/phase-3-freeze"]),
+                ("Phase 4: Launch compliance web app", ["phase4-web", "--port", "8501"]),
+                (
+                    "Phase 4: Generate synthetic compliance fixtures",
+                    ["phase4-synth", "--output-dir", "artifacts/phase-4/synthetic-compliance"],
+                ),
+            ]
+        )
+
+    return options
+
+
 def _check_python_version() -> int:
     major, minor = sys.version_info.major, sys.version_info.minor
     if (major, minor) >= (3, 11):
@@ -268,9 +371,12 @@ def _print_help() -> None:
     print("Helper commands:")
     print("  doctor         Validate environment, inputs, and credentials")
     print("  guide          Print recommended command order")
+    print("  interactive    Pick commands from an interactive menu")
     print("")
     print("Examples:")
     print("  prert guide --goal full")
+    print("  prert interactive")
+    print("  prert interactive --goal phase1 --select 1 --execute")
     print("  prert extract --chunk --output-dir artifacts/phase-1")
     print("  prert phase4-web --port 8501")
 
