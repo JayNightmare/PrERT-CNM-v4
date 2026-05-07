@@ -50,3 +50,23 @@ def test_phase4_synthetic_generator_produces_ordered_band_scores(tmp_path: Path)
 
     assert summary["high"]["in_target_band"] >= 1
     assert summary["low"]["in_target_band"] >= 1
+
+
+def test_phase4_synthetic_progress_callback_emits_completion(tmp_path: Path) -> None:
+    output_dir = tmp_path / "synthetic"
+    events: list[dict] = []
+
+    manifest = generate_synthetic_policy_schema_dataset(
+        output_dir=output_dir,
+        counts_by_band={"low": 1, "medium": 1, "high": 1},
+        seed=5,
+        include_model_signal=False,
+        export_upload_fixtures=False,
+        progress_callback=lambda event: events.append(dict(event)),
+    )
+
+    assert manifest["counts_by_band"] == {"low": 1, "medium": 1, "high": 1}
+    event_names = [event.get("event") for event in events]
+    assert event_names[0] == "start"
+    assert event_names[-1] == "complete"
+    assert event_names.count("sample_complete") == 3

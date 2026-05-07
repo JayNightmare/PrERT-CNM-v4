@@ -17,6 +17,7 @@ dependencies = [
   "scikit-learn>=1.5.2",
   "python-dotenv>=1.2.2",
   "python-docx>=1.1.2",
+  "pypdf>=4.3.1",
   "streamlit>=1.44.1",
   "pytest>=9.0.2",
   "ruff>=0.15.9",
@@ -31,6 +32,7 @@ dev = [
 ]
 
 [project.scripts]
+prert = "prert.cli.main:main"
 prert-extract = "prert.cli.extract:main"
 prert-migrate = "prert.cli.migrate:main"
 prert-phase2 = "prert.cli.phase2:main"

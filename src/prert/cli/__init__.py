@@ -1,1 +1,1 @@
-"""Command-line entrypoints for extraction and migration."""
+"""Command-line entrypoints for PrERT phase pipelines and helpers."""

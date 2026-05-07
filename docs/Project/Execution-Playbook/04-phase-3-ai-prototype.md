@@ -39,43 +39,36 @@ Out of scope:
 ## Steps to Complete
 
 1. Prepare training and evaluation datasets
-
-- Consolidate labels and map them to Phase 1/2 indicator taxonomy.
-- Create train/validation/test splits with leakage checks.
+      - Consolidate labels and map them to Phase 1/2 indicator taxonomy.
+      - Create train/validation/test splits with leakage checks.
 
 2. Fine-tune clause classifier
-
-- Train PrivacyBERT-based classifier with documented hyperparameters.
-- Track model runs and store checkpoints.
-- Evaluate macro F1, per-class precision/recall, and calibration quality.
+      - Train PrivacyBERT-based classifier with documented hyperparameters.
+      - Track model runs and store checkpoints.
+      - Evaluate macro F1, per-class precision/recall, and calibration quality.
 
 3. Build probabilistic risk engine
-
-- Define Bayesian model structure:
-     - priors from standards expectations,
-     - likelihood from observed indicator evidence,
-     - posterior risk score output.
-- Add uncertainty outputs (credible intervals).
+      - Define Bayesian model structure:
+           - priors from standards expectations,
+           - likelihood from observed indicator evidence,
+           - posterior risk score output.
+      - Add uncertainty outputs (credible intervals).
 
 4. Integrate NLP + risk modules
-
-- Build adapter translating clause probabilities to indicator evidence.
-- Feed evidence into probabilistic scoring.
-- Output user/system/org risk scores with explanation payload.
+      - Build adapter translating clause probabilities to indicator evidence.
+      - Feed evidence into probabilistic scoring.
+      - Output user/system/org risk scores with explanation payload.
 
 5. Implement explainability layer
-
-- Provide top contributing clauses/indicators per score.
-- Surface uncertainty/confidence markers.
+      - Provide top contributing clauses/indicators per score.
+      - Surface uncertainty/confidence markers.
 
 6. Build prototype interface
-
-- Preferred: FastAPI endpoints for batch and single-item scoring.
-- Fallback: notebook + CLI pipeline for demo.
+      - Preferred: FastAPI endpoints for batch and single-item scoring.
+      - Fallback: notebook + CLI pipeline for demo.
 
 7. Freeze Phase 3 baseline
-
-- Package model card, scoring spec, and integration test evidence.
+      - Package model card, scoring spec, and integration test evidence.
 
 ## Deliverables
 

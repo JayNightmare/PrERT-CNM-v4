@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import importlib
 from io import BytesIO
 import json
 import os
@@ -11,7 +12,6 @@ import re
 from typing import Any, Dict, List, Optional
 
 import streamlit as st
-from pypdf import PdfReader
 
 from prert.phase4.compliance_assessor import assess_policy_schema_compliance, resolve_default_model_path
 from prert.phase4.pipeline import run_phase4_validation
@@ -28,9 +28,6 @@ def main() -> None:
     st.set_page_config(page_title="PrERT Compliance Studio", page_icon="shield", layout="wide")
     _inject_styles()
 
-    model_path_text = ""
-    generation_settings: Dict[str, Any] = {}
-    benchmark_settings: Dict[str, Any] = {}
     root = Path.cwd()
     default_model = resolve_default_model_path(project_root=root)
     default_baseline_dir = _resolve_phase4_path(
@@ -45,6 +42,16 @@ def main() -> None:
         root=root,
     )
     default_comparison_dirs = _resolve_default_comparison_dirs(root=root)
+    _initialize_sidebar_state(
+        default_model=default_model,
+        default_baseline_dir=default_baseline_dir,
+        default_output_dir=default_output_dir,
+        default_comparison_dirs=default_comparison_dirs,
+    )
+
+    model_path_text = ""
+    generation_settings: Dict[str, Any] = {}
+    benchmark_settings: Dict[str, Any] = {}
 
     with st.sidebar:
         st.header("Workspace Tabs")
@@ -52,92 +59,16 @@ def main() -> None:
             "Open",
             options=("Compliance Assessment", "Synthetic Data Generator", "Benchmark Validation"),
             index=0,
+            key="prert_active_tab",
         )
         st.divider()
 
         if active_tab == "Compliance Assessment":
-            st.subheader("Assessment Settings")
-            model_path_text = st.text_input(
-                "Naive Bayes model checkpoint",
-                value=str(default_model) if default_model is not None else "",
-                help="Optional checkpoint path for model-signal scoring. Leave blank to auto-detect.",
-            )
-            st.caption("Supported policy files: .txt, .md, .pdf")
-            st.caption("Supported schema files: .sql, .txt, .json, .yaml, .yml")
+            model_path_text = _render_compliance_settings_form()
         elif active_tab == "Synthetic Data Generator":
-            st.subheader("Generation Settings")
-            default_output_dir = Path.cwd() / "artifacts/phase-4/synthetic-compliance"
-            generation_settings["output_dir"] = st.text_input(
-                "Output directory",
-                value=str(default_output_dir),
-                help="Artifact directory for generated JSONL/manifest/dictionary outputs.",
-            )
-            generation_settings["low_count"] = int(
-                st.number_input("Low compliance samples", min_value=0, value=6, step=1)
-            )
-            generation_settings["medium_count"] = int(
-                st.number_input("Medium compliance samples", min_value=0, value=6, step=1)
-            )
-            generation_settings["high_count"] = int(
-                st.number_input("High compliance samples", min_value=0, value=6, step=1)
-            )
-            generation_settings["seed"] = int(st.number_input("Random seed", value=42, step=1))
-            generation_settings["include_model_signal"] = st.checkbox(
-                "Include model-signal scoring",
-                value=False,
-                help="Uses Naive Bayes checkpoint scoring if a model path is available.",
-            )
-            generation_settings["model_path"] = st.text_input(
-                "Model checkpoint path (optional)",
-                value="",
-            )
-            generation_settings["export_upload_fixtures"] = st.checkbox(
-                "Export upload fixture files",
-                value=True,
-                help="Writes per-sample policy/schema files for direct upload testing.",
-            )
+            generation_settings = _render_generation_settings_form()
         else:
-            st.subheader("Benchmark Settings")
-
-            benchmark_settings["baseline_dir"] = st.text_input(
-                "Baseline artifact directory",
-                value=str(default_baseline_dir),
-                help="Directory containing phase3_manifest.json and associated Phase 3 outputs.",
-            )
-            benchmark_settings["comparison_dirs"] = st.text_area(
-                "Comparison artifact directories (comma or newline separated)",
-                value="\n".join(str(path) for path in default_comparison_dirs),
-                help="Optional folders to compare against the baseline.",
-                height=120,
-            )
-            benchmark_settings["output_dir"] = st.text_input(
-                "Benchmark output directory",
-                value=str(default_output_dir),
-                help="Destination for Phase 4 validation JSON/markdown reports and leaderboard JSONL.",
-            )
-            benchmark_settings["require_bayesian"] = st.checkbox(
-                "Require Bayesian evidence checks",
-                value=False,
-            )
-            benchmark_settings["require_polisis"] = st.checkbox(
-                "Require Polisis source checks",
-                value=False,
-                help="When enabled, baseline validation fails if artifact source is not Polisis-based.",
-            )
-            benchmark_settings["polisis_advisory"] = st.checkbox(
-                "Enable Polisis source advisory check",
-                value=True,
-            )
-            benchmark_settings["ece_threshold"] = float(
-                st.number_input(
-                    "ECE advisory threshold",
-                    min_value=0.0,
-                    max_value=1.0,
-                    value=0.20,
-                    step=0.01,
-                    format="%.2f",
-                )
-            )
+            benchmark_settings = _render_benchmark_settings_form()
 
     if active_tab == "Compliance Assessment":
         _render_hero(
@@ -171,6 +102,173 @@ def main() -> None:
     _render_benchmark_screen(settings=benchmark_settings)
 
 
+def _initialize_sidebar_state(
+    default_model: Optional[Path],
+    default_baseline_dir: Path,
+    default_output_dir: Path,
+    default_comparison_dirs: List[Path],
+) -> None:
+    if "prert_compliance_settings" not in st.session_state:
+        st.session_state["prert_compliance_settings"] = {
+            "model_path": str(default_model) if default_model is not None else "",
+        }
+
+    if "prert_generation_settings" not in st.session_state:
+        st.session_state["prert_generation_settings"] = {
+            "output_dir": str(Path.cwd() / "artifacts/phase-4/synthetic-compliance"),
+            "low_count": 6,
+            "medium_count": 6,
+            "high_count": 6,
+            "seed": 42,
+            "include_model_signal": False,
+            "model_path": "",
+            "export_upload_fixtures": True,
+        }
+
+    if "prert_benchmark_settings" not in st.session_state:
+        st.session_state["prert_benchmark_settings"] = {
+            "baseline_dir": str(default_baseline_dir),
+            "comparison_dirs": "\n".join(str(path) for path in default_comparison_dirs),
+            "output_dir": str(default_output_dir),
+            "require_bayesian": False,
+            "require_polisis": False,
+            "polisis_advisory": True,
+            "ece_threshold": 0.20,
+        }
+
+
+def _render_compliance_settings_form() -> str:
+    state = dict(st.session_state["prert_compliance_settings"])
+    st.subheader("Assessment Settings")
+
+    with st.form("compliance_settings_form"):
+        model_path = st.text_input(
+            "Naive Bayes model checkpoint",
+            value=str(state.get("model_path", "")),
+            help="Optional checkpoint path for model-signal scoring. Leave blank to auto-detect.",
+        )
+        apply_clicked = st.form_submit_button("Apply Settings")
+
+    if apply_clicked:
+        st.session_state["prert_compliance_settings"] = {
+            "model_path": model_path,
+        }
+        st.success("Assessment settings applied")
+
+    st.caption("Supported policy files: .txt, .md, .pdf")
+    st.caption("Supported schema files: .sql, .txt, .json, .yaml, .yml")
+    return str(st.session_state["prert_compliance_settings"]["model_path"])
+
+
+def _render_generation_settings_form() -> Dict[str, Any]:
+    state = dict(st.session_state["prert_generation_settings"])
+    st.subheader("Generation Settings")
+
+    with st.form("generation_settings_form"):
+        output_dir = st.text_input(
+            "Output directory",
+            value=str(state.get("output_dir", "")),
+            help="Artifact directory for generated JSONL/manifest/dictionary outputs.",
+        )
+        low_count = int(st.number_input("Low compliance samples", min_value=0, value=int(state.get("low_count", 6)), step=1))
+        medium_count = int(
+            st.number_input("Medium compliance samples", min_value=0, value=int(state.get("medium_count", 6)), step=1)
+        )
+        high_count = int(st.number_input("High compliance samples", min_value=0, value=int(state.get("high_count", 6)), step=1))
+        seed = int(st.number_input("Random seed", value=int(state.get("seed", 42)), step=1))
+        include_model_signal = st.checkbox(
+            "Include model-signal scoring",
+            value=bool(state.get("include_model_signal", False)),
+            help="Uses Naive Bayes checkpoint scoring if a model path is available.",
+        )
+        model_path = st.text_input(
+            "Model checkpoint path (optional)",
+            value=str(state.get("model_path", "")),
+        )
+        export_upload_fixtures = st.checkbox(
+            "Export upload fixture files",
+            value=bool(state.get("export_upload_fixtures", True)),
+            help="Writes per-sample policy/schema files for direct upload testing.",
+        )
+        apply_clicked = st.form_submit_button("Apply Settings")
+
+    if apply_clicked:
+        st.session_state["prert_generation_settings"] = {
+            "output_dir": output_dir,
+            "low_count": low_count,
+            "medium_count": medium_count,
+            "high_count": high_count,
+            "seed": seed,
+            "include_model_signal": include_model_signal,
+            "model_path": model_path,
+            "export_upload_fixtures": export_upload_fixtures,
+        }
+        st.success("Generation settings applied")
+
+    return dict(st.session_state["prert_generation_settings"])
+
+
+def _render_benchmark_settings_form() -> Dict[str, Any]:
+    state = dict(st.session_state["prert_benchmark_settings"])
+    st.subheader("Benchmark Settings")
+
+    with st.form("benchmark_settings_form"):
+        baseline_dir = st.text_input(
+            "Baseline artifact directory",
+            value=str(state.get("baseline_dir", "")),
+            help="Directory containing phase3_manifest.json and associated Phase 3 outputs.",
+        )
+        comparison_dirs = st.text_area(
+            "Comparison artifact directories (comma or newline separated)",
+            value=str(state.get("comparison_dirs", "")),
+            help="Optional folders to compare against the baseline.",
+            height=120,
+        )
+        output_dir = st.text_input(
+            "Benchmark output directory",
+            value=str(state.get("output_dir", "")),
+            help="Destination for Phase 4 validation JSON/markdown reports and leaderboard JSONL.",
+        )
+        require_bayesian = st.checkbox(
+            "Require Bayesian evidence checks",
+            value=bool(state.get("require_bayesian", False)),
+        )
+        require_polisis = st.checkbox(
+            "Require Polisis source checks",
+            value=bool(state.get("require_polisis", False)),
+            help="When enabled, baseline validation fails if artifact source is not Polisis-based.",
+        )
+        polisis_advisory = st.checkbox(
+            "Enable Polisis source advisory check",
+            value=bool(state.get("polisis_advisory", True)),
+        )
+        ece_threshold = float(
+            st.number_input(
+                "ECE advisory threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=float(state.get("ece_threshold", 0.20)),
+                step=0.01,
+                format="%.2f",
+            )
+        )
+        apply_clicked = st.form_submit_button("Apply Settings")
+
+    if apply_clicked:
+        st.session_state["prert_benchmark_settings"] = {
+            "baseline_dir": baseline_dir,
+            "comparison_dirs": comparison_dirs,
+            "output_dir": output_dir,
+            "require_bayesian": require_bayesian,
+            "require_polisis": require_polisis,
+            "polisis_advisory": polisis_advisory,
+            "ece_threshold": ece_threshold,
+        }
+        st.success("Benchmark settings applied")
+
+    return dict(st.session_state["prert_benchmark_settings"])
+
+
 def _render_hero(title: str, body: str) -> None:
     st.markdown(
         f"""
@@ -200,11 +298,24 @@ def _render_compliance_screen(model_path_text: str, auto_model_path: Optional[Pa
         st.info("Upload both files to start compliance assessment.")
         return
 
-    policy_text = _read_policy_upload(policy_file)
-    schema_text = _read_text_upload(schema_file)
+    policy_result = _read_policy_upload(policy_file)
+    schema_result = _read_text_upload(schema_file)
+
+    if policy_result["error"]:
+        st.error(f"Policy file error: {policy_result['error']}")
+        st.caption(f"File: {policy_result['file_name']} ({policy_result['size_bytes']} bytes)")
+        return
+
+    if schema_result["error"]:
+        st.error(f"Schema file error: {schema_result['error']}")
+        st.caption(f"File: {schema_result['file_name']} ({schema_result['size_bytes']} bytes)")
+        return
+
+    policy_text = str(policy_result["text"])
+    schema_text = str(schema_result["text"])
 
     if not policy_text.strip() or not schema_text.strip():
-        st.error("Unable to parse one or both uploaded files. Please verify file format and content.")
+        st.error("One or both files were parsed as empty. Verify file encoding/content and retry.")
         return
 
     model_path = Path(model_path_text).expanduser() if model_path_text.strip() else None
@@ -233,6 +344,30 @@ def _render_synthetic_generation_screen(settings: Dict[str, Any]) -> None:
     include_model_signal = bool(settings.get("include_model_signal", False))
     model_path_text = str(settings.get("model_path", "")).strip()
     model_path = Path(model_path_text).expanduser() if model_path_text else None
+    total_samples = sum(int(settings.get(f"{band}_count", 0)) for band in ("low", "medium", "high"))
+
+    progress_bar = st.progress(0.0 if total_samples else 1.0)
+    status_text = st.empty()
+    status_text.caption("Preparing synthetic generation...")
+
+    def _progress_callback(event: Dict[str, Any]) -> None:
+        event_name = str(event.get("event", ""))
+        if event_name == "band_start":
+            band = str(event.get("band", "unknown"))
+            status_text.caption(f"Generating {band} compliance samples...")
+            return
+
+        if event_name == "sample_complete":
+            index = int(event.get("index", 0))
+            total = max(1, int(event.get("total", total_samples or 1)))
+            score = float(event.get("overall_score", 0.0))
+            progress_bar.progress(min(1.0, index / total))
+            status_text.caption(f"Generated {index}/{total} samples (latest score: {score:.1f})")
+            return
+
+        if event_name == "complete":
+            progress_bar.progress(1.0)
+            status_text.caption("Synthetic generation complete.")
 
     with st.spinner("Generating synthetic policy/schema dataset..."):
         try:
@@ -247,6 +382,7 @@ def _render_synthetic_generation_screen(settings: Dict[str, Any]) -> None:
                 include_model_signal=include_model_signal,
                 model_path=model_path,
                 export_upload_fixtures=bool(settings.get("export_upload_fixtures", True)),
+                progress_callback=_progress_callback,
             )
         except Exception as exc:  # pragma: no cover - defensive runtime guard for UI usage
             st.error(f"Synthetic generation failed: {exc}")
@@ -311,6 +447,45 @@ def _render_benchmark_screen(settings: Dict[str, Any]) -> None:
         st.error(f"Baseline directory does not exist: {baseline_dir}")
         return
 
+    total_steps = len(comparison_dirs) + 2
+    progress_state = {"completed": 0}
+    progress_bar = st.progress(0.0)
+    status_text = st.empty()
+    status_text.caption("Preparing benchmark validation...")
+
+    def _status_callback(event: Dict[str, Any]) -> None:
+        name = str(event.get("event", ""))
+
+        if name == "baseline_start":
+            status_text.caption("Validating baseline artifacts...")
+            return
+
+        if name == "baseline_complete":
+            progress_state["completed"] = 1
+            progress_bar.progress(min(1.0, progress_state["completed"] / max(1, total_steps)))
+            status_text.caption("Baseline validation complete.")
+            return
+
+        if name == "comparison_start":
+            index = int(event.get("index", 1))
+            total = int(event.get("total", len(comparison_dirs)))
+            status_text.caption(f"Evaluating comparison run {index}/{max(1, total)}...")
+            return
+
+        if name == "comparison_complete":
+            progress_state["completed"] += 1
+            progress_bar.progress(min(1.0, progress_state["completed"] / max(1, total_steps)))
+            return
+
+        if name == "summary_start":
+            status_text.caption("Building benchmark summary and writing reports...")
+            return
+
+        if name == "complete":
+            progress_state["completed"] = total_steps
+            progress_bar.progress(1.0)
+            status_text.caption("Benchmark validation complete.")
+
     with st.spinner("Running Phase 4 validation and benchmark comparison..."):
         try:
             report = run_phase4_validation(
@@ -321,6 +496,7 @@ def _render_benchmark_screen(settings: Dict[str, Any]) -> None:
                 require_polisis=bool(settings.get("require_polisis", False)),
                 polisis_advisory=bool(settings.get("polisis_advisory", True)),
                 ece_threshold=float(settings.get("ece_threshold", 0.20)),
+                status_callback=_status_callback,
             )
         except Exception as exc:  # pragma: no cover - defensive runtime guard for UI usage
             st.error(f"Benchmark validation failed: {exc}")
@@ -438,6 +614,8 @@ def _render_benchmark_screen(settings: Dict[str, Any]) -> None:
             file_name=markdown_path.name,
             mime="text/markdown",
         )
+    else:
+        st.caption("Markdown report was not generated for this run. JSON report is always available above.")
 
 
 def _parse_path_entries(raw_value: str) -> List[Path]:
@@ -565,6 +743,19 @@ def _render_results(result: Dict[str, Any]) -> None:
 
     st.progress(min(1.0, score / 100.0))
 
+    failed_policy_checks = [item for item in result["policy_checks"] if not item.get("passed", False)]
+    schema_details = list(result["schema_analysis"].get("details", []))
+
+    if failed_policy_checks or schema_details:
+        st.subheader("Priority Findings")
+        for item in failed_policy_checks[:5]:
+            st.error(f"{item['title']}: score {item['score']:.2f}/{item['max_score']:.2f}")
+        for detail in schema_details[:5]:
+            st.warning(detail)
+    else:
+        st.subheader("Priority Findings")
+        st.success("No critical gaps detected in policy coverage or schema alignment.")
+
     st.subheader("Control Coverage")
     rows = [
         {
@@ -615,20 +806,87 @@ def _render_results(result: Dict[str, Any]) -> None:
     )
 
 
-def _read_policy_upload(uploaded_file: Any) -> str:
+def _read_policy_upload(uploaded_file: Any) -> Dict[str, Any]:
     suffix = Path(uploaded_file.name).suffix.lower()
     file_bytes = uploaded_file.getvalue()
+    size_bytes = len(file_bytes)
 
     if suffix == ".pdf":
-        reader = PdfReader(BytesIO(file_bytes))
-        text_chunks = [page.extract_text() or "" for page in reader.pages]
-        return "\n".join(text_chunks)
+        try:
+            pypdf_module = importlib.import_module("pypdf")
+            reader = pypdf_module.PdfReader(BytesIO(file_bytes))
+            text_chunks = [page.extract_text() or "" for page in reader.pages]
+            text = "\n".join(text_chunks).strip()
+        except Exception as exc:  # pragma: no cover - runtime upload guard
+            return {
+                "text": "",
+                "error": f"PDF parsing failed: {exc}",
+                "file_name": uploaded_file.name,
+                "size_bytes": size_bytes,
+            }
 
-    return file_bytes.decode("utf-8", errors="ignore")
+        if not text:
+            return {
+                "text": "",
+                "error": "PDF has no extractable text. If this is scanned content, convert to text/markdown and retry.",
+                "file_name": uploaded_file.name,
+                "size_bytes": size_bytes,
+            }
+
+        return {
+            "text": text,
+            "error": None,
+            "file_name": uploaded_file.name,
+            "size_bytes": size_bytes,
+        }
+
+    decoded = _decode_text_bytes(file_bytes)
+    if decoded is None:
+        return {
+            "text": "",
+            "error": "Unable to decode policy file using utf-8, utf-16, or latin-1.",
+            "file_name": uploaded_file.name,
+            "size_bytes": size_bytes,
+        }
+
+    return {
+        "text": decoded,
+        "error": None,
+        "file_name": uploaded_file.name,
+        "size_bytes": size_bytes,
+    }
 
 
-def _read_text_upload(uploaded_file: Any) -> str:
-    return uploaded_file.getvalue().decode("utf-8", errors="ignore")
+def _read_text_upload(uploaded_file: Any) -> Dict[str, Any]:
+    file_bytes = uploaded_file.getvalue()
+    decoded = _decode_text_bytes(file_bytes)
+    if decoded is None:
+        return {
+            "text": "",
+            "error": "Unable to decode schema file using utf-8, utf-16, or latin-1.",
+            "file_name": uploaded_file.name,
+            "size_bytes": len(file_bytes),
+        }
+
+    return {
+        "text": decoded,
+        "error": None,
+        "file_name": uploaded_file.name,
+        "size_bytes": len(file_bytes),
+    }
+
+
+def _decode_text_bytes(data: bytes) -> Optional[str]:
+    for encoding in ("utf-8", "utf-16", "latin-1"):
+        try:
+            decoded = data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+
+        if decoded.strip():
+            return decoded
+
+    return None
 
 
 def _inject_styles() -> None:

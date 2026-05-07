@@ -32,6 +32,8 @@ This runbook covers the implementation that was added for:
 
 ## Install
 
+Canonical command map: [12-command-reference.md](12-command-reference.md)
+
 From repo root:
 
 ```bash
@@ -47,9 +49,17 @@ python -m pip install -e .[dev]
 ## Run Extraction (Phase 1)
 
 ```bash
-PYTHONPATH=src python scripts/extract_phase1_controls.py \
+prert extract \
   --chunk \
   --output-dir artifacts/phase-1
+```
+
+Wrapper equivalent:
+
+```bash
+PYTHONPATH=src python scripts/extract_phase1_controls.py \
+     --chunk \
+     --output-dir artifacts/phase-1
 ```
 
 Expected outputs:
@@ -65,7 +75,7 @@ Expected outputs:
 ## Dry-Run Chroma Migration
 
 ```bash
-PYTHONPATH=src python scripts/migrate_to_chroma.py \
+prert migrate \
   --input-dir artifacts/phase-1 \
   --dry-run
 ```
@@ -75,7 +85,7 @@ This verifies collection sharding and row counts without writing to cloud.
 ## Live Chroma Migration
 
 ```bash
-PYTHONPATH=src python scripts/migrate_to_chroma.py \
+prert migrate \
   --input-dir artifacts/phase-1
 ```
 

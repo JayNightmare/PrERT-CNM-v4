@@ -27,37 +27,31 @@ Out of scope:
 ## Steps to Complete
 
 1. Build a standards corpus
-
-- Collect and normalize all relevant clauses into a single structured table.
-- Include metadata fields: source, section, clause text, jurisdiction, control category.
+      - Collect and normalize all relevant clauses into a single structured table.
+      - Include metadata fields: source, section, clause text, jurisdiction, control category.
 
 2. Define an indicator taxonomy
-
-- Create top-level dimensions: notice/transparency, consent/control, data minimization, retention, security, sharing, redress.
-- Define naming rules for indicators (for example `CONSENT_EXPLICIT_OPT_IN`).
+      - Create top-level dimensions: notice/transparency, consent/control, data minimization, retention, security, sharing, redress.
+      - Define naming rules for indicators (for example `CONSENT_EXPLICIT_OPT_IN`).
 
 3. Translate clauses into measurable indicators
-
-- For each clause, define:
-     - indicator definition,
-     - data needed to measure it,
-     - acceptable value range,
-     - scoring direction (higher is better/worse).
+      - For each clause, define:
+           - indicator definition,
+           - data needed to measure it,
+           - acceptable value range,
+           - scoring direction (higher is better/worse).
 
 4. Build traceability matrix
-
-- Map `clause -> indicator -> metric candidate`.
-- Ensure many-to-many relationships are documented explicitly.
+      - Map `clause -> indicator -> metric candidate`.
+      - Ensure many-to-many relationships are documented explicitly.
 
 5. Run internal quality review
-
-- Check for overlap, ambiguity, and unmeasurable indicators.
-- Remove indicators that lack feasible data signals.
+      - Check for overlap, ambiguity, and unmeasurable indicators.
+      - Remove indicators that lack feasible data signals.
 
 6. Freeze Phase 1 baseline
-
-- Version the indicator catalog and traceability matrix.
-- Publish assumptions and unresolved questions.
+      - Version the indicator catalog and traceability matrix.
+      - Publish assumptions and unresolved questions.
 
 ## Deliverables
 

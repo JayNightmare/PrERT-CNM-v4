@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from random import Random
 from statistics import mean
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from prert.phase3.io import write_json, write_jsonl
 from prert.phase4.compliance_assessor import assess_policy_schema_compliance
@@ -180,23 +180,54 @@ def generate_synthetic_policy_schema_dataset(
     include_model_signal: bool = False,
     model_path: Optional[Path] = None,
     export_upload_fixtures: bool = False,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> Dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     resolved_counts = _resolve_counts_by_band(counts_by_band)
     rnd = Random(seed)
+    total_requested = sum(resolved_counts[band] for band in BAND_ORDER)
 
     rows: List[Dict[str, Any]] = []
     model_path_for_assessment = model_path if include_model_signal else Path("__phase4_synthetic_model_signal_disabled__.json")
 
+    _emit_progress(
+        progress_callback,
+        {
+            "event": "start",
+            "total": total_requested,
+        },
+    )
+
     running_index = 0
     for band in BAND_ORDER:
         count = resolved_counts[band]
+        _emit_progress(
+            progress_callback,
+            {
+                "event": "band_start",
+                "band": band,
+                "band_total": count,
+                "completed": running_index,
+                "total": total_requested,
+            },
+        )
         low, high = TARGET_SCORE_RANGES[band]
         for band_index in range(count):
             running_index += 1
             sample_id = f"synth-{running_index:05d}"
             policy_text = _render_policy_text(band=band, rnd=rnd)
             schema_text = _render_schema_text(band=band, rnd=rnd, suffix=f"{running_index:05d}")
+
+            _emit_progress(
+                progress_callback,
+                {
+                    "event": "sample_start",
+                    "sample_id": sample_id,
+                    "band": band,
+                    "index": running_index,
+                    "total": total_requested,
+                },
+            )
 
             assessment = assess_policy_schema_compliance(
                 policy_text=policy_text,
@@ -230,6 +261,18 @@ def generate_synthetic_policy_schema_dataset(
                         "include_model_signal": bool(include_model_signal),
                     },
                 }
+            )
+
+            _emit_progress(
+                progress_callback,
+                {
+                    "event": "sample_complete",
+                    "sample_id": sample_id,
+                    "band": band,
+                    "index": running_index,
+                    "total": total_requested,
+                    "overall_score": overall_score,
+                },
             )
 
     dataset_path = output_dir / "synthetic_policy_schema_pairs.jsonl"
@@ -271,7 +314,31 @@ def generate_synthetic_policy_schema_dataset(
 
     write_json(manifest_path, manifest)
     dictionary_path.write_text(_render_dictionary_markdown(), encoding="utf-8")
+
+    _emit_progress(
+        progress_callback,
+        {
+            "event": "complete",
+            "total": total_requested,
+            "output_dir": str(output_dir),
+        },
+    )
+
     return manifest
+
+
+def _emit_progress(
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]],
+    event: Dict[str, Any],
+) -> None:
+    if progress_callback is None:
+        return
+
+    try:
+        progress_callback(event)
+    except Exception:
+        # Progress updates are informational and should never fail generation.
+        return
 
 
 def _resolve_counts_by_band(counts_by_band: Optional[Mapping[str, int]]) -> Dict[str, int]:

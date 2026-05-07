@@ -94,7 +94,39 @@ Optional development dependencies:
 python -m pip install -e .[dev]
 ```
 
-## Commands To Run
+## Quick Start Command Hub
+
+Canonical command reference: [docs/Project/Execution-Playbook/12-command-reference.md](docs/Project/Execution-Playbook/12-command-reference.md)
+
+Primary command style:
+
+```bash
+prert <command>
+```
+
+Preflight setup check:
+
+```bash
+prert doctor
+```
+
+Guided command order:
+
+```bash
+prert guide --goal full
+```
+
+Golden path (recommended):
+
+1. `prert extract --chunk --output-dir artifacts/phase-1`
+2. `prert migrate --input-dir artifacts/phase-1`
+3. `prert phase2`
+4. `prert phase3`
+5. `prert phase4 --baseline-dir artifacts/phase-3-freeze`
+
+If you need script wrappers, they are still supported and mapped in the canonical command reference.
+
+## Detailed Command Examples
 
 ## 1) Extract Controls and Chunks
 

@@ -75,44 +75,37 @@ Notes:
 ## Steps to Complete
 
 1. Build validation test plan
-
-- Define scenario matrix:
-     - normal operations,
-     - high-risk policy clauses,
-     - missing/incomplete data,
-     - conflicting indicator evidence.
-- Define success thresholds for each scenario.
+      - Define scenario matrix:
+           - normal operations,
+           - high-risk policy clauses,
+           - missing/incomplete data,
+           - conflicting indicator evidence.
+      - Define success thresholds for each scenario.
 
 2. Execute benchmark suite
-
-- Run batch benchmarks on all scenarios.
-- Capture classification and risk-scoring metrics with confidence intervals.
+      - Run batch benchmarks on all scenarios.
+      - Capture classification and risk-scoring metrics with confidence intervals.
 
 3. Perform robustness and sensitivity analysis
-
-- Perturb key inputs and observe score stability.
-- Test model behavior under class imbalance and sparse evidence.
+      - Perturb key inputs and observe score stability.
+      - Test model behavior under class imbalance and sparse evidence.
 
 4. Conduct error analysis
-
-- Identify top failure modes in clause classification and score estimation.
-- Trace errors back to data, mapping, or model assumptions.
+      - Identify top failure modes in clause classification and score estimation.
+      - Trace errors back to data, mapping, or model assumptions.
 
 5. Refine prototype where justified
-
-- Apply targeted fixes only when they improve benchmark outcomes and interpretability.
-- Re-run impacted benchmarks and log deltas.
+      - Apply targeted fixes only when they improve benchmark outcomes and interpretability.
+      - Re-run impacted benchmarks and log deltas.
 
 6. Finalize reporting package
-
-- Prepare validation summary.
-- Prepare benchmark report.
-- Prepare final report with limitations and future roadmap.
+      - Prepare validation summary.
+      - Prepare benchmark report.
+      - Prepare final report with limitations and future roadmap.
 
 7. Completion and handoff
-
-- Ensure all artifacts are versioned and reproducible.
-- Conduct final review and sign-off.
+      - Ensure all artifacts are versioned and reproducible.
+      - Conduct final review and sign-off.
 
 ## Deliverables
 

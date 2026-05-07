@@ -314,3 +314,28 @@ def test_phase4_pipeline_writes_reports_and_leaderboard(tmp_path: Path) -> None:
     assert len(leaderboard) == 2
     assert leaderboard[0]["artifact_dir"] == str(candidate_dir)
     assert leaderboard[0]["rank"] == 1
+
+
+def test_phase4_pipeline_status_callback_events(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "phase-3-baseline"
+    candidate_dir = tmp_path / "phase-3-candidate"
+    output_dir = tmp_path / "phase-4"
+
+    _write_phase3_artifacts(baseline_dir, include_bayesian=True)
+    _write_phase3_artifacts(candidate_dir, include_bayesian=True)
+
+    events: list[dict] = []
+    payload = run_phase4_validation(
+        output_dir=output_dir,
+        baseline_dir=baseline_dir,
+        comparison_dirs=[candidate_dir],
+        require_bayesian=True,
+        status_callback=lambda event: events.append(dict(event)),
+    )
+
+    assert payload["comparison_summary"]["leaderboard"]
+    event_names = [event.get("event") for event in events]
+    assert event_names[0] == "start"
+    assert "baseline_start" in event_names
+    assert "comparison_start" in event_names
+    assert event_names[-1] == "complete"

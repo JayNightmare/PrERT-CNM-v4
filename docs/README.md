@@ -33,6 +33,9 @@ Provide practical guidance to complete each of the 4 phases with:
 
 ### Implementation Runbooks and Technical Documentation
 
+1. [Canonical Command Reference](./Project/Execution-Playbook/12-command-reference.md)
+      - Unified command map with a guided golden path and legacy wrapper mapping.
+
 #### Phase 1
 
 1. [Phase 1: Implementation Runbook](./Project/Execution-Playbook/06-phase1-implementation-runbook.md)

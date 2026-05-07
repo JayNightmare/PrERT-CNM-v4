@@ -29,10 +29,12 @@ Optional:
 
 ## Commands
 
+Canonical command map: [12-command-reference.md](12-command-reference.md)
+
 Create processed OPP-115 flat files (default: consolidation threshold 0.75):
 
 ```bash
-PYTHONPATH=src python scripts/process_opp115_for_phase2.py
+prert opp115
 ```
 
 Create processed OPP-115 files from the raw annotation set instead of consolidated annotations:
@@ -51,7 +53,7 @@ prert-opp115
 Run Phase 2 using OPP-115 as a reference corpus only (no `--public-input`):
 
 ```bash
-PYTHONPATH=src python scripts/run_phase2_metrics.py
+prert phase2
 ```
 
 Run Phase 2 with a processed OPP-115 CSV export:

@@ -29,44 +29,37 @@ Out of scope:
 ## Steps to Complete
 
 1. Define metric schema
-
-- For each indicator, define:
-     - metric id,
-     - formula,
-     - required fields,
-     - normalization rule,
-     - confidence weighting,
-     - missing data handling.
+      - For each indicator, define:
+           - metric id,
+           - formula,
+           - required fields,
+           - normalization rule,
+           - confidence weighting,
+           - missing data handling.
 
 2. Build synthetic data generator
-
-- Create representative entities: users, systems, vendors, incidents.
-- Inject controlled edge cases (missing consent records, delayed breach response, weak safeguards).
-- Create dataset variants for normal, stressed, and adversarial conditions.
+      - Create representative entities: users, systems, vendors, incidents.
+      - Inject controlled edge cases (missing consent records, delayed breach response, weak safeguards).
+      - Create dataset variants for normal, stressed, and adversarial conditions.
 
 3. Integrate public breach context
-
-- Map ENISA/PRC attributes to internal schema.
-- Add transformation pipelines with data quality checks.
+      - Map ENISA/PRC attributes to internal schema.
+      - Add transformation pipelines with data quality checks.
 
 4. Prototype scoring at three levels
-
-- User-level metrics (control/consent exposure).
-- System-level metrics (encryption posture, sharing exposure).
-- Organization-level metrics (response time, safeguard maturity).
+      - User-level metrics (control/consent exposure).
+      - System-level metrics (encryption posture, sharing exposure).
+      - Organization-level metrics (response time, safeguard maturity).
 
 5. Define draft composite scoring strategy
-
-- Choose aggregation method (weighted sum, Bayesian prior-informed, or hybrid).
-- Document score interpretation bands (low/medium/high risk).
+      - Choose aggregation method (weighted sum, Bayesian prior-informed, or hybrid).
+      - Document score interpretation bands (low/medium/high risk).
 
 6. Document ecosystem-level future scope
-
-- Capture cross-border transfer and interoperability indicators as future implementation backlog.
+      - Capture cross-border transfer and interoperability indicators as future implementation backlog.
 
 7. Freeze Phase 2 baseline
-
-- Publish metric spec, synthetic data dictionary, and baseline results.
+      - Publish metric spec, synthetic data dictionary, and baseline results.
 
 ## Deliverables
 

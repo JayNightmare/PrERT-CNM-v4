@@ -16,4 +16,7 @@ Inspect outputs:
 
 - artifacts/phase-3/phase3_manifest.json
 - artifacts/phase-3/classifier_metrics.json
+- artifacts/phase-3/calibration_test.json
+- artifacts/phase-3/threshold_sweep_test.json
+- artifacts/phase-3/bootstrap_ci_test.json
 - artifacts/phase-3/model_card.md

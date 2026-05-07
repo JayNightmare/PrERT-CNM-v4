@@ -4,8 +4,8 @@
 
 - Type: multinomial_naive_bayes
 - Labels: user, system, organization
-- Training rows: 3872
-- Vocabulary size: 3088
+- Training rows: 15645
+- Vocabulary size: 5851
 
 ## Dataset Source
 
@@ -15,17 +15,17 @@
 
 Validation:
 
-- Accuracy: 0.885584
-- Macro precision: 0.665276
-- Macro recall: 0.732948
-- Macro F1: 0.69043
+- Accuracy: 0.816417
+- Macro precision: 0.587961
+- Macro recall: 0.761608
+- Macro F1: 0.625907
 
 Test:
 
-- Accuracy: 0.716353
-- Macro precision: 0.530286
-- Macro recall: 0.729766
-- Macro F1: 0.573119
+- Accuracy: 0.814701
+- Macro precision: 0.586193
+- Macro recall: 0.758442
+- Macro F1: 0.640117
 
 ## Notes
 

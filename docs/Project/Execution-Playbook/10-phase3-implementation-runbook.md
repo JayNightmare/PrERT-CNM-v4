@@ -52,16 +52,12 @@ Normalized Polisis row contract:
 
 ## Commands
 
+Canonical command map: [12-command-reference.md](12-command-reference.md)
+
 Run Phase 3 baseline using OPP-115 default input set:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py
-```
-
-Equivalent package command:
-
-```bash
-prert-phase3
+prert phase3
 ```
 
 Run with a custom labeled JSONL dataset:
@@ -153,7 +149,7 @@ PYTHONPATH=src python scripts/run_phase3_baseline.py \
 Run a proposal-aligned Phase 3 acceptance freeze (PrivacyBERT + Bayesian-primary checks):
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_acceptance_freeze.py \
+prert phase3-freeze \
   --model-type privacybert \
   --strict \
   --output-dir artifacts/phase-3-freeze
