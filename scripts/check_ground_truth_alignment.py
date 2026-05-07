@@ -4,9 +4,13 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import Any, Dict
 
 import httpx
 from dotenv import load_dotenv
+
+from prert.extract.docx_reader import read_docx_text
+from prert.extract.iso_sources import discover_iso_docx_sources
 
 
 def read_jsonl(path: Path):
@@ -18,38 +22,84 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def count_jsonl(path: Path) -> int:
+    with path.open("r", encoding="utf-8") as handle:
+        return sum(1 for line in handle if line.strip())
+
+
+def collection_name_for_key(key: str) -> str:
+    if key == "gdpr":
+        return "gdpr_controls"
+    if key == "nistpf":
+        return "nist_controls"
+    return f"{key}_controls"
+
+
+def load_iso_baseline(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        raise FileNotFoundError(
+            f"ISO baseline manifest not found: {path}. Add the canonical clause-ID baseline before validation."
+        )
+
+    with path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    standards = payload.get("iso_standards")
+    if not isinstance(standards, dict):
+        raise ValueError("ISO baseline manifest must include an 'iso_standards' object.")
+
+    return standards
+
+
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
     art = root / "artifacts" / "phase-1"
+    regs = root / "docs" / "Standards" / "Regulations"
+    baseline_path = regs / "iso_clause_id_baseline.json"
 
-    files = {
+    iso_sources = discover_iso_docx_sources(regs)
+    iso_baseline = load_iso_baseline(baseline_path)
+
+    files: Dict[str, Dict[str, Any]] = {
         "gdpr": {
             "controls": art / "controls_gdpr.jsonl",
             "chunks": art / "chunks_gdpr.jsonl",
-            "source": root / "docs/Standards/Regulations/TX/GDPR-2016_679.txt",
-        },
-        "iso27001": {
-            "controls": art / "controls_iso27001.jsonl",
-            "chunks": art / "chunks_iso27001.jsonl",
-            "source": root / "docs/Standards/Regulations/TX/ISO_27001_Standard-1.txt",
+            "source": regs / "GDPR-2016_679.docx",
         },
         "nistpf": {
             "controls": art / "controls_nistpf.jsonl",
             "chunks": art / "chunks_nistpf.jsonl",
-            "source": art / "NIST-1.1.txt",
+            "source": regs / "NIST-1.1.docx",
         },
     }
+
+    for source in iso_sources:
+        files[source.output_stem] = {
+            "controls": art / f"controls_{source.output_stem}.jsonl",
+            "chunks": art / f"chunks_{source.output_stem}.jsonl",
+            "source": source.path,
+            "source_document_id": source.source_document_id,
+            "regulation": source.regulation,
+        }
 
     all_ok = True
     print("=== FILE LAYER CHECKS ===")
 
     for reg, cfg in files.items():
+        if not cfg["controls"].exists() or not cfg["chunks"].exists():
+            print(f"[{reg}] missing controls/chunks artifacts")
+            all_ok = False
+            continue
+
         controls = read_jsonl(cfg["controls"])
         chunks = read_jsonl(cfg["chunks"])
 
         source_text = ""
         if cfg["source"].exists():
-            source_text = normalize(cfg["source"].read_text(encoding="utf-8", errors="ignore"))
+            if cfg["source"].suffix.lower() == ".docx":
+                source_text = normalize(read_docx_text(cfg["source"]))
+            else:
+                source_text = normalize(cfg["source"].read_text(encoding="utf-8", errors="ignore"))
 
         record_ids = [row["record_id"] for row in controls]
         normalized_ids = [row["normalized_id"] for row in controls]
@@ -80,13 +130,41 @@ def main() -> int:
         id_pattern_ok = True
         if reg == "gdpr":
             id_pattern_ok = all(str(row.get("native_id", "")).startswith("Article ") for row in controls)
-        elif reg == "iso27001":
+        elif reg.startswith("iso"):
             id_pattern_ok = all(
-                re.match(r"^(?:[1-9]|10|A)(?:\.[0-9]+|\.[a-z])*$", str(row.get("native_id", "")))
+                re.match(r"^(?:[1-9]\d*|A)(?:\.[0-9]+|\.[a-z])*$", str(row.get("native_id", "")))
                 for row in controls
             )
         elif reg == "nistpf":
             id_pattern_ok = all(re.match(r"^[A-Z]{2}\.[A-Z]{2}-P\d+$", str(row.get("native_id", ""))) for row in controls)
+
+        iso_baseline_ok = True
+        missing_ids: list[str] = []
+        extra_ids: list[str] = []
+        source_file_ok = True
+
+        if reg.startswith("iso"):
+            baseline_entry = iso_baseline.get(reg)
+            if not isinstance(baseline_entry, dict):
+                iso_baseline_ok = False
+            else:
+                expected_ids = {
+                    str(item).strip()
+                    for item in baseline_entry.get("expected_clause_ids", [])
+                    if str(item).strip()
+                }
+                actual_ids = {
+                    str(row.get("native_id", "")).strip()
+                    for row in controls
+                    if str(row.get("native_id", "")).strip()
+                }
+
+                missing_ids = sorted(expected_ids - actual_ids)
+                extra_ids = sorted(actual_ids - expected_ids)
+                iso_baseline_ok = not missing_ids and not extra_ids
+
+                manifest_source = str(baseline_entry.get("source_file", "")).strip()
+                source_file_ok = manifest_source == cfg["source"].name
 
         reg_ok = (
             duplicate_record_ids == 0
@@ -94,6 +172,8 @@ def main() -> int:
             and missing_chunk_refs == 0
             and metadata_reg_mismatch == 0
             and id_pattern_ok
+            and iso_baseline_ok
+            and source_file_ok
         )
         all_ok = all_ok and reg_ok
 
@@ -106,6 +186,17 @@ def main() -> int:
         )
         print(f"  source sample match={source_matches}/{len(sample)}")
         print(f"  id pattern check={'PASS' if id_pattern_ok else 'FAIL'}")
+        if reg.startswith("iso"):
+            print(
+                "  baseline exact match="
+                f"{'PASS' if iso_baseline_ok else 'FAIL'} "
+                f"missing={len(missing_ids)} extra={len(extra_ids)}"
+            )
+            print(f"  baseline source file check={'PASS' if source_file_ok else 'FAIL'}")
+            if missing_ids:
+                print(f"  missing ids sample={missing_ids[:10]}")
+            if extra_ids:
+                print(f"  extra ids sample={extra_ids[:10]}")
 
     print("\n=== CHROMA LAYER CHECKS ===")
     load_dotenv(root / ".env")
@@ -136,11 +227,12 @@ def main() -> int:
         collections = collections_resp.json()
         by_name = {item.get("name"): item for item in collections}
 
-        expected_counts = {
-            "gdpr_controls": sum(1 for _ in open(art / "chunks_gdpr.jsonl", encoding="utf-8")),
-            "iso27001_controls": sum(1 for _ in open(art / "chunks_iso27001.jsonl", encoding="utf-8")),
-            "nist_controls": sum(1 for _ in open(art / "chunks_nistpf.jsonl", encoding="utf-8")),
-        }
+        expected_counts: Dict[str, int] = {}
+        for reg, cfg in files.items():
+            chunk_path = cfg["chunks"]
+            if not chunk_path.exists():
+                continue
+            expected_counts[collection_name_for_key(reg)] = count_jsonl(chunk_path)
 
         for name, expected in expected_counts.items():
             col = by_name.get(name)

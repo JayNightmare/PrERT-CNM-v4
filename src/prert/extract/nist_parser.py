@@ -4,19 +4,18 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
-import shutil
-import subprocess
 from typing import List
 
+from .docx_reader import read_docx_text
 from .schema import ControlRecord, make_normalized_id, normalize_whitespace, stable_hash
 
 
 SUBCATEGORY_RE = re.compile(r"^\s*([A-Z]{2}\.[A-Z]{2}-P\d+)\s*:\s*(.+)$")
 
 
-def parse_nist_controls(pdf_path: Path, txt_cache_path: Path | None = None) -> List[ControlRecord]:
-    text = extract_text_from_pdf(pdf_path, txt_cache_path=txt_cache_path)
-    return parse_nist_controls_from_text(text, source_path=str(pdf_path))
+def parse_nist_controls(path: Path) -> List[ControlRecord]:
+    text = read_docx_text(path)
+    return parse_nist_controls_from_text(text, source_path=str(path))
 
 
 def parse_nist_controls_from_text(text: str, source_path: str = "NIST-1.1") -> List[ControlRecord]:
@@ -87,37 +86,6 @@ def parse_nist_controls_from_text(text: str, source_path: str = "NIST-1.1") -> L
 
     flush_entry()
     return _dedupe_records(records)
-
-
-def extract_text_from_pdf(pdf_path: Path, txt_cache_path: Path | None = None) -> str:
-    if txt_cache_path and txt_cache_path.exists():
-        return txt_cache_path.read_text(encoding="utf-8", errors="ignore")
-
-    if shutil.which("pdftotext"):
-        cmd = ["pdftotext", "-layout", str(pdf_path), "-"]
-        proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        text = proc.stdout
-    else:
-        text = _extract_with_pypdf(pdf_path)
-
-    if txt_cache_path is not None:
-        txt_cache_path.parent.mkdir(parents=True, exist_ok=True)
-        txt_cache_path.write_text(text, encoding="utf-8")
-
-    return text
-
-
-def _extract_with_pypdf(pdf_path: Path) -> str:
-    try:
-        from pypdf import PdfReader  # type: ignore[import-not-found]
-    except Exception as exc:
-        raise RuntimeError(
-            "PDF extraction requires pdftotext or pypdf. Install pypdf as fallback."
-        ) from exc
-
-    reader = PdfReader(str(pdf_path))
-    pages = [page.extract_text() or "" for page in reader.pages]
-    return "\n".join(pages)
 
 
 def _is_noise_line(line: str) -> bool:

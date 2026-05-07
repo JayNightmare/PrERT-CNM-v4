@@ -6,19 +6,37 @@ from pathlib import Path
 import re
 from typing import List, Tuple
 
+from .docx_reader import read_docx_text
 from .schema import ControlRecord, make_normalized_id, normalize_whitespace, stable_hash
 
 
-CLAUSE_RE = re.compile(r"^((?:[1-9]|10)(?:\.[0-9]+){0,2}|A\.[0-9]+(?:\.[0-9]+)?)\s+(.+)$")
-BULLET_RE = re.compile(r"^\s*([a-z])\)\s+(.*)$")
+CLAUSE_RE = re.compile(r"^((?:[1-9]\d*)(?:\.[0-9]+){0,4}|A\.[0-9]+(?:\.[0-9]+)?)\s+(.+)$")
+BULLET_RE = re.compile(r"^\s*([a-z])\)\s*;?\s+(.*)$")
+ALT_BULLET_RE = re.compile(r"^\s*([a-z])[.:]\s+(.*)$")
 
 
-def parse_iso_controls(path: Path) -> List[ControlRecord]:
-    text = path.read_text(encoding="utf-8", errors="ignore")
-    return parse_iso_controls_from_text(text, source_path=str(path))
+def parse_iso_controls(
+    path: Path,
+    *,
+    regulation: str = "ISO27001",
+    source_document_id: str = "iso-27001",
+) -> List[ControlRecord]:
+    text = read_docx_text(path)
+    return parse_iso_controls_from_text(
+        text,
+        source_path=str(path),
+        regulation=regulation,
+        source_document_id=source_document_id,
+    )
 
 
-def parse_iso_controls_from_text(text: str, source_path: str = "ISO_27001_Standard-1") -> List[ControlRecord]:
+def parse_iso_controls_from_text(
+    text: str,
+    source_path: str = "ISO_27001_Standard-1",
+    *,
+    regulation: str = "ISO27001",
+    source_document_id: str = "iso-27001",
+) -> List[ControlRecord]:
     lines = [line.rstrip("\n") for line in text.splitlines()]
     start = _find_body_start(lines)
 
@@ -38,6 +56,8 @@ def parse_iso_controls_from_text(text: str, source_path: str = "ISO_27001_Standa
             clause_id=active_id,
             clause_title=active_title,
             body_text=body_text,
+            regulation=regulation,
+            source_document_id=source_document_id,
         )
         records.extend(clause_records)
 
@@ -82,6 +102,8 @@ def _clause_to_records(
     clause_id: str,
     clause_title: str,
     body_text: str,
+    regulation: str,
+    source_document_id: str,
 ) -> List[ControlRecord]:
     records: List[ControlRecord] = []
 
@@ -96,6 +118,8 @@ def _clause_to_records(
                 title=clause_title,
                 text=preface_text,
                 clause_id=clause_id,
+                regulation=regulation,
+                source_document_id=source_document_id,
             )
         )
 
@@ -110,6 +134,8 @@ def _clause_to_records(
                 title=f"{clause_title} ({bullet_id})",
                 text=bullet_text,
                 clause_id=clause_id,
+                regulation=regulation,
+                source_document_id=source_document_id,
             )
         )
 
@@ -123,6 +149,8 @@ def _clause_to_records(
                     title=clause_title,
                     text=clean_text,
                     clause_id=clause_id,
+                    regulation=regulation,
+                    source_document_id=source_document_id,
                 )
             )
 
@@ -142,6 +170,8 @@ def _split_bullets(body_text: str) -> List[Tuple[str, str]]:
             continue
 
         bullet_match = BULLET_RE.match(line)
+        if not bullet_match:
+            bullet_match = ALT_BULLET_RE.match(line)
         if bullet_match:
             if active_id is None:
                 preface_text = normalize_whitespace(" ".join(preface_lines))
@@ -217,15 +247,17 @@ def _make_record(
     title: str,
     text: str,
     clause_id: str,
+    regulation: str,
+    source_document_id: str,
 ) -> ControlRecord:
     first_segment = native_id.split(".", 1)[0]
-    normalized_id = make_normalized_id("ISO27001", native_id)
-    record_id = stable_hash(f"ISO27001:{native_id}:{text}")[:24]
+    normalized_id = make_normalized_id(regulation, native_id)
+    record_id = stable_hash(f"{regulation}:{native_id}:{text}")[:24]
 
     return ControlRecord(
         record_id=record_id,
-        regulation="ISO27001",
-        source_document_id="iso-27001-2022",
+        regulation=regulation,
+        source_document_id=source_document_id,
         source_path=source_path,
         native_id=native_id,
         normalized_id=normalized_id,

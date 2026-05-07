@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict
 
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 
 def _count_jsonl_rows(path: Path) -> int:
@@ -39,9 +40,11 @@ def _load_risk_band_counts(path: Path) -> Dict[str, int]:
 def _plot_bar(values: Dict[str, int], title: str, ylabel: str, out_path: Path) -> None:
     labels = list(values.keys())
     numbers = list(values.values())
+    palette = cm.get_cmap("tab20", max(len(labels), 3))
+    colors = [palette(i) for i in range(len(labels))]
 
     plt.figure(figsize=(9, 5.5))
-    bars = plt.bar(labels, numbers, color=["#2A9D8F", "#457B9D", "#E76F51", "#6C757D"][: len(labels)])
+    bars = plt.bar(labels, numbers, color=colors)
     plt.title(title)
     plt.ylabel(ylabel)
     plt.grid(axis="y", linestyle="--", alpha=0.25)
@@ -62,23 +65,28 @@ def _plot_bar(values: Dict[str, int], title: str, ylabel: str, out_path: Path) -
     plt.close()
 
 
+def _iso_display_name(iso_key: str) -> str:
+    family = iso_key.replace("iso", "", 1).replace("_", "-")
+    return f"ISO {family}"
+
+
 def main() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     phase1_dir = repo_root / "artifacts" / "phase-1"
     phase2_dir = repo_root / "artifacts" / "phase-2"
     output_dir = repo_root / "docs" / "Project" / "Execution-Playbook" / "figures"
 
-    controls = {
-        "GDPR": _count_jsonl_rows(phase1_dir / "controls_gdpr.jsonl"),
-        "ISO 27001": _count_jsonl_rows(phase1_dir / "controls_iso27001.jsonl"),
-        "NIST PF 1.1": _count_jsonl_rows(phase1_dir / "controls_nistpf.jsonl"),
-    }
+    controls = {"GDPR": _count_jsonl_rows(phase1_dir / "controls_gdpr.jsonl")}
+    for iso_path in sorted(phase1_dir.glob("controls_iso*.jsonl")):
+        iso_key = iso_path.stem.replace("controls_", "", 1)
+        controls[_iso_display_name(iso_key)] = _count_jsonl_rows(iso_path)
+    controls["NIST PF 1.1"] = _count_jsonl_rows(phase1_dir / "controls_nistpf.jsonl")
 
-    chunks = {
-        "GDPR": _count_jsonl_rows(phase1_dir / "chunks_gdpr.jsonl"),
-        "ISO 27001": _count_jsonl_rows(phase1_dir / "chunks_iso27001.jsonl"),
-        "NIST PF 1.1": _count_jsonl_rows(phase1_dir / "chunks_nistpf.jsonl"),
-    }
+    chunks = {"GDPR": _count_jsonl_rows(phase1_dir / "chunks_gdpr.jsonl")}
+    for iso_path in sorted(phase1_dir.glob("chunks_iso*.jsonl")):
+        iso_key = iso_path.stem.replace("chunks_", "", 1)
+        chunks[_iso_display_name(iso_key)] = _count_jsonl_rows(iso_path)
+    chunks["NIST PF 1.1"] = _count_jsonl_rows(phase1_dir / "chunks_nistpf.jsonl")
 
     manifest = _load_phase2_manifest(phase2_dir / "phase2_manifest.json")
     levels = {

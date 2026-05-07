@@ -11,9 +11,9 @@
 |       v3       | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411) |            25 hours |
 |       v4       |                                                                                                             [![wakatime](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4.svg)](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4) |            10 hours |
 |                |
-|  **Total Sums**  | **56 hrs 56 mins** | **70 hrs** |
+| **Total Sums** |                                                                                                                                                                                                                                      **56 hrs 56 mins** |          **70 hrs** |
 |                |
-|     **Total**      | **126 hrs 56 mins** |                     |
+|   **Total**    |                                                                                                                                                                                                                                     **126 hrs 56 mins** |                     |
 
 ## Phase Breakdowns
 
@@ -70,7 +70,6 @@ This tests the prototype on real and synthetic data, benchmarks outputs against 
 ## Prerequisites
 
 - Python 3.11+
-- Optional: `pdftotext` installed locally (used for NIST PDF extraction)
 - Chroma Cloud credentials in `.env`
 
 Required environment variables:
@@ -381,21 +380,27 @@ This repo also includes a scheduled workflow at `.github/workflows/update-wakati
 ## Extraction (example)
 
 ```text
-Wrote 103 GDPR control rows
-Wrote 69 ISO 27001 control rows
-Wrote 139 NIST PF control rows
-Wrote 103 GDPR chunks
-Wrote 70 ISO 27001 chunks
-Wrote 140 NIST PF chunks
+Wrote 98 GDPR control rows
+Wrote 32 ISO 27001 control rows (iso27001)
+Wrote 102 ISO 27002 control rows (iso27002)
+Wrote 60 ISO 27005 control rows (iso27005)
+Wrote 102 ISO 27018 control rows (iso27018)
+Wrote 125 ISO 27701 control rows (iso27701)
+Wrote 38 ISO 29100 control rows (iso29100)
+Wrote 182 ISO 29151 control rows (iso29151)
+Wrote 59 ISO 15944-12 control rows (iso15944_12)
+Wrote 138 NIST PF control rows
 ```
 
 ## Dry-run migration (example)
 
 ```text
-Preparing collection 'gdpr_controls' with 103 rows
-Preparing collection 'iso27001_controls' with 70 rows
-Preparing collection 'nist_controls' with 140 rows
-Migration complete. Total rows processed: 313
+Preparing collection 'gdpr_controls' with 98 rows
+Preparing collection 'iso27001_controls' with 33 rows
+Preparing collection 'iso27002_controls' with 105 rows
+Preparing collection 'iso15944_12_controls' with 67 rows
+Preparing collection 'nist_controls' with 139 rows
+Migration complete. Total rows processed: 952
 ```
 
 ## Tests (example)
@@ -421,23 +426,21 @@ Baseline score rows: 723
 Generated under `artifacts/phase-1/`:
 
 - `controls_gdpr.jsonl`
-- `controls_iso27001.jsonl`
+- `controls_iso*.jsonl` (one file per ISO standard, for example `controls_iso27002.jsonl`)
 - `controls_nistpf.jsonl`
 - `controls_all.jsonl`
 - `chunks_gdpr.jsonl`
-- `chunks_iso27001.jsonl`
+- `chunks_iso*.jsonl` (one file per ISO standard, for example `chunks_iso27002.jsonl`)
 - `chunks_nistpf.jsonl`
 - `chunks_all.jsonl`
-- `NIST-1.1.txt` (cached PDF extraction)
 
 Current baseline row counts:
 
-- `controls_gdpr.jsonl`: 103
-- `controls_iso27001.jsonl`: 69
-- `controls_nistpf.jsonl`: 139
-- `chunks_gdpr.jsonl`: 103
-- `chunks_iso27001.jsonl`: 70
-- `chunks_nistpf.jsonl`: 140
+- `controls_gdpr.jsonl`: 98
+- `controls_nistpf.jsonl`: 138
+- `chunks_gdpr.jsonl`: 98
+- `chunks_nistpf.jsonl`: 139
+- Per-standard ISO control/chunk counts are generated dynamically and validated against `docs/Standards/Regulations/iso_clause_id_baseline.json`.
 
 ## Phase 2 Outputs
 
@@ -463,7 +466,7 @@ Example fields:
 	"record_id": "3672973e6fc2f8823ea66176",
 	"regulation": "GDPR",
 	"source_document_id": "gdpr-2016_679",
-	"source_path": "docs/Standards/Regulations/TX/GDPR-2016_679.txt",
+	"source_path": "docs/Standards/Regulations/GDPR-2016_679.docx",
 	"native_id": "Article 1",
 	"normalized_id": "gdpr::Article_1",
 	"title": "Subject-matter and objectives",
@@ -497,7 +500,7 @@ Example fields:
 		"control_id": "gdpr::Article_1",
 		"native_control_id": "Article 1",
 		"source_document_id": "gdpr-2016_679",
-		"source_path": "docs/Standards/Regulations/TX/GDPR-2016_679.txt",
+		"source_path": "docs/Standards/Regulations/GDPR-2016_679.docx",
 		"chunk_index": 0,
 		"chapter": "CHAPTER I",
 		"section": "Article 1",
@@ -515,7 +518,7 @@ Example fields:
 Mutually exclusive phase-1 shards by regulation:
 
 - `gdpr_controls`
-- `iso27001_controls`
+- `iso*_controls` (one collection per ISO standard, for example `iso27002_controls`)
 - `nist_controls`
 
 ## What is stored
@@ -556,7 +559,7 @@ Hybrid defaults:
 
 ## Troubleshooting
 
-- If `pdftotext` is unavailable, parser falls back to `pypdf`.
+- Phase 1 extraction is DOCX-only for GDPR, ISO standards, and NIST PF inputs.
 - If Chroma SDK features are unavailable at runtime, OpenAPI fallback is used.
 - If a migration reports missing files, run extraction first.
 - If outputs differ from baseline counts, inspect source document updates and parser changes.

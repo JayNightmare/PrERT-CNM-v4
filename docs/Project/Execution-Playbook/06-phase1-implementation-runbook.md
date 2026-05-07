@@ -2,7 +2,7 @@
 
 This runbook covers the implementation that was added for:
 
-- Regulation-specific control extraction for GDPR, ISO 27001, and NIST PF 1.1.
+- DOCX-only regulation-specific control extraction for GDPR, all in-scope ISO standards, and NIST PF 1.1.
 - Agent-friendly control schema + chunk metadata.
 - Chroma Cloud ingestion with regulation-sharded collections.
 - Hybrid search payload builders (dense + sparse + RRF) and GroupBy dedup support.
@@ -55,10 +55,10 @@ PYTHONPATH=src python scripts/extract_phase1_controls.py \
 Expected outputs:
 
 - `artifacts/phase-1/controls_gdpr.jsonl`
-- `artifacts/phase-1/controls_iso27001.jsonl`
+- `artifacts/phase-1/controls_iso*.jsonl` (one file per ISO standard)
 - `artifacts/phase-1/controls_nistpf.jsonl`
 - `artifacts/phase-1/chunks_gdpr.jsonl`
-- `artifacts/phase-1/chunks_iso27001.jsonl`
+- `artifacts/phase-1/chunks_iso*.jsonl` (one file per ISO standard)
 - `artifacts/phase-1/chunks_nistpf.jsonl`
 - plus combined `controls_all.jsonl` and `chunks_all.jsonl`
 
@@ -82,7 +82,7 @@ PYTHONPATH=src python scripts/migrate_to_chroma.py \
 Default collection shards:
 
 - `gdpr_controls`
-- `iso27001_controls`
+- `iso*_controls` (one collection per ISO standard)
 - `nist_controls`
 
 Optional prefix:
@@ -105,10 +105,10 @@ PYTHONPATH=src python -m pytest tests -q
 
 ```mermaid
 pie showData
-     title Phase 1 Controls by Regulation (n=237)
-     "GDPR" : 103
-     "ISO 27001" : 68
-     "NIST PF 1.1" : 66
+     title Phase 1 Controls by Regulation Family (n=896)
+     "GDPR" : 98
+     "ISO family total" : 700
+     "NIST PF 1.1" : 138
 ```
 
 | Figure                         | What it shows                                | Result                                                                 |

@@ -1,1 +1,3 @@
-Regulations/
+Regulations/**
+!Regulations/
+!Regulations/iso_clause_id_baseline.json

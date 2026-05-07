@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 from typing import List, Tuple
 
+from .docx_reader import read_docx_text
 from .schema import ControlRecord, make_normalized_id, normalize_whitespace, stable_hash
 
 
@@ -15,7 +16,7 @@ SUBCLAUSE_RE = re.compile(r"^\s*(\d+)\.\s+(.*)$")
 
 
 def parse_gdpr_controls(path: Path) -> List[ControlRecord]:
-    text = path.read_text(encoding="utf-8", errors="ignore")
+    text = read_docx_text(path)
     return parse_gdpr_controls_from_text(text, source_path=str(path))
 
 
