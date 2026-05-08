@@ -57,7 +57,12 @@ def main() -> None:
         st.header("Workspace Tabs")
         active_tab = st.radio(
             "Open",
-            options=("Compliance Assessment", "Synthetic Data Generator", "Benchmark Validation"),
+            options=(
+                "Compliance Assessment",
+                "Synthetic Data Generator",
+                "Benchmark Validation",
+                "Data Explorer",
+            ),
             index=0,
             key="prert_active_tab",
         )
@@ -67,8 +72,10 @@ def main() -> None:
             model_path_text = _render_compliance_settings_form()
         elif active_tab == "Synthetic Data Generator":
             generation_settings = _render_generation_settings_form()
-        else:
+        elif active_tab == "Benchmark Validation":
             benchmark_settings = _render_benchmark_settings_form()
+        else:
+            _render_explorer_settings_form(default_root=root / "artifacts")
 
     if active_tab == "Compliance Assessment":
         _render_hero(
@@ -90,6 +97,17 @@ def main() -> None:
             ),
         )
         _render_synthetic_generation_screen(settings=generation_settings)
+        return
+
+    if active_tab == "Data Explorer":
+        _render_hero(
+            title="Artifact Data Explorer",
+            body=(
+                "Browse the artifacts the model and pipelines produce — controls, chunks, metrics, events, "
+                "predictions, manifests, and reports — in a clean, filterable view."
+            ),
+        )
+        _render_explorer_screen(default_root=root / "artifacts")
         return
 
     _render_hero(
@@ -269,6 +287,50 @@ def _render_benchmark_settings_form() -> Dict[str, Any]:
     return dict(st.session_state["prert_benchmark_settings"])
 
 
+def _render_explorer_settings_form(default_root: Path) -> Dict[str, Any]:
+    if "prert_explorer_settings" not in st.session_state:
+        st.session_state["prert_explorer_settings"] = {
+            "root_dir": str(default_root),
+            "max_rows": 500,
+            "search_query": "",
+        }
+
+    state = dict(st.session_state["prert_explorer_settings"])
+    st.subheader("Explorer Settings")
+
+    with st.form("explorer_settings_form"):
+        root_dir = st.text_input(
+            "Artifacts root directory",
+            value=str(state.get("root_dir", str(default_root))),
+            help="Root folder containing phase-1, phase-2, phase-3, phase-4 artifacts.",
+        )
+        max_rows = int(
+            st.number_input(
+                "Max rows to display (JSONL)",
+                min_value=10,
+                max_value=10000,
+                value=int(state.get("max_rows", 500)),
+                step=50,
+            )
+        )
+        search_query = st.text_input(
+            "Filter rows (substring match)",
+            value=str(state.get("search_query", "")),
+            help="Case-insensitive substring filter applied to JSONL rows.",
+        )
+        apply_clicked = st.form_submit_button("Apply Settings")
+
+    if apply_clicked:
+        st.session_state["prert_explorer_settings"] = {
+            "root_dir": root_dir,
+            "max_rows": max_rows,
+            "search_query": search_query,
+        }
+        st.success("Explorer settings applied")
+
+    return dict(st.session_state["prert_explorer_settings"])
+
+
 def _render_hero(title: str, body: str) -> None:
     st.markdown(
         f"""
@@ -279,6 +341,305 @@ def _render_hero(title: str, body: str) -> None:
         </div>
         """,
         unsafe_allow_html=True,
+    )
+
+
+EXPLORER_TEXT_SUFFIXES = {".md", ".txt", ".sql", ".yaml", ".yml", ".csv", ".log"}
+EXPLORER_CODE_SUFFIXES = {".sql", ".yaml", ".yml", ".py", ".toml"}
+
+
+def _render_explorer_screen(default_root: Path) -> None:
+    settings = dict(st.session_state.get("prert_explorer_settings", {}))
+    root_text = str(settings.get("root_dir", str(default_root))).strip() or str(default_root)
+    root = Path(root_text).expanduser()
+
+    if not root.exists() or not root.is_dir():
+        st.error(f"Artifacts directory not found: {root}")
+        st.caption("Update the root directory in the sidebar and apply settings.")
+        return
+
+    subdirs = sorted(
+        [path for path in root.iterdir() if path.is_dir() and not path.name.startswith(".")],
+        key=lambda item: item.name,
+    )
+    files_at_root = sorted(
+        [path for path in root.iterdir() if path.is_file() and not path.name.startswith(".")],
+        key=lambda item: item.name,
+    )
+
+    if not subdirs and not files_at_root:
+        st.warning("No artifact files or subfolders found at the configured root.")
+        return
+
+    folder_options: List[str] = []
+    if files_at_root:
+        folder_options.append(".")
+    folder_options.extend(path.name for path in subdirs)
+
+    folder_choice = st.selectbox(
+        "Artifact Folder",
+        options=folder_options,
+        index=0,
+        key="prert_explorer_folder",
+    )
+    target_dir = root if folder_choice == "." else (root / folder_choice)
+
+    files = _list_explorer_files(target_dir, include_subdirs=folder_choice != ".")
+    if not files:
+        st.info(f"No supported files found in {target_dir}.")
+        return
+
+    suffix_options = sorted({path.suffix.lower() or "(no ext)" for path in files})
+    selected_suffixes = st.multiselect(
+        "Filter by file type",
+        options=suffix_options,
+        default=suffix_options,
+        key=f"prert_explorer_suffixes_{folder_choice}",
+    )
+    filtered_files = [
+        path
+        for path in files
+        if (path.suffix.lower() or "(no ext)") in selected_suffixes
+    ]
+    if not filtered_files:
+        st.info("No files match the selected file types.")
+        return
+
+    file_labels = [_format_explorer_file_label(path, target_dir) for path in filtered_files]
+    file_choice_label = st.selectbox(
+        "File",
+        options=file_labels,
+        index=0,
+        key=f"prert_explorer_file_{folder_choice}",
+    )
+    selected_index = file_labels.index(file_choice_label)
+    selected_path = filtered_files[selected_index]
+
+    st.markdown("---")
+    _render_explorer_file_header(selected_path, target_dir)
+    _render_explorer_file_content(
+        selected_path,
+        max_rows=int(settings.get("max_rows", 500)),
+        search_query=str(settings.get("search_query", "")),
+    )
+
+
+def _list_explorer_files(target_dir: Path, include_subdirs: bool = True) -> List[Path]:
+    files: List[Path] = []
+    iterator = target_dir.rglob("*") if include_subdirs else target_dir.iterdir()
+    for path in iterator:
+        if not path.is_file():
+            continue
+        try:
+            relative_parts = path.relative_to(target_dir).parts
+        except ValueError:
+            relative_parts = (path.name,)
+        if any(part.startswith(".") for part in relative_parts):
+            continue
+        files.append(path)
+    files.sort(key=lambda item: str(item).lower())
+    return files
+
+
+def _format_explorer_file_label(path: Path, base: Path) -> str:
+    try:
+        relative = path.relative_to(base)
+    except ValueError:
+        relative = path
+    try:
+        size_bytes = path.stat().st_size
+    except OSError:
+        size_bytes = 0
+    return f"{relative.as_posix()}  -  {_format_byte_size(size_bytes)}"
+
+
+def _format_byte_size(size_bytes: int) -> str:
+    size = float(size_bytes)
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024.0 or unit == "GB":
+            if unit == "B":
+                return f"{int(size)} {unit}"
+            return f"{size:.1f} {unit}"
+        size /= 1024.0
+    return f"{size:.1f} GB"
+
+
+def _render_explorer_file_header(path: Path, base: Path) -> None:
+    try:
+        size_bytes = path.stat().st_size
+    except OSError:
+        size_bytes = 0
+
+    try:
+        relative = path.relative_to(base).as_posix()
+    except ValueError:
+        relative = path.name
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("File", path.name)
+    c2.metric("Size", _format_byte_size(size_bytes))
+    c3.metric("Type", path.suffix.lower() or "n/a")
+    st.caption(f"Path: {path}")
+    st.caption(f"Relative: {relative}")
+
+
+def _render_explorer_file_content(path: Path, max_rows: int, search_query: str) -> None:
+    suffix = path.suffix.lower()
+
+    try:
+        if suffix == ".jsonl":
+            _render_jsonl_file(path, max_rows=max_rows, search_query=search_query)
+        elif suffix == ".json":
+            _render_json_file(path)
+        elif suffix == ".md":
+            _render_markdown_file(path)
+        elif suffix in EXPLORER_TEXT_SUFFIXES:
+            _render_text_file(path)
+        else:
+            _render_binary_file(path)
+    except Exception as exc:  # pragma: no cover - defensive UI guard
+        st.error(f"Failed to render file: {exc}")
+        _render_binary_file(path)
+
+
+def _render_jsonl_file(path: Path, max_rows: int, search_query: str) -> None:
+    raw_text = path.read_text(encoding="utf-8", errors="replace")
+    raw_lines = [line for line in raw_text.splitlines() if line.strip()]
+    total_lines = len(raw_lines)
+
+    query = search_query.strip().lower()
+    if query:
+        filtered_lines = [line for line in raw_lines if query in line.lower()]
+    else:
+        filtered_lines = raw_lines
+
+    matched = len(filtered_lines)
+    truncated_lines = filtered_lines[:max_rows]
+
+    rows: List[Dict[str, Any]] = []
+    parse_errors = 0
+    for line in truncated_lines:
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            parse_errors += 1
+            continue
+        if isinstance(value, dict):
+            rows.append(value)
+        else:
+            rows.append({"value": value})
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total Rows", str(total_lines))
+    c2.metric("Matched", str(matched))
+    c3.metric("Shown", str(len(rows)))
+    c4.metric("Parse Errors", str(parse_errors))
+
+    if not rows:
+        st.info("No rows to display. Adjust the filter or row limit in the sidebar.")
+        return
+
+    tab_table, tab_record, tab_raw = st.tabs(["Table", "Record View", "Raw JSONL"])
+
+    with tab_table:
+        st.dataframe(rows, use_container_width=True, hide_index=True)
+
+    with tab_record:
+        record_index = st.number_input(
+            "Row index",
+            min_value=0,
+            max_value=max(0, len(rows) - 1),
+            value=0,
+            step=1,
+            key=f"prert_explorer_record_{path.name}",
+        )
+        st.json(rows[int(record_index)])
+
+    with tab_raw:
+        preview = "\n".join(truncated_lines)
+        st.code(preview, language="json")
+
+    st.download_button(
+        "Download File",
+        data=raw_text,
+        file_name=path.name,
+        mime="application/jsonl",
+    )
+
+
+def _render_json_file(path: Path) -> None:
+    raw_text = path.read_text(encoding="utf-8", errors="replace")
+    try:
+        value = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        st.error(f"Invalid JSON: {exc}")
+        st.code(raw_text, language="json")
+        return
+
+    tab_pretty, tab_raw = st.tabs(["Structured", "Raw"])
+    with tab_pretty:
+        st.json(value)
+    with tab_raw:
+        st.code(json.dumps(value, indent=2, ensure_ascii=False), language="json")
+
+    st.download_button(
+        "Download File",
+        data=raw_text,
+        file_name=path.name,
+        mime="application/json",
+    )
+
+
+def _render_markdown_file(path: Path) -> None:
+    raw_text = path.read_text(encoding="utf-8", errors="replace")
+    tab_render, tab_raw = st.tabs(["Rendered", "Source"])
+    with tab_render:
+        st.markdown(raw_text)
+    with tab_raw:
+        st.code(raw_text, language="markdown")
+
+    st.download_button(
+        "Download File",
+        data=raw_text,
+        file_name=path.name,
+        mime="text/markdown",
+    )
+
+
+def _render_text_file(path: Path) -> None:
+    raw_text = path.read_text(encoding="utf-8", errors="replace")
+    suffix = path.suffix.lower()
+    if suffix in EXPLORER_CODE_SUFFIXES:
+        language = suffix.lstrip(".")
+        if language == "yml":
+            language = "yaml"
+        st.code(raw_text, language=language)
+    elif suffix == ".csv":
+        st.code(raw_text, language="csv")
+    else:
+        st.code(raw_text, language="text")
+
+    st.download_button(
+        "Download File",
+        data=raw_text,
+        file_name=path.name,
+        mime="text/plain",
+    )
+
+
+def _render_binary_file(path: Path) -> None:
+    try:
+        file_bytes = path.read_bytes()
+    except OSError as exc:
+        st.error(f"Unable to read file: {exc}")
+        return
+
+    st.info("Preview is not available for this file type. Use the download button below.")
+    st.download_button(
+        "Download File",
+        data=file_bytes,
+        file_name=path.name,
+        mime="application/octet-stream",
     )
 
 

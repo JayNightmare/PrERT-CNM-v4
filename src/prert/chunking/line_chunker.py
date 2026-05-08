@@ -87,6 +87,14 @@ def _split_line_to_fit(line: str, max_document_bytes: int) -> List[str]:
 
         char_buf = ""
         for ch in token:
+            ch_bytes = len(ch.encode("utf-8"))
+            # A4: a single character that exceeds max_document_bytes cannot be
+            # split safely — fail loudly rather than emit an oversized chunk.
+            if ch_bytes > max_document_bytes:
+                raise ValueError(
+                    f"single character of {ch_bytes} bytes exceeds "
+                    f"max_document_bytes={max_document_bytes}; cannot chunk"
+                )
             test = f"{char_buf}{ch}"
             if len(test.encode("utf-8")) <= max_document_bytes:
                 char_buf = test
@@ -107,7 +115,8 @@ def _join_lines(lines: List[str]) -> str:
 
 def _build_chunk(record: ControlRecord, chunk_index: int, text: str) -> ControlChunk:
     chunk_key = f"{record.normalized_id}:{chunk_index}:{text}"
-    chunk_id = stable_hash(chunk_key)[:24]
+    # A3: full SHA1 hex digest; truncation caused birthday collisions in Chroma.
+    chunk_id = stable_hash(chunk_key)
 
     metadata = {
         "regulation": record.regulation,

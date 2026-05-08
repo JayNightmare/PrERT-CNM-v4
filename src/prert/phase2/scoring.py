@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Tuple
 
+from prert.phase2.metrics import compute_missing_penalty
 from prert.phase2.types import MetricSpec, SyntheticObservation
 
 
@@ -31,7 +32,9 @@ def score_observations(
 
         raw_score = 1.0 - (obs.failure_count / max(obs.total_checks, 1))
         normalized_score = _clamp(raw_score)
-        missing_penalty = min(0.4, 0.05 * obs.missing_fields)
+        # B8: pull penalty formula from the centralised metrics module so
+        # spec.missing_data_handling and scoring stay in lockstep.
+        missing_penalty = compute_missing_penalty(obs.missing_fields)
         confidence_adjusted_score = _clamp(
             normalized_score * (1.0 - missing_penalty) * obs.observed_confidence * spec.confidence_weight
         )

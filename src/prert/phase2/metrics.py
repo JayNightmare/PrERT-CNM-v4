@@ -56,6 +56,21 @@ FORMULAS = {
 }
 
 
+# B8: centralised missing-data penalty so scoring.py and the spec string
+# stay in sync. Update both representations together.
+MISSING_PENALTY_CAP = 0.4
+MISSING_PENALTY_SLOPE = 0.05
+MISSING_PENALTY_DESCRIPTION = (
+    f"impute_with_penalty: penalty=min({MISSING_PENALTY_CAP}, "
+    f"{MISSING_PENALTY_SLOPE}*missing_fields)"
+)
+
+
+def compute_missing_penalty(missing_fields: int) -> float:
+    """Single source of truth for the Phase 2 missing-data penalty."""
+    return min(MISSING_PENALTY_CAP, MISSING_PENALTY_SLOPE * max(missing_fields, 0))
+
+
 REQUIRED_FIELDS = {
     "user": [
         "total_user_events",
@@ -101,7 +116,7 @@ def build_metric_specs(controls: Iterable[Dict[str, Any]]) -> List[MetricSpec]:
             required_fields=REQUIRED_FIELDS[level],
             normalization_rule="clamp(score, 0.0, 1.0)",
             confidence_weight=confidence_weight,
-            missing_data_handling="impute_with_penalty: penalty=min(0.4, 0.05*missing_fields)",
+            missing_data_handling=MISSING_PENALTY_DESCRIPTION,
             status="active",
             metadata={
                 "native_id": control.get("native_id", ""),
@@ -118,6 +133,18 @@ def build_metric_coverage_summary(
     controls: Iterable[Dict[str, Any]],
     specs: Iterable[MetricSpec],
 ) -> Dict[str, Any]:
+    specs = list(specs)
+    # B6: validate that every spec falls into a known level so unexpected
+    # classify_level() drift surfaces immediately instead of silently
+    # populating a rogue bucket in level_counts.
+    valid_levels = {"user", "system", "organization"}
+    invalid = [spec.metric_id for spec in specs if spec.level not in valid_levels]
+    if invalid:
+        raise ValueError(
+            f"build_metric_coverage_summary received {len(invalid)} "
+            f"metric specs with unsupported levels: {invalid[:5]}"
+        )
+
     control_ids = {
         str(control.get("normalized_id", "")).strip()
         for control in controls

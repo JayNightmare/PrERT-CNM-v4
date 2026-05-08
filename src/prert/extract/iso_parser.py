@@ -11,8 +11,10 @@ from .schema import ControlRecord, make_normalized_id, normalize_whitespace, sta
 
 
 CLAUSE_RE = re.compile(r"^((?:[1-9]\d*)(?:\.[0-9]+){0,4}|A\.[0-9]+(?:\.[0-9]+)?)\s+(.+)$")
-BULLET_RE = re.compile(r"^\s*([a-z])\)\s*;?\s+(.*)$")
-ALT_BULLET_RE = re.compile(r"^\s*([a-z])[.:]\s+(.*)$")
+# A2: accept lower- and upper-case letters, digits, and roman numerals so
+# atomic ISO controls aren't merged into their parent clause.
+BULLET_RE = re.compile(r"^\s*([A-Za-z]|[ivxIVX]+|\d{1,2})\)\s*;?\s+(.*)$")
+ALT_BULLET_RE = re.compile(r"^\s*([A-Za-z]|[ivxIVX]+|\d{1,2})[.:]\s+(.*)$")
 
 
 def parse_iso_controls(
@@ -84,13 +86,17 @@ def parse_iso_controls_from_text(
     return _dedupe_records(records)
 
 
+_BODY_START_RE = re.compile(r"^1[\.\)\s]+Scope\s*$", re.IGNORECASE)
+
+
 def _find_body_start(lines: List[str]) -> int:
+    # A6: tolerate "1 Scope", "1. Scope", "1) Scope" formatting variants.
     start_index = 0
     for idx, raw in enumerate(lines):
         line = _clean_for_match(raw)
         if _looks_like_toc_entry(line):
             continue
-        if re.match(r"^1\s+Scope$", line):
+        if _BODY_START_RE.match(line):
             start_index = idx
             break
     return start_index
@@ -142,6 +148,16 @@ def _clause_to_records(
     if not records:
         clean_text = normalize_whitespace(body_text)
         if clean_text:
+            # A7: surface fallback-record creation so silent extraction
+            # failures (no preface and no bullets parsed) become auditable.
+            import logging
+
+            logging.getLogger(__name__).debug(
+                "iso_parser fallback record for clause %s (regulation=%s) — "
+                "bullets did not split; storing whole body as single record",
+                clause_id,
+                regulation,
+            )
             records.append(
                 _make_record(
                     source_path=source_path,
@@ -252,7 +268,8 @@ def _make_record(
 ) -> ControlRecord:
     first_segment = native_id.split(".", 1)[0]
     normalized_id = make_normalized_id(regulation, native_id)
-    record_id = stable_hash(f"{regulation}:{native_id}:{text}")[:24]
+    # A3: full SHA1 hex digest; truncation caused birthday collisions in Chroma.
+    record_id = stable_hash(f"{regulation}:{native_id}:{text}")
 
     return ControlRecord(
         record_id=record_id,

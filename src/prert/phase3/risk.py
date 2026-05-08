@@ -8,9 +8,12 @@ organization levels, including uncertainty intervals and top contributing clause
 from __future__ import annotations
 
 import json
+import logging
 import math
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Sequence
+
+_LOGGER = logging.getLogger(__name__)
 
 
 LEVELS: tuple[str, str, str] = ("user", "system", "organization")
@@ -60,7 +63,33 @@ def compute_bayesian_risk(
     top_k: int = 5,
 ) -> Dict[str, Any]:
     selected_priors = _normalize_priors(priors)
+    _validate_priors_against_observations(selected_priors, predictions)
 
+    # Aggregate posteriors using the model's predicted_label / confidence.
+    predicted_view = _aggregate_levels(predictions, selected_priors, top_k, key="predicted_label")
+
+    # C6: also produce a parallel "risk on actual labels" view so we can
+    # detect divergence between the model's posterior and the ground truth
+    # without re-running the whole pipeline.
+    actual_view = _aggregate_levels(predictions, selected_priors, top_k, key="actual_label")
+
+    predicted_view["actual_label_view"] = {
+        "levels": actual_view["levels"],
+        "overall": actual_view["overall"],
+        "description": (
+            "Posteriors recomputed using actual_label with confidence=1.0 for "
+            "each clause; useful as a ground-truth reference for the predicted view."
+        ),
+    }
+    return predicted_view
+
+
+def _aggregate_levels(
+    predictions: Sequence[Mapping[str, Any]],
+    selected_priors: Mapping[str, Mapping[str, float]],
+    top_k: int,
+    key: str,
+) -> Dict[str, Any]:
     level_stats: Dict[str, Dict[str, Any]] = {
         level: {
             "level": level,
@@ -74,12 +103,15 @@ def compute_bayesian_risk(
     }
 
     for row in predictions:
-        predicted_label = str(row.get("predicted_label", "")).strip().lower()
-        if predicted_label not in level_stats:
+        label = str(row.get(key, "")).strip().lower()
+        if label not in level_stats:
             continue
 
-        confidence = _bounded_probability(row.get("confidence", 0.0))
-        stats = level_stats[predicted_label]
+        if key == "actual_label":
+            confidence = 1.0
+        else:
+            confidence = _bounded_probability(row.get("confidence", 0.0))
+        stats = level_stats[label]
         stats["alpha"] += confidence
         stats["beta"] += (1.0 - confidence)
         stats["evidence_count"] += 1
@@ -88,7 +120,7 @@ def compute_bayesian_risk(
                 "example_id": row.get("example_id", ""),
                 "policy_uid": row.get("policy_uid", ""),
                 "actual_label": row.get("actual_label", ""),
-                "predicted_label": predicted_label,
+                "predicted_label": row.get("predicted_label", ""),
                 "confidence": round(confidence, 6),
                 "text": row.get("text", ""),
             }
@@ -163,6 +195,49 @@ def _normalize_priors(
         beta = _positive_float(source.get("beta"), DEFAULT_PRIORS[level]["beta"])
         normalized[level] = {"alpha": alpha, "beta": beta}
     return normalized
+
+
+def _validate_priors_against_observations(
+    priors: Mapping[str, Mapping[str, float]],
+    predictions: Sequence[Mapping[str, Any]],
+) -> None:
+    """Warn when priors look incompatible with the observed label mix.
+
+    C6: the freeze artifacts use a fixed Beta(alpha, beta) prior per level.
+    If the supplied priors imply a posterior mean that's wildly different
+    from the empirical actual-label rate (>0.4 absolute gap) we surface a
+    warning so reviewers can re-tune the priors instead of silently
+    publishing a posterior dominated by the prior.
+    """
+    if not predictions:
+        return
+
+    counts: Dict[str, int] = {level: 0 for level in LEVELS}
+    total = 0
+    for row in predictions:
+        actual = str(row.get("actual_label", "")).strip().lower()
+        if actual in counts:
+            counts[actual] += 1
+            total += 1
+    if total == 0:
+        return
+
+    for level, params in priors.items():
+        alpha = float(params.get("alpha", 0.0))
+        beta = float(params.get("beta", 0.0))
+        if alpha + beta <= 0:
+            continue
+        prior_mean = alpha / (alpha + beta)
+        empirical = counts[level] / total
+        if abs(prior_mean - empirical) > 0.4:
+            _LOGGER.warning(
+                "Bayesian prior for level=%s (mean=%.3f) deviates from empirical actual-label rate (%.3f) by %.3f; "
+                "consider retuning priors before freezing.",
+                level,
+                prior_mean,
+                empirical,
+                abs(prior_mean - empirical),
+            )
 
 
 def _positive_float(value: Any, fallback: float) -> float:

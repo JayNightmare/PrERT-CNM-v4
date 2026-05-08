@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -24,6 +25,8 @@ from prert.phase3.dataset import (
 from prert.phase3.evaluation import evaluate_classifier
 from prert.phase3.io import append_phase3_run_history, write_json, write_jsonl
 from prert.phase3.risk import compute_bayesian_risk, load_bayesian_priors
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def run_phase3_pipeline(
@@ -59,6 +62,19 @@ def run_phase3_pipeline(
 ) -> Dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_input_set = input_set
+
+    # C4: unify seed/random_state. Historically the pipeline accepted both
+    # (split/bootstrap used `seed`; the classifier used `random_state`).
+    # Treat `seed` as the authoritative source of randomness; warn if the
+    # caller passes a divergent `random_state` so we never silently freeze
+    # an artifact built from two different RNG seeds.
+    if random_state != seed:
+        _LOGGER.warning(
+            "random_state=%d differs from seed=%d; using seed for split/bootstrap and "
+            "random_state for classifier training. For reproducibility, set them equal.",
+            random_state,
+            seed,
+        )
 
     if labeled_input_path is not None:
         examples = load_labeled_examples(labeled_input_path)

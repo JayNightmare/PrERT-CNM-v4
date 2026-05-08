@@ -86,6 +86,8 @@ def parse_gdpr_controls_from_text(text: str, source_path: str = "GDPR-2016_679")
             flush_article()
             chapter_id = f"CHAPTER {chapter_match.group(1)}"
             chapter_title = ""
+            # A1: advance i past the chapter title line we consume here so it
+            # is not re-processed as body content on the next iteration.
             j = i + 1
             while j < len(lines):
                 probe = lines[j].strip()
@@ -95,6 +97,7 @@ def parse_gdpr_controls_from_text(text: str, source_path: str = "GDPR-2016_679")
                 if CHAPTER_HEADER_RE.match(probe) or ARTICLE_HEADER_RE.match(probe):
                     break
                 chapter_title = probe
+                i = j
                 break
             i += 1
             continue
@@ -128,7 +131,23 @@ def parse_gdpr_controls_from_text(text: str, source_path: str = "GDPR-2016_679")
         i += 1
 
     flush_article()
-    return records
+    # A5: GDPR dedup parity with ISO — keep the longer text on collision.
+    return _dedupe_records(records)
+
+
+def _dedupe_records(records: List[ControlRecord]) -> List[ControlRecord]:
+    best_by_id: dict[str, ControlRecord] = {}
+    order: List[str] = []
+    for record in records:
+        key = record.normalized_id
+        if key not in best_by_id:
+            best_by_id[key] = record
+            order.append(key)
+            continue
+        prev = best_by_id[key]
+        if len(record.text) > len(prev.text):
+            best_by_id[key] = record
+    return [best_by_id[key] for key in order]
 
 
 def _split_subclauses(article_text: str) -> List[Tuple[str, str]]:
@@ -192,7 +211,8 @@ def _make_record(
     hierarchy: List[str],
 ) -> ControlRecord:
     normalized_id = make_normalized_id(regulation, native_id)
-    record_id = stable_hash(f"{regulation}:{native_id}:{text}")[:24]
+    # A3: full SHA1 hex digest; truncation caused birthday collisions in Chroma.
+    record_id = stable_hash(f"{regulation}:{native_id}:{text}")
     clean_hierarchy = [item for item in hierarchy if item]
 
     return ControlRecord(

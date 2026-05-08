@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from collections import Counter, defaultdict
 from typing import Any, Dict, Iterable, List, Sequence
 
 from prert.phase3.classifier import TextClassifier
 from prert.phase3.types import ClauseExample
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def evaluate_classifier(
@@ -21,8 +24,13 @@ def evaluate_classifier(
             "macro_precision": 0.0,
             "macro_recall": 0.0,
             "macro_f1": 0.0,
+            "weighted_f1": 0.0,
             "per_class": {label: _empty_metrics() for label in labels},
             "confusion": _empty_confusion(labels),
+            "probability_diagnostics": {
+                "renormalized_rows": 0,
+                "uniform_fallback_rows": 0,
+            },
         }
 
     predictions: List[Dict[str, Any]] = []
@@ -31,6 +39,11 @@ def evaluate_classifier(
         for actual in labels
     }
 
+    # C8: track how often the classifier emits a non-normalized probability
+    # vector so we can flag silently-broken predict_proba implementations.
+    renormalized_count = 0
+    fallback_uniform_count = 0
+
     correct = 0
     for example in examples:
         predicted_label = model.predict(example.text)
@@ -38,11 +51,14 @@ def evaluate_classifier(
         probabilities = {label: float(proba.get(label, 0.0)) for label in labels}
         total_probability = sum(probabilities.values())
         if total_probability > 0:
+            if abs(total_probability - 1.0) > 1e-6:
+                renormalized_count += 1
             probabilities = {
                 label: (value / total_probability)
                 for label, value in probabilities.items()
             }
         else:
+            fallback_uniform_count += 1
             uniform = 1.0 / max(len(labels), 1)
             probabilities = {label: uniform for label in labels}
         confidence = float(probabilities.get(predicted_label, 0.0))
@@ -73,6 +89,8 @@ def evaluate_classifier(
     precision_values: List[float] = []
     recall_values: List[float] = []
     f1_values: List[float] = []
+    weighted_f1_numerator = 0.0
+    weighted_f1_denominator = 0
 
     for label in labels:
         tp = confusion[label][label]
@@ -95,9 +113,27 @@ def evaluate_classifier(
         precision_values.append(precision)
         recall_values.append(recall)
         f1_values.append(f1)
+        weighted_f1_numerator += f1 * support
+        weighted_f1_denominator += support
 
     row_count = len(examples)
     accuracy = correct / row_count if row_count else 0.0
+    # C3: weighted F1 reports support-weighted performance; macro F1 already
+    # reports unweighted performance. Both are needed because OPP-115 has
+    # heavy organization-level imbalance.
+    weighted_f1 = (
+        weighted_f1_numerator / weighted_f1_denominator
+        if weighted_f1_denominator > 0
+        else 0.0
+    )
+
+    if renormalized_count or fallback_uniform_count:
+        _LOGGER.warning(
+            "predict_proba returned non-normalized vectors: renormalized=%d, uniform_fallback=%d (rows=%d)",
+            renormalized_count,
+            fallback_uniform_count,
+            row_count,
+        )
 
     return {
         "rows": row_count,
@@ -105,9 +141,14 @@ def evaluate_classifier(
         "macro_precision": round(_mean(precision_values), 6),
         "macro_recall": round(_mean(recall_values), 6),
         "macro_f1": round(_mean(f1_values), 6),
+        "weighted_f1": round(weighted_f1, 6),
         "per_class": per_class,
         "confusion": confusion,
         "predictions": predictions,
+        "probability_diagnostics": {
+            "renormalized_rows": renormalized_count,
+            "uniform_fallback_rows": fallback_uniform_count,
+        },
     }
 
 

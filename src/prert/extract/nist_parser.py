@@ -39,7 +39,8 @@ def parse_nist_controls_from_text(text: str, source_path: str = "NIST-1.1") -> L
         family = active_id.split(".", 1)[0]
         category = active_id.split("-", 1)[0]
         normalized_id = make_normalized_id("NISTPF", active_id)
-        record_id = stable_hash(f"NISTPF:{active_id}:{body}")[:24]
+        # A3: full SHA1 hex digest; truncation caused birthday collisions in Chroma.
+        record_id = stable_hash(f"NISTPF:{active_id}:{body}")
 
         metadata = {
             "format_profile": "nist_pf_subcategory",

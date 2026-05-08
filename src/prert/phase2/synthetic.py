@@ -44,12 +44,23 @@ def generate_synthetic_observations(
             profile = SCENARIO_PROFILES[scenario]
             total_checks = _sample_total_checks(spec.level, rnd)
             failure_count = _sample_failure_count(total_checks, profile["failure_rate"], rnd)
-            missing_fields = _sample_missing_fields(profile["missing_rate"], rnd)
+            # B5: cap missing_fields at len(required_fields) to honour the
+            # MetricSpec contract instead of using a magic constant of 6.
+            missing_field_cap = max(1, len(spec.required_fields))
+            missing_fields = _sample_missing_fields(
+                profile["missing_rate"], rnd, missing_field_cap
+            )
             confidence = round(rnd.uniform(profile["confidence_low"], profile["confidence_high"]), 4)
 
             entity_type = spec.level
-            entity_id = f"{entity_type}-{metric_index:04d}"
-            observation_id = "obs::" + stable_hash(f"{scenario}|{spec.metric_id}|{entity_id}")[:18]
+            # B1: derive entity_id deterministically from the control id so
+            # the same control always maps to the same synthetic entity
+            # across runs, regardless of metric_specs ordering.
+            entity_id = f"{entity_type}-{stable_hash(spec.control_id)[:12]}"
+            # B2: observation_id no longer needs entity_id since
+            # (scenario, metric_id) is already unique — keeps ids stable
+            # if entity_id derivation changes again later.
+            observation_id = "obs::" + stable_hash(f"{scenario}|{spec.metric_id}")[:18]
 
             observations.append(
                 SyntheticObservation(
@@ -89,9 +100,9 @@ def _sample_failure_count(total_checks: int, failure_rate: float, rnd: Random) -
     return failures
 
 
-def _sample_missing_fields(missing_rate: float, rnd: Random) -> int:
+def _sample_missing_fields(missing_rate: float, rnd: Random, max_fields: int = 6) -> int:
     count = 0
-    for _ in range(6):
+    for _ in range(max_fields):
         if rnd.random() < missing_rate:
             count += 1
     return count

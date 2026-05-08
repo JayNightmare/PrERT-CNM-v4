@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 import random
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -12,6 +13,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, 
 from prert.phase2.opp115 import INPUT_SET_TO_SUBDIR
 from prert.phase3.io import read_jsonl
 from prert.phase3.types import ClauseExample, SplitSummary
+
+_LOGGER = logging.getLogger(__name__)
 
 
 LABELS: Tuple[str, str, str] = ("user", "system", "organization")
@@ -59,6 +62,8 @@ POLISIS_CATEGORY_TO_LEVEL = {
 def load_labeled_examples(path: Path, source: str = "labeled_jsonl") -> List[ClauseExample]:
     rows = read_jsonl(path)
     examples: List[ClauseExample] = []
+    dropped_empty = 0
+    dropped_invalid_label = 0
 
     for index, row in enumerate(rows):
         text = str(row.get("text", "")).strip()
@@ -67,7 +72,11 @@ def load_labeled_examples(path: Path, source: str = "labeled_jsonl") -> List[Cla
         category = str(row.get("category", "manual")).strip() or "manual"
         example_id = str(row.get("example_id", f"manual::{index:06d}")).strip() or f"manual::{index:06d}"
 
-        if not text or label not in LABELS:
+        if not text:
+            dropped_empty += 1
+            continue
+        if label not in LABELS:
+            dropped_invalid_label += 1
             continue
 
         metadata = {
@@ -86,6 +95,14 @@ def load_labeled_examples(path: Path, source: str = "labeled_jsonl") -> List[Cla
                 category=category,
                 metadata=metadata,
             )
+        )
+
+    if dropped_empty or dropped_invalid_label:
+        _LOGGER.info(
+            "load_labeled_examples: dropped %d empty-text rows and %d invalid-label rows from %s",
+            dropped_empty,
+            dropped_invalid_label,
+            path,
         )
 
     return examples
@@ -227,23 +244,44 @@ def split_examples_by_policy(
     for example in examples:
         by_policy[example.policy_uid].append(example)
 
-    policy_uids = list(by_policy.keys())
+    # C1: stratify policy assignment by each policy's dominant label so all
+    # three labels appear in train/validation/test even when the policy
+    # corpus is small. Within each label bucket policies are shuffled
+    # deterministically and split by the requested ratios.
     rnd = random.Random(seed)
-    rnd.shuffle(policy_uids)
+    label_buckets: Dict[str, List[str]] = {label: [] for label in LABELS}
+    other_bucket: List[str] = []
+    for policy_uid, rows in by_policy.items():
+        dominant_label = Counter(row.label for row in rows).most_common(1)[0][0]
+        if dominant_label in label_buckets:
+            label_buckets[dominant_label].append(policy_uid)
+        else:
+            other_bucket.append(policy_uid)
 
-    total_policies = len(policy_uids)
-    train_count = max(1, int(total_policies * train_ratio))
-    validation_count = max(1, int(total_policies * validation_ratio)) if total_policies >= 3 else 0
+    train_ids: Set[str] = set()
+    validation_ids: Set[str] = set()
+    test_ids: Set[str] = set()
 
-    if train_count + validation_count >= total_policies:
-        validation_count = max(0, total_policies - train_count - 1)
+    def _assign(bucket: List[str]) -> None:
+        if not bucket:
+            return
+        ordered = sorted(bucket)
+        rnd.shuffle(ordered)
+        n = len(ordered)
+        train_n = max(1, int(n * train_ratio)) if n >= 1 else 0
+        val_n = max(1, int(n * validation_ratio)) if n >= 3 else 0
+        if train_n + val_n >= n:
+            val_n = max(0, n - train_n - 1)
+        train_ids.update(ordered[:train_n])
+        validation_ids.update(ordered[train_n : train_n + val_n])
+        test_ids.update(ordered[train_n + val_n :])
 
-    train_ids = set(policy_uids[:train_count])
-    validation_ids = set(policy_uids[train_count : train_count + validation_count])
-    test_ids = set(policy_uids[train_count + validation_count :])
+    for label in LABELS:
+        _assign(label_buckets[label])
+    _assign(other_bucket)
 
     if not test_ids and validation_ids:
-        moved = next(iter(validation_ids))
+        moved = sorted(validation_ids)[0]
         validation_ids.remove(moved)
         test_ids.add(moved)
 
@@ -254,6 +292,24 @@ def split_examples_by_policy(
     }
 
     _ensure_label_coverage(splits, by_policy, minimum_train_policies=2)
+
+    # Hard-error guard: policy-level splits MUST be disjoint to prevent
+    # leakage. A bug in upstream stratification or _ensure_label_coverage
+    # should fail loudly rather than silently corrupt the freeze.
+    train_p = {row.policy_uid for row in splits["train"]}
+    val_p = {row.policy_uid for row in splits["validation"]}
+    test_p = {row.policy_uid for row in splits["test"]}
+    overlaps = {
+        "train_validation": train_p & val_p,
+        "train_test": train_p & test_p,
+        "validation_test": val_p & test_p,
+    }
+    leaked = {pair: sorted(uids) for pair, uids in overlaps.items() if uids}
+    if leaked:
+        raise ValueError(
+            "Phase 3 split produced policy leakage across splits: " + json.dumps(leaked)
+        )
+
     return splits
 
 

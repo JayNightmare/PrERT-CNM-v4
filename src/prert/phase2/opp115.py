@@ -96,6 +96,12 @@ def build_opp115_public_rows(
         fallback_annotation_date = _first_date(aggregate.dates)
         event_date = collection_date or fallback_annotation_date
 
+        # B3: skip rows that lack any usable event_date — downstream
+        # Phase 3 features (recency, lag) require a real timestamp and
+        # treat NULL as 1970-01-01, which silently corrupts metrics.
+        if not event_date:
+            continue
+
         sector = site.get("sector") or "Unknown"
         records_affected = aggregate.annotation_rows
         detection_to_response_hours = _compute_collection_lag_hours(
@@ -302,7 +308,10 @@ def _parse_date(raw: str) -> Optional[date]:
     if not value:
         return None
 
-    patterns = ["%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y"]
+    # B4: %m/%d/%y is ambiguous ("2/8/16" → 2016-02-08 vs 1916-02-08) and
+    # masks malformed input. OPP-115 metadata uses %Y-%m-%d; only accept
+    # the unambiguous patterns.
+    patterns = ["%Y-%m-%d", "%m/%d/%Y"]
     for pattern in patterns:
         try:
             return datetime.strptime(value, pattern).date()
@@ -318,6 +327,10 @@ def _compute_collection_lag_hours(collection_date: Optional[str], last_updated_d
         return None
 
     delta_days = (collected - updated).days
+    # B7 (documented behaviour): negative lag (collection before last_updated)
+    # is treated as missing rather than absolute value, because the source
+    # data quality cannot be verified for those rows. Phase 3 receives None
+    # and uses its own missing-data handling.
     if delta_days < 0:
         return None
 
@@ -325,6 +338,10 @@ def _compute_collection_lag_hours(collection_date: Optional[str], last_updated_d
 
 
 def _derive_severity(annotation_rows: int, category_count: int) -> str:
+    # NOTE (B8 ambiguity): the 250 / 700 thresholds and the 10× category
+    # multiplier are heuristics chosen during Phase 2 design and have not
+    # been calibrated against ground truth. They are preserved here for
+    # backward-compatibility of the public_data_mapped.jsonl artifact.
     weighted_score = annotation_rows + (category_count * 10)
     if weighted_score >= 700:
         return "high"

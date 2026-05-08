@@ -107,17 +107,41 @@ def compute_bootstrap_confidence_intervals(
     metric_series: Dict[str, List[float]] = {
         "accuracy": [],
         "macro_f1": [],
+        "weighted_f1": [],
     }
     for label in label_list:
         metric_series[f"f1_{label}"] = []
 
+    # C2: stratified bootstrap — resample within each true-label class so
+    # rare-class F1 estimates are not dominated by majority-class draws.
+    by_actual: Dict[str, List[int]] = {label: [] for label in label_list}
+    unstratified: List[int] = []
+    for idx, prediction in enumerate(predictions):
+        actual = str(prediction.get("actual_label", ""))
+        if actual in by_actual:
+            by_actual[actual].append(idx)
+        else:
+            unstratified.append(idx)
+
     rnd = random.Random(seed)
     row_count = len(predictions)
     for _ in range(max(1, n_resamples)):
-        sample = [predictions[rnd.randrange(row_count)] for _ in range(row_count)]
+        sample_indices: List[int] = []
+        for label in label_list:
+            pool = by_actual[label]
+            if not pool:
+                continue
+            sample_indices.extend(pool[rnd.randrange(len(pool))] for _ in range(len(pool)))
+        for _ in range(len(unstratified)):
+            sample_indices.append(unstratified[rnd.randrange(len(unstratified))])
+        # Pad/trim to original size in case stratification dropped rows.
+        while len(sample_indices) < row_count:
+            sample_indices.append(rnd.randrange(row_count))
+        sample = [predictions[i] for i in sample_indices[:row_count]]
         metrics = _classification_metrics_from_predictions(sample, label_list)
         metric_series["accuracy"].append(float(metrics["accuracy"]))
         metric_series["macro_f1"].append(float(metrics["macro_f1"]))
+        metric_series["weighted_f1"].append(float(metrics["weighted_f1"]))
         for label in label_list:
             metric_series[f"f1_{label}"].append(float(metrics["per_class_f1"][label]))
 
@@ -240,7 +264,10 @@ def _classification_metrics_from_predictions(
                 correct += 1
 
     per_class_f1: Dict[str, float] = {}
+    per_class_support: Dict[str, int] = {}
     f1_values: List[float] = []
+    weighted_f1_numerator = 0.0
+    weighted_f1_denominator = 0
     for label in labels:
         tp = confusion[label][label]
         fp = sum(confusion[actual][label] for actual in labels if actual != label)
@@ -249,16 +276,29 @@ def _classification_metrics_from_predictions(
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+        support = tp + fn  # actual occurrences of `label`
         per_class_f1[label] = f1
+        per_class_support[label] = support
         f1_values.append(f1)
+        weighted_f1_numerator += f1 * support
+        weighted_f1_denominator += support
 
     count = len(predictions)
     accuracy = correct / count if count else 0.0
     macro_f1 = _mean(f1_values)
+    # C3: weighted F1 complements macro F1 by reflecting the class
+    # imbalance present in the OPP-115 / Polisis label distribution.
+    weighted_f1 = (
+        weighted_f1_numerator / weighted_f1_denominator
+        if weighted_f1_denominator > 0
+        else 0.0
+    )
     return {
         "accuracy": accuracy,
         "macro_f1": macro_f1,
+        "weighted_f1": weighted_f1,
         "per_class_f1": per_class_f1,
+        "per_class_support": per_class_support,
     }
 
 
@@ -293,6 +333,8 @@ def _baseline_metric_value(metrics: Mapping[str, Any], key: str) -> float:
         return float(metrics.get("accuracy", 0.0))
     if key == "macro_f1":
         return float(metrics.get("macro_f1", 0.0))
+    if key == "weighted_f1":
+        return float(metrics.get("weighted_f1", 0.0))
     if key.startswith("f1_"):
         label = key[3:]
         return float(metrics.get("per_class_f1", {}).get(label, 0.0))
@@ -321,4 +363,6 @@ def _mean(values: Iterable[float]) -> float:
 
 
 def _default_thresholds() -> List[float]:
-    return [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+    # C5: expanded sweep so the freeze captures low-recall and high-precision
+    # operating points (0.10–0.99 in 0.05 steps).
+    return [round(0.10 + 0.05 * i, 4) for i in range(18)]
