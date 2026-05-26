@@ -80,7 +80,7 @@ This tests the prototype on real and synthetic data, benchmarks outputs against 
 
 ## Prerequisites
 
-- Python 3.11+
+- Python 3.11 to 3.14
 - Chroma Cloud credentials in `.env` for Chroma-backed extraction and migration workflows
 - Regulation source DOCX files under `docs/Standards/Regulations/`
 - OPP-115 extracted under `data/raw/OPP-115` for the default Phase 3 training path

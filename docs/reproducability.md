@@ -20,7 +20,7 @@ For the canonical command surface, see [Project/Execution-Playbook/12-command-re
 
 Before running the full rebuild path, make sure the following are in place:
 
-- Python 3.11 or newer
+- Python 3.11 to 3.14
 - The package installed from the repository root
 - A `.env` file created from `.env.example` if you want to run the full end-to-end setup checks and Chroma migration steps
 - Regulation source DOCX files under `docs/Standards/Regulations/`
