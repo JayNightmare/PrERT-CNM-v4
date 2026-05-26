@@ -1,6 +1,10 @@
 # Dataset Training and Validation
 
 > [!IMPORTANT]
-> Ensure you have `raw/` and `processed/`. Raw should have the OPP-115 dataset extracted from the zip, while the processed comes from the CLI commands that are found in [Phase 3 README](/docs/Project/Phases/Phase3/Completed/phase3-model-rebuild.md)
+> Ensure you have `raw/` and `processed/`. Raw should contain the OPP-115 dataset extracted from the zip, while processed datasets should be built through the Phase 3 workflow documented in [docs/Project/Execution-Playbook/10-phase3-implementation-runbook.md](../docs/Project/Execution-Playbook/10-phase3-implementation-runbook.md).
 
-The raw OPP-115 dataset can be found on [Usable Privacy](https://www.usableprivacy.org/static/data/OPP-115_v1_0.zip). Follow the steps found in the [Phase 3 README](/docs/Project/Phases/Phase3/Completed/phase3-model-rebuild.md) under the `Build OPP-115-Aligned Datasets First` section to create the processed datasets. The processed datasets are what is used for training and validation in Phase 2. The raw dataset is only used for reference when evaluating the linkability metric, and is not required for training or validation.
+The raw OPP-115 dataset can be found on [Usable Privacy](https://www.usableprivacy.org/static/data/OPP-115_v1_0.zip). Follow the build steps in [docs/Project/Execution-Playbook/10-phase3-implementation-runbook.md](../docs/Project/Execution-Playbook/10-phase3-implementation-runbook.md) to create the processed datasets used by the default Phase 3 training and evaluation flow.
+
+At present, OPP-115 remains the canonical supervised dataset for the committed Phase 3 benchmark artefacts. Polisis, external privacy-policy corpora, and synthetic augmentation are research extensions under active evaluation rather than the default reproducible path.
+
+The raw dataset is retained for reference and traceability. The processed datasets are the inputs used for Phase 3 training and held-out validation, and they also feed the downstream Phase 4 comparison workflow.

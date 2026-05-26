@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,7 +14,7 @@ from prert.phase3.analytics import (
     compute_calibration_report,
     compute_threshold_sweep,
 )
-from prert.phase3.classifier import train_classifier
+from prert.phase3.classifier import DEFAULT_PRIVACYBERT_MODEL_NAME, train_classifier
 from prert.phase3.dataset import (
     LABELS,
     build_dataset_manifest,
@@ -25,6 +26,7 @@ from prert.phase3.dataset import (
 from prert.phase3.evaluation import evaluate_classifier
 from prert.phase3.io import append_phase3_run_history, write_json, write_jsonl
 from prert.phase3.risk import compute_bayesian_risk, load_bayesian_priors
+from prert.phase3.types import ClauseExample
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ def run_phase3_pipeline(
     polisis_input_set: str = "normalized",
     polisis_source_dir: Optional[Path] = None,
     labeled_input_path: Optional[Path] = None,
+    auxiliary_labeled_input_path: Optional[Path] = None,
     model_type: str = "naive_bayes",
     random_state: int = 42,
     max_features: int = 20000,
@@ -46,7 +49,7 @@ def run_phase3_pipeline(
     max_df: float = 0.95,
     c: float = 1.0,
     max_iter: int = 1000,
-    privacybert_model_name: str = "bert-base-uncased",
+    privacybert_model_name: str = DEFAULT_PRIVACYBERT_MODEL_NAME,
     privacybert_epochs: float = 2.0,
     privacybert_batch_size: int = 8,
     privacybert_learning_rate: float = 5e-5,
@@ -105,13 +108,62 @@ def run_phase3_pipeline(
     if not examples:
         raise ValueError("No training examples were produced for Phase 3")
 
-    splits = split_examples_by_policy(examples=examples, seed=seed)
+    primary_splits = split_examples_by_policy(examples=examples, seed=seed)
+    splits = {
+        split_name: list(rows)
+        for split_name, rows in primary_splits.items()
+    }
+    primary_dataset_manifest = build_dataset_manifest(
+        splits=primary_splits,
+        seed=seed,
+        source=source_name,
+        input_set=manifest_input_set,
+    )
+    auxiliary_summary: Dict[str, Any] = {
+        "enabled": False,
+        "source": "",
+        "labeled_input_path": "",
+        "rows": 0,
+        "policy_count": 0,
+        "class_distribution": {},
+    }
+    training_sources = [source_name]
+    dataset_source_summary = source_name
+
+    if auxiliary_labeled_input_path is not None:
+        auxiliary_source_name = f"auxiliary::{auxiliary_labeled_input_path.name}"
+        auxiliary_examples = load_labeled_examples(
+            auxiliary_labeled_input_path,
+            source=auxiliary_source_name,
+        )
+        if not auxiliary_examples:
+            raise ValueError("No auxiliary training examples were produced for Phase 3")
+
+        auxiliary_examples = _namespace_examples_by_policy(
+            auxiliary_examples,
+            namespace=f"auxiliary::{auxiliary_labeled_input_path.stem}",
+        )
+        splits["train"].extend(auxiliary_examples)
+        auxiliary_summary = {
+            "enabled": True,
+            "source": auxiliary_source_name,
+            "labeled_input_path": str(auxiliary_labeled_input_path),
+            "rows": len(auxiliary_examples),
+            "policy_count": len({example.policy_uid for example in auxiliary_examples}),
+            "class_distribution": _class_distribution(auxiliary_examples),
+        }
+        training_sources.append(auxiliary_source_name)
+        dataset_source_summary = f"{source_name} + {auxiliary_source_name}"
+
     dataset_manifest = build_dataset_manifest(
         splits=splits,
         seed=seed,
         source=source_name,
         input_set=manifest_input_set,
     )
+    dataset_manifest["training_sources"] = training_sources
+    dataset_manifest["primary_anchor"] = primary_dataset_manifest
+    dataset_manifest["auxiliary"] = auxiliary_summary
 
     training_rows = [row.as_dict() for row in splits["train"]]
     validation_rows = [row.as_dict() for row in splits["validation"]]
@@ -217,6 +269,8 @@ def run_phase3_pipeline(
         "training": {
             "rows": len(splits["train"]),
             "vocabulary_size": int(training_summary["vocabulary_size"]),
+            "backbone_model_name": training_summary.get("backbone_model_name", ""),
+            "auxiliary": auxiliary_summary,
             "config": {
                 "seed": random_state,
                 "max_features": max_features,
@@ -278,7 +332,7 @@ def run_phase3_pipeline(
         ],
     )
 
-    _write_model_card(output_dir / "model_card.md", metrics_payload, source_name)
+    _write_model_card(output_dir / "model_card.md", metrics_payload, dataset_source_summary)
     _write_scoring_spec(output_dir / "scoring_spec.md", bayesian_enabled=enable_bayesian_scoring)
     _write_prototype_demo(output_dir / "prototype_demo.md")
 
@@ -304,7 +358,9 @@ def run_phase3_pipeline(
             "polisis_input_set": polisis_input_set,
             "polisis_source_dir": str(polisis_source_dir) if polisis_source_dir else "",
             "labeled_input_path": str(labeled_input_path) if labeled_input_path else "",
+            "auxiliary_labeled_input_path": str(auxiliary_labeled_input_path) if auxiliary_labeled_input_path else "",
             "model_type": model_type,
+            "privacybert_model_name": privacybert_model_name,
             "enable_bayesian_scoring": enable_bayesian_scoring,
             "calibration_bins": calibration_bins,
             "bootstrap_resamples": bootstrap_resamples,
@@ -316,11 +372,15 @@ def run_phase3_pipeline(
             "class_distribution": dataset_manifest["class_distribution"],
             "splits": dataset_manifest["splits"],
             "policy_overlap": dataset_manifest["policy_overlap"],
+            "training_sources": dataset_manifest["training_sources"],
+            "primary_anchor": dataset_manifest["primary_anchor"],
+            "auxiliary": dataset_manifest["auxiliary"],
         },
         "model_summary": {
             "model_type": metrics_payload["model_type"],
             "labels": list(LABELS),
             "vocabulary_size": metrics_payload["training"]["vocabulary_size"],
+            "backbone_model_name": metrics_payload["training"].get("backbone_model_name", ""),
             "checkpoint_path": str(checkpoint_path),
             "training_config": metrics_payload["training"]["config"],
         },
@@ -368,6 +428,11 @@ def run_phase3_pipeline(
             "artifact_dir": output_dir.name,
             "output_dir": str(output_dir),
             "model_type": model_type,
+            "privacybert_model_name": privacybert_model_name,
+            "training_sources": training_sources,
+            "auxiliary_rows": auxiliary_summary["rows"],
+            "auxiliary_source": auxiliary_summary["source"],
+            "backbone_model_name": manifest["model_summary"].get("backbone_model_name", ""),
             "primary_metric_surface": manifest["primary_metric_surface"],
             "metrics": manifest["metrics"],
             "bayesian_enabled": bool(enable_bayesian_scoring),
@@ -383,6 +448,7 @@ def _write_model_card(path: Path, metrics_payload: Dict[str, Any], source_name: 
 ## Model
 
 - Type: {metrics_payload['model_type']}
+- Backbone checkpoint: {metrics_payload['training'].get('backbone_model_name') or 'n/a'}
 - Labels: {", ".join(metrics_payload['labels'])}
 - Training rows: {metrics_payload['training']['rows']}
 - Vocabulary size: {metrics_payload['training']['vocabulary_size']}
@@ -464,15 +530,24 @@ def _write_prototype_demo(path: Path) -> None:
 Run the baseline pipeline:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py
+prert phase3
 ```
 
 Run with a custom labeled dataset:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --labeled-input-path path/to/labeled_dataset.jsonl \
   --output-dir artifacts/phase-3
+```
+
+Run with auxiliary training data while keeping held-out evaluation on the primary dataset:
+
+```bash
+prert phase3 \
+    --opp115-root data/raw/OPP-115 \
+    --auxiliary-labeled-input-path path/to/auxiliary_dataset.jsonl \
+    --output-dir artifacts/phase-3-aux
 ```
 
 Inspect outputs:
@@ -485,3 +560,31 @@ Inspect outputs:
 - artifacts/phase-3/model_card.md
 """
     path.write_text(text, encoding="utf-8")
+
+
+def _class_distribution(examples: list[ClauseExample]) -> Dict[str, int]:
+    counts = Counter(example.label for example in examples)
+    return dict(sorted(counts.items()))
+
+
+def _namespace_examples_by_policy(
+    examples: list[ClauseExample],
+    namespace: str,
+) -> list[ClauseExample]:
+    namespaced_examples: list[ClauseExample] = []
+    for example in examples:
+        metadata = dict(example.metadata)
+        metadata["raw_example_id"] = example.example_id
+        metadata["raw_policy_uid"] = example.policy_uid
+        namespaced_examples.append(
+            ClauseExample(
+                example_id=f"{namespace}::{example.example_id}",
+                text=example.text,
+                label=example.label,
+                source=example.source,
+                policy_uid=f"{namespace}::{example.policy_uid}",
+                category=example.category,
+                metadata=metadata,
+            )
+        )
+    return namespaced_examples

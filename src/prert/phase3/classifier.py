@@ -17,6 +17,7 @@ from prert.phase3.types import ClauseExample
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]{2,}")
 TFIDF_TOKEN_PATTERN = r"(?u)\b[a-zA-Z0-9][a-zA-Z0-9']+\b"
+DEFAULT_PRIVACYBERT_MODEL_NAME = "mukund/privbert"
 
 
 class TextClassifier(Protocol):
@@ -246,7 +247,7 @@ class PrivacyBertClassifier:
     def __init__(
         self,
         labels: Sequence[str],
-        model_name: str = "bert-base-uncased",
+        model_name: str = DEFAULT_PRIVACYBERT_MODEL_NAME,
         random_state: int = 42,
         num_train_epochs: float = 2.0,
         batch_size: int = 8,
@@ -410,7 +411,7 @@ def train_classifier(
     max_df: float = 0.95,
     c: float = 1.0,
     max_iter: int = 1000,
-    privacybert_model_name: str = "bert-base-uncased",
+    privacybert_model_name: str = DEFAULT_PRIVACYBERT_MODEL_NAME,
     privacybert_epochs: float = 2.0,
     privacybert_batch_size: int = 8,
     privacybert_learning_rate: float = 5e-5,
@@ -460,6 +461,7 @@ def train_classifier(
         "training_examples": float(len(examples)),
         "vocabulary_size": vocabulary_size,
         "labels": float(len(labels)),
+        "backbone_model_name": getattr(model, "model_name", ""),
     }
     return model, summary
 

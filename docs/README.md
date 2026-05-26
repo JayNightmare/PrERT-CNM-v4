@@ -35,6 +35,10 @@ Provide practical guidance to complete each of the 4 phases with:
 
 1. [Canonical Command Reference](./Project/Execution-Playbook/12-command-reference.md)
       - Unified command map with a guided golden path and legacy wrapper mapping.
+2. [Reproducibility Guide](./reproducability.md)
+      - CLI-first instructions for validating committed artefacts and rebuilding the main results.
+3. [Dataset Options Paper Trail](./dataset-options.md)
+      - Recommendation tiers, label-fit notes, licence risks, and ingestion cost for candidate privacy datasets.
 
 #### Phase 1
 

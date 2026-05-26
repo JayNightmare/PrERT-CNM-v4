@@ -14,6 +14,7 @@ ENTRYPOINTS: Dict[str, str] = {
     "migrate": "prert.cli.migrate",
     "phase2": "prert.cli.phase2",
     "opp115": "prert.cli.opp115",
+    "app350": "prert.cli.app350",
     "phase3": "prert.cli.phase3",
     "phase3-freeze": "prert.cli.phase3_freeze",
     "phase4": "prert.cli.phase4",

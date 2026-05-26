@@ -7,6 +7,7 @@ from pathlib import Path
 
 from prert.phase2.opp115 import INPUT_SET_TO_SUBDIR
 from prert.phase3.dataset import POLISIS_INPUT_SET_TO_SUBDIR
+from prert.phase3.classifier import DEFAULT_PRIVACYBERT_MODEL_NAME
 from prert.phase3 import run_phase3_pipeline
 from prert.phase3.acceptance import evaluate_phase3_acceptance, write_phase3_acceptance_report
 
@@ -155,7 +156,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--privacybert-model-name",
         type=str,
-        default="bert-base-uncased",
+        default=DEFAULT_PRIVACYBERT_MODEL_NAME,
         help="Transformers model name or path used for privacybert backend.",
     )
     parser.add_argument("--privacybert-epochs", type=float, default=2.0, help="Training epochs for privacybert backend.")

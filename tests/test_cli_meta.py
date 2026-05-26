@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import sys
 import types
+from pathlib import Path
 
 from prert.cli import main as cli_main
+from prert.cli import app350 as cli_app350
+from prert.cli import phase3 as cli_phase3
+from prert.cli import phase3_freeze as cli_phase3_freeze
+from prert.phase3.classifier import DEFAULT_PRIVACYBERT_MODEL_NAME
 
 
 def test_prert_guide_phase2_outputs_expected_commands(capsys) -> None:
@@ -94,3 +100,43 @@ def test_prert_interactive_execute_dispatches(monkeypatch) -> None:
 def test_prert_interactive_invalid_selection_fails() -> None:
     code = cli_main.run(["interactive", "--goal", "phase1", "--select", "99"])
     assert code == 2
+
+
+def test_phase3_cli_defaults_to_privbert_checkpoint(monkeypatch) -> None:
+    monkeypatch.setattr(sys, "argv", ["prert-phase3"])
+
+    args = cli_phase3._parse_args()
+
+    assert args.privacybert_model_name == DEFAULT_PRIVACYBERT_MODEL_NAME
+
+
+def test_phase3_freeze_cli_defaults_to_privbert_checkpoint(monkeypatch) -> None:
+    monkeypatch.setattr(sys, "argv", ["prert-phase3-freeze"])
+
+    args = cli_phase3_freeze._parse_args()
+
+    assert args.privacybert_model_name == DEFAULT_PRIVACYBERT_MODEL_NAME
+
+
+def test_phase3_cli_accepts_auxiliary_labeled_input_path(monkeypatch) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["prert-phase3", "--auxiliary-labeled-input-path", "auxiliary.jsonl"],
+    )
+
+    args = cli_phase3._parse_args()
+
+    assert args.auxiliary_labeled_input_path == Path("auxiliary.jsonl")
+
+
+def test_app350_cli_defaults_to_workspace_paths(monkeypatch, tmp_path) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["prert-app350"])
+
+    args = cli_app350._parse_args()
+
+    assert args.input_path == tmp_path / "data/raw/APP-350_v1.1.zip"
+    assert args.output_jsonl == tmp_path / "data/processed/app350_phase3_auxiliary.jsonl"
+    assert args.output_manifest == tmp_path / "data/processed/app350_phase3_auxiliary_manifest.json"
+    assert args.include_synthetic is False

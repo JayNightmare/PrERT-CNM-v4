@@ -7,6 +7,7 @@ from pathlib import Path
 
 from prert.phase2.opp115 import INPUT_SET_TO_SUBDIR
 from prert.phase3.dataset import POLISIS_INPUT_SET_TO_SUBDIR
+from prert.phase3.classifier import DEFAULT_PRIVACYBERT_MODEL_NAME
 from prert.phase3 import run_phase3_pipeline
 
 
@@ -22,6 +23,7 @@ def main() -> None:
         polisis_input_set=args.polisis_input_set,
         polisis_source_dir=args.polisis_source_dir,
         labeled_input_path=args.labeled_input_path,
+        auxiliary_labeled_input_path=args.auxiliary_labeled_input_path,
         model_type=args.model_type,
         random_state=args.random_state,
         max_features=args.max_features,
@@ -112,6 +114,12 @@ def _parse_args() -> argparse.Namespace:
         help="Optional pre-labeled JSONL dataset (text,label,policy_uid) to bypass OPP-115/Polisis parsing.",
     )
     parser.add_argument(
+        "--auxiliary-labeled-input-path",
+        type=Path,
+        default=None,
+        help="Optional labeled JSONL dataset appended to the training split only while validation and test stay anchored to the primary dataset.",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=42,
@@ -169,7 +177,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--privacybert-model-name",
         type=str,
-        default="bert-base-uncased",
+        default=DEFAULT_PRIVACYBERT_MODEL_NAME,
         help="Transformers model name or path used for privacybert backend.",
     )
     parser.add_argument(

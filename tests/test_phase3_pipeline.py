@@ -51,6 +51,19 @@ def _write_polisis_normalized_dataset(polisis_root: Path) -> None:
             handle.write(json.dumps(row) + "\n")
 
 
+def _write_auxiliary_labeled_dataset(path: Path) -> None:
+    rows = [
+        {"example_id": "ax1", "text": "Advertisers collect mobile identifiers for analytics.", "label": "organization", "policy_uid": "p1", "category": "Third Party Sharing/Collection"},
+        {"example_id": "ax2", "text": "The app uses cookies and SDK tracking to authenticate sessions.", "label": "system", "policy_uid": "p2", "category": "Data Security"},
+        {"example_id": "ax3", "text": "Users can disable targeted notifications from settings.", "label": "user", "policy_uid": "p1", "category": "User Choice/Control"},
+        {"example_id": "ax4", "text": "We retain diagnostic logs for service governance.", "label": "organization", "policy_uid": "p2", "category": "Data Retention"},
+    ]
+
+    with path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row) + "\n")
+
+
 def test_phase3_pipeline_writes_outputs(tmp_path: Path) -> None:
     input_path = tmp_path / "labeled.jsonl"
     output_dir = tmp_path / "phase-3"
@@ -136,6 +149,7 @@ def test_phase3_manifest_includes_model_metadata(tmp_path: Path) -> None:
     )
 
     assert manifest["inputs"]["model_type"] == "naive_bayes"
+    assert manifest["inputs"]["privacybert_model_name"] == "mukund/privbert"
     assert manifest["model_summary"]["model_type"] == "multinomial_naive_bayes"
     assert manifest["model_summary"]["training_config"]["max_features"] == 20000
     assert manifest["primary_metric_surface"] == "bayesian_posterior"
@@ -155,7 +169,8 @@ def test_phase3_manifest_includes_model_metadata(tmp_path: Path) -> None:
         for line in (output_dir.parent / "phase3_run_history.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    assert any(row["run_id"] == manifest["execution_metadata"]["run_id"] for row in history_rows)
+    matching_row = next(row for row in history_rows if row["run_id"] == manifest["execution_metadata"]["run_id"])
+    assert matching_row["privacybert_model_name"] == "mukund/privbert"
 
 
 def test_phase3_logreg_tfidf_pipeline(tmp_path: Path) -> None:
@@ -222,3 +237,57 @@ def test_phase3_can_disable_bayesian_scoring(tmp_path: Path) -> None:
     assert not (output_dir / "bayesian_risk_validation.json").exists()
     assert not (output_dir / "bayesian_risk_test.json").exists()
     assert manifest["primary_metric_surface"] == "classifier_metrics"
+
+
+def test_phase3_auxiliary_examples_are_training_only(tmp_path: Path) -> None:
+    input_path = tmp_path / "labeled.jsonl"
+    auxiliary_path = tmp_path / "auxiliary.jsonl"
+    output_dir = tmp_path / "phase-3-aux"
+    _write_labeled_dataset(input_path)
+    _write_auxiliary_labeled_dataset(auxiliary_path)
+
+    manifest = run_phase3_pipeline(
+        output_dir=output_dir,
+        labeled_input_path=input_path,
+        auxiliary_labeled_input_path=auxiliary_path,
+        seed=29,
+    )
+
+    dataset_manifest = manifest["dataset_manifest"]
+    primary_anchor = dataset_manifest["primary_anchor"]
+
+    assert dataset_manifest["source"] == "labeled::labeled.jsonl"
+    assert dataset_manifest["auxiliary"]["enabled"] is True
+    assert dataset_manifest["auxiliary"]["rows"] == 4
+    assert dataset_manifest["training_sources"] == [
+        "labeled::labeled.jsonl",
+        "auxiliary::auxiliary.jsonl",
+    ]
+    assert dataset_manifest["splits"]["train"]["rows"] == primary_anchor["splits"]["train"]["rows"] + 4
+    assert dataset_manifest["splits"]["validation"]["rows"] == primary_anchor["splits"]["validation"]["rows"]
+    assert dataset_manifest["splits"]["test"]["rows"] == primary_anchor["splits"]["test"]["rows"]
+    assert dataset_manifest["policy_overlap"]["train_validation"] == 0
+    assert dataset_manifest["policy_overlap"]["train_test"] == 0
+    assert dataset_manifest["policy_overlap"]["validation_test"] == 0
+
+    training_rows = [
+        json.loads(line)
+        for line in (output_dir / "training_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    validation_rows = [
+        json.loads(line)
+        for line in (output_dir / "validation_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    test_rows = [
+        json.loads(line)
+        for line in (output_dir / "test_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    auxiliary_training_rows = [row for row in training_rows if row["source"] == "auxiliary::auxiliary.jsonl"]
+    assert len(auxiliary_training_rows) == 4
+    assert all(row["policy_uid"].startswith("auxiliary::auxiliary::") for row in auxiliary_training_rows)
+    assert all(row["source"] == "labeled_jsonl" for row in validation_rows)
+    assert all(row["source"] == "labeled_jsonl" for row in test_rows)

@@ -41,6 +41,7 @@ Default source:
 Optional source:
 
 - Labeled JSONL with fields: `text`, `label`, `policy_uid` (optional: `example_id`, `category`)
+- Auxiliary labeled JSONL with the same row contract, appended to the training split only when `--auxiliary-labeled-input-path` is used
 - Normalized Polisis folder (default profile: `data/raw/Polisis/normalized`) with `.jsonl` and/or `.csv` files.
 
 Normalized Polisis row contract:
@@ -63,15 +64,33 @@ prert phase3
 Run with a custom labeled JSONL dataset:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --labeled-input-path data/processed/phase3_labeled.jsonl \
   --output-dir artifacts/phase-3
+```
+
+Prepare a conservative APP-350 auxiliary dataset from the raw zip archive:
+
+```bash
+prert app350 \
+  --input-path data/raw/APP-350_v1.1.zip \
+  --output-jsonl data/processed/app350_phase3_auxiliary.jsonl \
+  --output-manifest data/processed/app350_phase3_auxiliary_manifest.json
+```
+
+Run with training-only auxiliary data while keeping validation and test anchored to OPP-115:
+
+```bash
+prert phase3 \
+  --opp115-root data/raw/OPP-115 \
+  --auxiliary-labeled-input-path data/processed/app350_phase3_auxiliary.jsonl \
+  --output-dir artifacts/phase-3-opp-app350-nb
 ```
 
 Run with normalized Polisis source files:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --polisis-root data/raw/Polisis \
   --polisis-input-set normalized \
   --output-dir artifacts/phase-3
@@ -80,7 +99,7 @@ PYTHONPATH=src python scripts/run_phase3_baseline.py \
 Run a bounded sample for quick iteration:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --max-rows 5000 \
   --seed 42
 ```
@@ -88,7 +107,7 @@ PYTHONPATH=src python scripts/run_phase3_baseline.py \
 Run with explicit run metadata and measurement controls:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --run-id phase3-2026-04-07-a \
   --calibration-bins 10 \
   --bootstrap-resamples 1000 \
@@ -98,7 +117,7 @@ PYTHONPATH=src python scripts/run_phase3_baseline.py \
 Run with the upgraded TF-IDF + weighted logistic regression model:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --model-type logreg_tfidf \
   --max-features 20000 \
   --ngram-max 2 \
@@ -106,12 +125,12 @@ PYTHONPATH=src python scripts/run_phase3_baseline.py \
   --output-dir artifacts/phase-3-logreg
 ```
 
-Run with the PrivacyBERT backend scaffold:
+Run with the PrivBERT-backed transformer path:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --model-type privacybert \
-  --privacybert-model-name bert-base-uncased \
+  --privacybert-model-name mukund/privbert \
   --privacybert-epochs 2 \
   --privacybert-batch-size 8 \
   --privacybert-learning-rate 5e-5 \
@@ -122,7 +141,7 @@ PYTHONPATH=src python scripts/run_phase3_baseline.py \
 Run with custom Bayesian priors (enabled by default):
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --model-type logreg_tfidf \
   --bayesian-priors-path configs/phase3_bayesian_priors.json \
   --bayesian-top-k 5 \
@@ -132,7 +151,7 @@ PYTHONPATH=src python scripts/run_phase3_baseline.py \
 Disable Bayesian scoring output (benchmark/diagnostic only):
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --model-type logreg_tfidf \
   --disable-bayesian-scoring \
   --output-dir artifacts/phase-3-no-bayes
@@ -141,7 +160,7 @@ PYTHONPATH=src python scripts/run_phase3_baseline.py \
 Run a comparable full-data Naive Bayes baseline for side-by-side benchmarking:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_baseline.py \
+prert phase3 \
   --model-type naive_bayes \
   --output-dir artifacts/phase-3-nb
 ```
@@ -158,11 +177,16 @@ prert phase3-freeze \
 Run acceptance freeze with Polisis advisory reporting (non-blocking for current milestone):
 
 ```bash
-PYTHONPATH=src python scripts/run_phase3_acceptance_freeze.py \
+prert phase3-freeze \
   --polisis-root data/raw/Polisis \
   --polisis-input-set normalized \
   --output-dir artifacts/phase-3-freeze
 ```
+
+Current benchmark caveat:
+
+- The checked-in `artifacts/phase-3-*` folders are historical summary artefacts and do not yet contain the full modern `phase3_manifest.json` bundle expected by the current Phase 4 validator.
+- Regenerate Phase 3 outputs with the current CLI before using `prert phase4` for a live comparison run.
 
 ## Outputs
 
@@ -172,6 +196,9 @@ Written to the selected `--output-dir` (for example `artifacts/phase-3/`, `artif
 - `validation_dataset.jsonl`
 - `test_dataset.jsonl`
 - `dataset_manifest.json`
+- `dataset_manifest.json.training_sources`
+- `dataset_manifest.json.primary_anchor`
+- `dataset_manifest.json.auxiliary`
 - `classifier_checkpoint/model.json` (naive_bayes)
 - `classifier_checkpoint/model.pkl` (logreg_tfidf)
 - `classifier_checkpoint/privacybert/` (privacybert)
@@ -205,6 +232,8 @@ Written to the selected `--output-dir` (for example `artifacts/phase-3/`, `artif
 - `threshold_sweep_test.json.by_label.*[].precision|recall|f1` are in [0, 1]
 - `bootstrap_ci_test.json.metrics.*.interval_95.lower <= upper`
 - `phase3_manifest.json` includes input config, split counts, and output file references
+- `phase3_manifest.json.dataset_manifest.primary_anchor` remains OPP-held-out when auxiliary training data is used
+- `phase3_manifest.json.dataset_manifest.auxiliary.enabled` reflects whether train-only auxiliary rows were appended
 - `phase3_manifest.json.primary_metric_surface` is `bayesian_posterior` for default runs
 - `phase3_manifest.json.execution_metadata.run_id` and `executed_at` are populated
 
@@ -213,13 +242,13 @@ Written to the selected `--output-dir` (for example `artifacts/phase-3/`, `artif
 Run pipeline tests:
 
 ```bash
-PYTHONPATH=src pytest -q tests/test_phase3_pipeline.py tests/test_phase3_analytics.py
+python -m pytest -q tests/test_phase3_pipeline.py tests/test_phase3_analytics.py
 ```
 
 Run the cross-phase regression check used in this workspace:
 
 ```bash
-PYTHONPATH=src pytest -q tests/test_phase2_pipeline.py tests/test_phase3_pipeline.py
+python -m pytest -q tests/test_phase2_pipeline.py tests/test_phase3_pipeline.py
 ```
 
 Regenerate dashboard figures (Figure 5-17):
@@ -232,6 +261,7 @@ PYTHONPATH=src python scripts/generate_phase3_dashboard_figures.py
 
 - Bayesian posterior scoring remains enabled by default and is tracked alongside classifier metrics.
 - Calibration, threshold-sensitivity, bootstrap confidence intervals, and run-history indexing are now emitted in Phase 3 outputs.
+- The current APP-350 auxiliary path is intentionally conservative: sentence-level `PERFORMED` annotations only, synthetic-source policies excluded by default, and ambiguous multi-label sentences dropped rather than forced into the task label space.
 - Dashboard generation now includes Figure 13-17 when comparable model artifacts are present.
 
 ---

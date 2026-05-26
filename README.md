@@ -1,6 +1,6 @@
 # PrERT-CNM-v4
 
-> This repository contains the implementation for Phase 1 of the Privacy Evaluation and Risk Quantification Tool (PrERT) project, focused on regulation-specific control extraction, chunking, and Chroma Cloud ingestion. It also includes initial work towards Phase 2 metrics definition and synthetic data generation.
+> This repository contains the working implementation for Phases 1 to 4 of the Privacy Evaluation and Risk Quantification Tool (PrERT) project. It covers regulation extraction, metrics and synthetic data generation, privacy-clause classification and Bayesian risk scoring, and Phase 4 validation artefacts. The current emphasis is on strengthening privacy-focused model quality, dataset suitability, and reproducibility for a defensible future publication attempt.
 
 ## Total Time Spent on Project PrERT
 
@@ -11,9 +11,9 @@
 |       v3       | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411) |            25 hours |
 |       v4       |                                                                                                             [![wakatime](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4.svg)](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4) |            10 hours |
 |                |
-|  **Total Sums**  | **56 hrs 56 mins** | **70 hrs** |
+| **Total Sums** |                                                                                                                                                                                                                                      **56 hrs 56 mins** |          **70 hrs** |
 |                |
-|     **Total**      | **126 hrs 56 mins** |                     |
+|   **Total**    |                                                                                                                                                                                                                                     **126 hrs 56 mins** |                     |
 
 ## Phase Breakdowns
 
@@ -41,6 +41,8 @@ Phase 3 implementation for an AI prototype that combines PrivacyBERT-based claus
 
 This fine-tunes PrivacyBERT on OPP-115 data and supports first-class Polisis ingestion through normalized JSONL/CSV inputs, then integrates outputs with a risk scoring model to produce user privacy quantification outputs.
 
+The default Phase 3 transformer backbone now points to the published PrivBERT checkpoint, while remaining overrideable through the CLI for controlled benchmark runs.
+
 ### Phase 4: Prototype Validation, Benchmarking, and Final Reporting
 
 Phase 4 implementation for validating the Phase 3 prototype, benchmarking against defined metrics, and delivering final project outputs.
@@ -55,22 +57,33 @@ This tests the prototype on real and synthetic data, benchmarks outputs against 
 - Chroma Cloud migration with regulation-sharded collections
 - SDK-first Chroma client with OpenAPI fallback
 - Search payload builders for dense, sparse, and hybrid (RRF) retrieval
-- Unit tests for parser and chunking behavior
+- Phase 2 metric definition, synthetic observation generation, and baseline scoring
+- Phase 3 clause classification, calibration, bootstrap, and Bayesian risk outputs
+- Phase 4 validation, leaderboard reporting, and demo-bundle preparation
+- Unit and integration tests across extraction, dataset processing, modelling, and validation workflows
 
 ## Project Structure
 
 - `src/prert/extract/` - GDPR, ISO, and NIST parsers + control schema
 - `src/prert/chunking/` - line chunking with 16 KiB limit handling
 - `src/prert/chroma/` - Chroma client, schema config, and search payload builders
-- `src/prert/cli/` - extraction and migration CLIs
+- `src/prert/phase2/` - metric definitions, synthetic data generation, and scoring
+- `src/prert/phase3/` - dataset preparation, classifier training, analytics, and acceptance outputs
+- `src/prert/phase4/` - validation, compliance assessment, and synthetic evaluation assets
+- `src/prert/cli/` - end-to-end CLI entry points for all implemented phases
 - `scripts/` - script wrappers for phase commands
-- `artifacts/phase-1/` - generated control and chunk outputs
-- `tests/` - parser/chunking tests
+- `artifacts/` - committed benchmark artefacts, reports, and demo-ready outputs
+- `data/` - dataset notes and local raw/processed data locations
+- `docs/` - execution playbooks, proposal material, and review notes
+- `deployment/` - demo bundle manifests and deployment-facing assets
+- `tests/` - parser, pipeline, acceptance, and validation tests
 
 ## Prerequisites
 
 - Python 3.11+
-- Chroma Cloud credentials in `.env`
+- Chroma Cloud credentials in `.env` for Chroma-backed extraction and migration workflows
+- Regulation source DOCX files under `docs/Standards/Regulations/`
+- OPP-115 extracted under `data/raw/OPP-115` for the default Phase 3 training path
 
 Required environment variables:
 
@@ -79,6 +92,8 @@ Required environment variables:
 - `CHROMA_TENANT`
 - `CHROMA_DATABASE`
 - `CHROMA_COLLECTION_NAME` (optional default collection label)
+
+Start by copying `.env.example` to `.env` and filling in the Chroma values that apply to your workspace.
 
 ## Install
 
@@ -93,6 +108,8 @@ Optional development dependencies:
 ```bash
 python -m pip install -e .[dev]
 ```
+
+For a reproducible local setup, use `.env.example` as the starting point for environment configuration and the canonical command reference for the supported run order.
 
 ## Quick Start Command Hub
 
