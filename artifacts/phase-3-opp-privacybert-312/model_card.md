@@ -16,17 +16,17 @@
 
 Validation:
 
-- Accuracy: 0.968254
-- Macro precision: 0.933376
-- Macro recall: 0.918171
-- Macro F1: 0.92562
+- Accuracy: 0.971655
+- Macro precision: 0.954342
+- Macro recall: 0.916177
+- Macro F1: 0.934455
 
 Test:
 
-- Accuracy: 0.956311
-- Macro precision: 0.880388
-- Macro recall: 0.858978
-- Macro F1: 0.869379
+- Accuracy: 0.958333
+- Macro precision: 0.885005
+- Macro recall: 0.865288
+- Macro F1: 0.874909
 
 ## Notes
 

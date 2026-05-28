@@ -82,6 +82,7 @@ This tests the prototype on real and synthetic data, benchmarks outputs against 
 
 - Python 3.11 to 3.14
 - Chroma Cloud credentials in `.env` for Chroma-backed extraction and migration workflows
+- `HF_TOKEN` in `.env` for authenticated PrivacyBERT / PrivBERT downloads during Phase 3 transformer runs
 - Regulation source DOCX files under `docs/Standards/Regulations/`
 - OPP-115 extracted under `data/raw/OPP-115` for the default Phase 3 training path
 
@@ -92,8 +93,9 @@ Required environment variables:
 - `CHROMA_TENANT`
 - `CHROMA_DATABASE`
 - `CHROMA_COLLECTION_NAME` (optional default collection label)
+- `HF_TOKEN` (required for authenticated PrivacyBERT downloads; cached local checkpoints may still load without it)
 
-Start by copying `.env.example` to `.env` and filling in the Chroma values that apply to your workspace.
+Start by copying `.env.example` to `.env` and filling in the values that apply to your workspace. The CLI auto-loads the repository-root `.env`, so a configured `HF_TOKEN` is picked up automatically by `prert phase3` and `prert phase3-freeze`.
 
 ## Install
 
@@ -110,6 +112,8 @@ python -m pip install -e .[dev]
 ```
 
 For a reproducible local setup, use `.env.example` as the starting point for environment configuration and the canonical command reference for the supported run order.
+
+When loading `mukund/privbert` into the sequence-classification pipeline, Transformers will report `lm_head.*` weights as unexpected and `classifier.*` weights as newly initialized. That is expected transfer-learning behavior for this checkpoint, not a failed load.
 
 ## Quick Start Command Hub
 

@@ -9,13 +9,18 @@ prert phase3
 Run with a custom labeled dataset:
 
 ```bash
-prert phase3   --labeled-input-path path/to/labeled_dataset.jsonl   --output-dir artifacts/phase-3
+prert phase3  \
+--labeled-input-path path/to/labeled_dataset.jsonl \
+--output-dir artifacts/phase-3
 ```
 
 Run with auxiliary training data while keeping held-out evaluation on the primary dataset:
 
 ```bash
-prert phase3     --opp115-root data/raw/OPP-115     --auxiliary-labeled-input-path path/to/auxiliary_dataset.jsonl     --output-dir artifacts/phase-3-aux
+prert phase3  \
+--opp115-root data/raw/OPP-115 \
+--auxiliary-labeled-input-path path/to/auxiliary_dataset.jsonl \
+--output-dir artifacts/phase-3-aux
 ```
 
 Inspect outputs:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from prert.config import load_dotenv_if_available
 from prert.phase2.opp115 import INPUT_SET_TO_SUBDIR
 from prert.phase3.dataset import POLISIS_INPUT_SET_TO_SUBDIR
 from prert.phase3.classifier import DEFAULT_PRIVACYBERT_MODEL_NAME
@@ -13,6 +14,7 @@ from prert.phase3.acceptance import evaluate_phase3_acceptance, write_phase3_acc
 
 
 def main() -> None:
+    load_dotenv_if_available(None)
     args = _parse_args()
 
     manifest = run_phase3_pipeline(
@@ -37,6 +39,12 @@ def main() -> None:
         privacybert_batch_size=args.privacybert_batch_size,
         privacybert_learning_rate=args.privacybert_learning_rate,
         privacybert_max_length=args.privacybert_max_length,
+        privacybert_loss_type=args.privacybert_loss_type,
+        privacybert_focal_gamma=args.privacybert_focal_gamma,
+        privacybert_label_smoothing=args.privacybert_label_smoothing,
+        privacybert_weight_decay=args.privacybert_weight_decay,
+        privacybert_warmup_ratio=args.privacybert_warmup_ratio,
+        privacybert_early_stopping_patience=args.privacybert_early_stopping_patience,
         enable_bayesian_scoring=not args.disable_bayesian_scoring,
         bayesian_priors_path=args.bayesian_priors_path,
         bayesian_top_k=args.bayesian_top_k,
@@ -163,6 +171,18 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--privacybert-batch-size", type=int, default=8, help="Per-device batch size for privacybert backend.")
     parser.add_argument("--privacybert-learning-rate", type=float, default=5e-5, help="Learning rate for privacybert backend.")
     parser.add_argument("--privacybert-max-length", type=int, default=256, help="Maximum token length for privacybert backend.")
+    parser.add_argument(
+        "--privacybert-loss-type",
+        type=str,
+        default="focal",
+        choices=("ce", "weighted_ce", "focal"),
+        help="Loss function for privacybert backend. 'focal' (default) penalises minority-class errors; 'weighted_ce' uses balanced class weights; 'ce' is plain cross-entropy.",
+    )
+    parser.add_argument("--privacybert-focal-gamma", type=float, default=2.0, help="Focal-loss gamma. Higher values focus more on hard examples.")
+    parser.add_argument("--privacybert-label-smoothing", type=float, default=0.05, help="Label smoothing factor. Applies only when --privacybert-loss-type=ce.")
+    parser.add_argument("--privacybert-weight-decay", type=float, default=0.01, help="AdamW weight decay for privacybert backend.")
+    parser.add_argument("--privacybert-warmup-ratio", type=float, default=0.1, help="Linear warmup ratio for privacybert backend.")
+    parser.add_argument("--privacybert-early-stopping-patience", type=int, default=1, help="Early-stopping patience (in eval rounds) when validation split is supplied.")
 
     parser.add_argument(
         "--disable-bayesian-scoring",

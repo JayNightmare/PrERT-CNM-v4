@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 import importlib
 import math
+import os
 import pickle
 import re
+import sys
 import tempfile
 from collections import Counter
 from pathlib import Path
@@ -237,11 +239,63 @@ class TfidfLogisticRegressionClassifier:
             pickle.dump(payload, handle)
 
 
+class _PrivacyBertTrainingDataset:
+    def __init__(self, encodings: Dict[str, Sequence[Any]], labels: Sequence[int]) -> None:
+        self.encodings = encodings
+        self.labels = list(labels)
+
+    def __len__(self) -> int:
+        return len(self.labels)
+
+    def __getitem__(self, index: int) -> Dict[str, Any]:
+        item = {name: values[index] for name, values in self.encodings.items()}
+        item["labels"] = self.labels[index]
+        return item
+
+
+def _patch_multiprocess_resource_tracker() -> None:
+    if os.name != "nt" or sys.version_info < (3, 12):
+        return
+
+    try:
+        resource_tracker_module = importlib.import_module("multiprocess.resource_tracker")
+    except ModuleNotFoundError:
+        return
+
+    resource_tracker_cls = getattr(resource_tracker_module, "ResourceTracker", None)
+    if resource_tracker_cls is None or getattr(resource_tracker_cls, "_prert_safe_stop_locked", False):
+        return
+
+    def _safe_stop_locked(
+        self,
+        close=os.close,
+        waitpid=os.waitpid,
+        waitstatus_to_exitcode=os.waitstatus_to_exitcode,
+    ):
+        recursion_count = getattr(self._lock, "_recursion_count", None)
+        recursion_depth = recursion_count() if callable(recursion_count) else None
+        if callable(recursion_count) and recursion_depth > 1:
+            return self._reentrant_call_error()
+        if self._fd is None:
+            return
+        if self._pid is None:
+            return
+
+        close(self._fd)
+        self._fd = None
+
+        waitpid(self._pid, 0)
+        self._pid = None
+
+    resource_tracker_cls._stop_locked = _safe_stop_locked
+    resource_tracker_cls._prert_safe_stop_locked = True
+
+
 class PrivacyBertClassifier:
     """PrivacyBERT-style transformer classifier backend.
 
     This backend is optional and only activated when model_type=privacybert.
-    It requires transformers, datasets, and torch to be installed.
+    It requires transformers and torch to be installed.
     """
 
     def __init__(
@@ -253,16 +307,29 @@ class PrivacyBertClassifier:
         batch_size: int = 8,
         learning_rate: float = 5e-5,
         max_length: int = 256,
+        loss_type: str = "focal",
+        focal_gamma: float = 2.0,
+        label_smoothing_factor: float = 0.05,
+        weight_decay: float = 0.01,
+        warmup_steps: float = 0.1,
+        early_stopping_patience: int = 1,
     ) -> None:
         try:
             torch = importlib.import_module("torch")
-            datasets_module = importlib.import_module("datasets")
             transformers_module = importlib.import_module("transformers")
         except ModuleNotFoundError as exc:
             raise RuntimeError(
-                "Model type 'privacybert' requires torch, datasets, and transformers. "
+                "Model type 'privacybert' requires torch and transformers. "
                 "Install dependencies and re-run."
             ) from exc
+
+        _patch_multiprocess_resource_tracker()
+
+        normalized_loss = (loss_type or "focal").strip().lower()
+        if normalized_loss not in {"ce", "weighted_ce", "focal"}:
+            raise ValueError(
+                f"Unsupported loss_type '{loss_type}'. Expected one of: ce, weighted_ce, focal."
+            )
 
         self.labels = list(labels)
         self.model_name = model_name
@@ -271,13 +338,20 @@ class PrivacyBertClassifier:
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.max_length = max_length
+        self.loss_type = normalized_loss
+        self.focal_gamma = float(focal_gamma)
+        self.label_smoothing_factor = float(label_smoothing_factor)
+        self.weight_decay = float(weight_decay)
+        self.warmup_steps = float(warmup_steps)
+        self.early_stopping_patience = int(early_stopping_patience)
 
         self._torch = torch
-        self._dataset_cls = datasets_module.Dataset
+        self._training_dataset_cls = _PrivacyBertTrainingDataset
         self._trainer_cls = transformers_module.Trainer
         self._training_args_cls = transformers_module.TrainingArguments
         self._auto_tokenizer_cls = transformers_module.AutoTokenizer
         self._auto_model_cls = transformers_module.AutoModelForSequenceClassification
+        self._early_stopping_cls = getattr(transformers_module, "EarlyStoppingCallback", None)
 
         self.label_to_id = {label: idx for idx, label in enumerate(self.labels)}
         self.id_to_label = {idx: label for label, idx in self.label_to_id.items()}
@@ -291,7 +365,31 @@ class PrivacyBertClassifier:
         )
         self.is_fit = False
 
-    def fit(self, examples: Iterable[ClauseExample]) -> None:
+    def _has_accelerator(self) -> bool:
+        accelerator_module = getattr(self._torch, "accelerator", None)
+        if accelerator_module is not None and callable(getattr(accelerator_module, "is_available", None)):
+            return bool(accelerator_module.is_available())
+
+        cuda_module = getattr(self._torch, "cuda", None)
+        if cuda_module is not None and callable(getattr(cuda_module, "is_available", None)):
+            return bool(cuda_module.is_available())
+
+        xpu_module = getattr(self._torch, "xpu", None)
+        if xpu_module is not None and callable(getattr(xpu_module, "is_available", None)):
+            return bool(xpu_module.is_available())
+
+        backends = getattr(self._torch, "backends", None)
+        mps_module = getattr(backends, "mps", None) if backends is not None else None
+        if mps_module is not None and callable(getattr(mps_module, "is_available", None)):
+            return bool(mps_module.is_available())
+
+        return False
+
+    def fit(
+        self,
+        examples: Iterable[ClauseExample],
+        validation_examples: Iterable[ClauseExample] | None = None,
+    ) -> None:
         texts: List[str] = []
         labels: List[int] = []
         for example in examples:
@@ -307,39 +405,161 @@ class PrivacyBertClassifier:
         if not texts:
             raise ValueError("No training examples available for privacybert model")
 
-        dataset = self._dataset_cls.from_dict({"text": texts, "label": labels})
+        encodings = self.tokenizer(
+            texts,
+            truncation=True,
+            padding="max_length",
+            max_length=self.max_length,
+        )
+        dataset = self._training_dataset_cls(encodings=encodings, labels=labels)
 
-        def _tokenize(batch: Dict[str, Any]) -> Dict[str, Any]:
-            return self.tokenizer(
-                batch["text"],
-                truncation=True,
-                padding="max_length",
-                max_length=self.max_length,
+        eval_dataset = None
+        if validation_examples is not None:
+            val_texts: List[str] = []
+            val_labels: List[int] = []
+            for example in validation_examples:
+                label = str(example.label).strip().lower()
+                if label not in self.label_to_id:
+                    continue
+                text = (example.text or "").strip()
+                if not text:
+                    continue
+                val_texts.append(text)
+                val_labels.append(self.label_to_id[label])
+
+            if val_texts:
+                val_encodings = self.tokenizer(
+                    val_texts,
+                    truncation=True,
+                    padding="max_length",
+                    max_length=self.max_length,
+                )
+                eval_dataset = self._training_dataset_cls(
+                    encodings=val_encodings, labels=val_labels
+                )
+
+        # Class weights for weighted_ce / focal: balanced inverse-frequency
+        # over the actual training labels (min count guard avoids div-by-zero
+        # when a class is absent from the train split).
+        class_counts = [0] * len(self.labels)
+        for idx in labels:
+            class_counts[idx] += 1
+        total = sum(class_counts)
+        n_classes = len(self.labels)
+        class_weights = [
+            total / (n_classes * max(count, 1)) for count in class_counts
+        ]
+        class_weights_tensor = self._torch.tensor(class_weights, dtype=self._torch.float32)
+
+        loss_type = self.loss_type
+        focal_gamma = self.focal_gamma
+        torch_mod = self._torch
+        nn_module = getattr(torch_mod, "nn", None)
+        functional_module = getattr(nn_module, "functional", None) if nn_module is not None else None
+        if loss_type in {"weighted_ce", "focal"} and (nn_module is None or functional_module is None):
+            raise RuntimeError(
+                "torch.nn / torch.nn.functional are required for loss_type in {weighted_ce, focal}"
             )
 
-        dataset = dataset.map(_tokenize, batched=True)
-        dataset = dataset.remove_columns(["text"])
-        dataset.set_format(type="torch")
+        class _Phase3WeightedTrainer(self._trainer_cls):  # type: ignore[misc]
+            def compute_loss(self, model, inputs, return_outputs=False, **_kwargs):  # type: ignore[no-untyped-def]
+                target_labels = inputs.get("labels")
+                outputs = model(**inputs)
+                logits = outputs.logits if hasattr(outputs, "logits") else outputs[0]
+
+                weights = class_weights_tensor.to(logits.device)
+
+                if loss_type == "focal":
+                    log_probs = functional_module.log_softmax(logits, dim=-1)  # type: ignore[union-attr]
+                    probs = log_probs.exp()
+                    target_idx = target_labels.long().unsqueeze(1)
+                    true_log_probs = log_probs.gather(1, target_idx).squeeze(1)
+                    true_probs = probs.gather(1, target_idx).squeeze(1)
+                    alpha_t = weights[target_labels.long()]
+                    focal_term = (1.0 - true_probs).pow(focal_gamma)
+                    loss = -(alpha_t * focal_term * true_log_probs).mean()
+                else:
+                    # weighted_ce path (plain "ce" is handled via label_smoothing
+                    # in TrainingArguments and never reaches this subclass — we
+                    # only install the subclass when weights are needed).
+                    loss_fct = nn_module.CrossEntropyLoss(weight=weights)  # type: ignore[union-attr]
+                    loss = loss_fct(
+                        logits.view(-1, logits.size(-1)),
+                        target_labels.view(-1),
+                    )
+
+                return (loss, outputs) if return_outputs else loss
+
+        def _compute_metrics(eval_pred):  # type: ignore[no-untyped-def]
+            from sklearn.metrics import f1_score  # local import: only used during real training
+
+            predictions, label_ids = eval_pred
+            # predictions may be tuple in some configurations
+            if isinstance(predictions, tuple):
+                predictions = predictions[0]
+            preds = predictions.argmax(axis=-1)
+            macro_f1 = f1_score(label_ids, preds, average="macro", zero_division=0)
+            return {"macro_f1": float(macro_f1)}
 
         with tempfile.TemporaryDirectory(prefix="phase3-privacybert-") as tmpdir:
-            training_args = self._training_args_cls(
-                output_dir=tmpdir,
-                # overwrite_output_dir=True,
-                learning_rate=self.learning_rate,
-                per_device_train_batch_size=self.batch_size,
-                num_train_epochs=self.num_train_epochs,
-                save_strategy="no",
-                logging_strategy="no",
-                report_to=[],
-                seed=self.random_state,
-                data_seed=self.random_state,
+            training_args_kwargs: Dict[str, Any] = {
+                "output_dir": tmpdir,
+                "learning_rate": self.learning_rate,
+                "per_device_train_batch_size": self.batch_size,
+                "num_train_epochs": self.num_train_epochs,
+                "dataloader_pin_memory": self._has_accelerator(),
+                "logging_strategy": "no",
+                "report_to": [],
+                "seed": self.random_state,
+                "data_seed": self.random_state,
+                "weight_decay": self.weight_decay,
+                "warmup_steps": self.warmup_steps,
+            }
+            # Label smoothing only applies to plain CE (loss is computed by HF
+            # Trainer in that path). Skip under weighted_ce/focal since the
+            # subclass owns the loss.
+            if self.loss_type == "ce" and self.label_smoothing_factor > 0.0:
+                training_args_kwargs["label_smoothing_factor"] = self.label_smoothing_factor
+
+            if eval_dataset is not None:
+                training_args_kwargs.update(
+                    {
+                        "eval_strategy": "epoch",
+                        "save_strategy": "epoch",
+                        "save_total_limit": 1,
+                        "per_device_eval_batch_size": self.batch_size,
+                        "load_best_model_at_end": True,
+                        "metric_for_best_model": "macro_f1",
+                        "greater_is_better": True,
+                    }
+                )
+            else:
+                training_args_kwargs["save_strategy"] = "no"
+
+            training_args = self._training_args_cls(**training_args_kwargs)
+
+            trainer_kwargs: Dict[str, Any] = {
+                "model": self.model,
+                "args": training_args,
+                "train_dataset": dataset,
+            }
+            if eval_dataset is not None:
+                trainer_kwargs["eval_dataset"] = eval_dataset
+                trainer_kwargs["compute_metrics"] = _compute_metrics
+                if self._early_stopping_cls is not None and self.early_stopping_patience > 0:
+                    trainer_kwargs["callbacks"] = [
+                        self._early_stopping_cls(
+                            early_stopping_patience=self.early_stopping_patience
+                        )
+                    ]
+
+            # Plain CE goes through HF's default Trainer (its built-in loss
+            # already supports label_smoothing_factor); weighted_ce/focal need
+            # the custom subclass that owns compute_loss.
+            trainer_class = (
+                self._trainer_cls if self.loss_type == "ce" else _Phase3WeightedTrainer
             )
-            trainer = self._trainer_cls(
-                model=self.model,
-                args=training_args,
-                train_dataset=dataset,
-                # tokenizer=self.tokenizer,
-            )
+            trainer = trainer_class(**trainer_kwargs)
             trainer.train()
             self.model = trainer.model
 
@@ -393,6 +613,12 @@ class PrivacyBertClassifier:
             "batch_size": self.batch_size,
             "learning_rate": self.learning_rate,
             "max_length": self.max_length,
+            "loss_type": self.loss_type,
+            "focal_gamma": self.focal_gamma,
+            "label_smoothing_factor": self.label_smoothing_factor,
+            "weight_decay": self.weight_decay,
+            "warmup_steps": self.warmup_steps,
+            "early_stopping_patience": self.early_stopping_patience,
         }
         with (save_dir / "training_metadata.json").open("w", encoding="utf-8") as handle:
             json.dump(metadata, handle, indent=2, ensure_ascii=False)
@@ -416,6 +642,13 @@ def train_classifier(
     privacybert_batch_size: int = 8,
     privacybert_learning_rate: float = 5e-5,
     privacybert_max_length: int = 256,
+    privacybert_loss_type: str = "focal",
+    privacybert_focal_gamma: float = 2.0,
+    privacybert_label_smoothing: float = 0.05,
+    privacybert_weight_decay: float = 0.01,
+    privacybert_warmup_steps: float = 0.1,
+    privacybert_early_stopping_patience: int = 1,
+    validation_examples: Sequence[ClauseExample] | None = None,
 ) -> Tuple[TextClassifier, Dict[str, float]]:
     selected_model = model_type.strip().lower()
     if selected_model in {"naive_bayes", "nb"}:
@@ -442,12 +675,21 @@ def train_classifier(
             batch_size=privacybert_batch_size,
             learning_rate=privacybert_learning_rate,
             max_length=privacybert_max_length,
+            loss_type=privacybert_loss_type,
+            focal_gamma=privacybert_focal_gamma,
+            label_smoothing_factor=privacybert_label_smoothing,
+            weight_decay=privacybert_weight_decay,
+            warmup_steps=privacybert_warmup_steps,
+            early_stopping_patience=privacybert_early_stopping_patience,
         )
         model_name = "privacybert"
     else:
         raise ValueError(f"Unsupported model_type '{model_type}'")
 
-    model.fit(examples)
+    if isinstance(model, PrivacyBertClassifier):
+        model.fit(examples, validation_examples=validation_examples)
+    else:
+        model.fit(examples)
     model.save(output_path)
 
     vocabulary_size = 0.0

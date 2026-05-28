@@ -5,7 +5,7 @@
 - Type: privacybert
 - Backbone checkpoint: mukund/privbert
 - Labels: user, system, organization
-- Training rows: 15484
+- Training rows: 209
 - Vocabulary size: 0
 
 ## Dataset Source
@@ -16,17 +16,17 @@
 
 Validation:
 
-- Accuracy: 0.968254
-- Macro precision: 0.933376
-- Macro recall: 0.918171
-- Macro F1: 0.92562
+- Accuracy: 0.931818
+- Macro precision: 0.310606
+- Macro recall: 0.333333
+- Macro F1: 0.321569
 
 Test:
 
-- Accuracy: 0.956311
-- Macro precision: 0.880388
-- Macro recall: 0.858978
-- Macro F1: 0.869379
+- Accuracy: 0.825911
+- Macro precision: 0.275304
+- Macro recall: 0.333333
+- Macro F1: 0.301552
 
 ## Notes
 

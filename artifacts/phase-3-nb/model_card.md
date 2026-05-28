@@ -3,9 +3,10 @@
 ## Model
 
 - Type: multinomial_naive_bayes
+- Backbone checkpoint: n/a
 - Labels: user, system, organization
-- Training rows: 15645
-- Vocabulary size: 5851
+- Training rows: 15484
+- Vocabulary size: 5799
 
 ## Dataset Source
 
@@ -15,17 +16,17 @@
 
 Validation:
 
-- Accuracy: 0.816417
-- Macro precision: 0.587961
-- Macro recall: 0.761608
-- Macro F1: 0.625907
+- Accuracy: 0.841837
+- Macro precision: 0.650851
+- Macro recall: 0.824158
+- Macro F1: 0.703748
 
 Test:
 
-- Accuracy: 0.814701
-- Macro precision: 0.586193
-- Macro recall: 0.758442
-- Macro F1: 0.640117
+- Accuracy: 0.820793
+- Macro precision: 0.595123
+- Macro recall: 0.764596
+- Macro F1: 0.649229
 
 ## Notes
 

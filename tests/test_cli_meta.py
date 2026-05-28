@@ -35,6 +35,18 @@ def test_prert_dispatch_forwards_arguments(monkeypatch) -> None:
     assert captured_argv[1:] == ["--chunk", "--output-dir", "artifacts/phase-1"]
 
 
+def test_prert_run_loads_dotenv_before_dispatch(monkeypatch) -> None:
+    calls: list[Path | None] = []
+
+    monkeypatch.setattr(cli_main, "load_dotenv_if_available", lambda env_path: calls.append(env_path))
+    monkeypatch.setattr(cli_main, "_dispatch_to_entrypoint", lambda _command, _args: 0)
+
+    code = cli_main.run(["phase3"])
+
+    assert code == 0
+    assert calls == [None]
+
+
 def test_prert_doctor_passes_when_required_inputs_exist(tmp_path) -> None:
     regulations = tmp_path / "docs" / "Standards" / "Regulations"
     regulations.mkdir(parents=True)
@@ -128,6 +140,53 @@ def test_phase3_cli_accepts_auxiliary_labeled_input_path(monkeypatch) -> None:
     args = cli_phase3._parse_args()
 
     assert args.auxiliary_labeled_input_path == Path("auxiliary.jsonl")
+
+
+def test_phase3_main_loads_dotenv_before_pipeline(monkeypatch) -> None:
+    calls: list[Path | None] = []
+
+    monkeypatch.setattr(cli_phase3, "load_dotenv_if_available", lambda env_path: calls.append(env_path))
+    monkeypatch.setattr(
+        cli_phase3,
+        "run_phase3_pipeline",
+        lambda **_kwargs: {
+            "metrics": {
+                "validation_macro_f1": 0.0,
+                "test_macro_f1": 0.0,
+                "validation_accuracy": 0.0,
+                "test_accuracy": 0.0,
+                "bayesian_primary_score": None,
+            },
+            "dataset_manifest": {"total_rows": 1},
+        },
+    )
+    monkeypatch.setattr(sys, "argv", ["prert-phase3"])
+
+    cli_phase3.main()
+
+    assert calls == [None]
+
+
+def test_phase3_freeze_main_loads_dotenv_before_pipeline(monkeypatch) -> None:
+    calls: list[Path | None] = []
+
+    monkeypatch.setattr(cli_phase3_freeze, "load_dotenv_if_available", lambda env_path: calls.append(env_path))
+    monkeypatch.setattr(cli_phase3_freeze, "run_phase3_pipeline", lambda **_kwargs: {"phase": "phase-3"})
+    monkeypatch.setattr(
+        cli_phase3_freeze,
+        "evaluate_phase3_acceptance",
+        lambda **_kwargs: {"acceptance": {"passed": True}},
+    )
+    monkeypatch.setattr(
+        cli_phase3_freeze,
+        "write_phase3_acceptance_report",
+        lambda _output_dir, _report: {"json": "report.json", "markdown": "report.md"},
+    )
+    monkeypatch.setattr(sys, "argv", ["prert-phase3-freeze"])
+
+    cli_phase3_freeze.main()
+
+    assert calls == [None]
 
 
 def test_app350_cli_defaults_to_workspace_paths(monkeypatch, tmp_path) -> None:

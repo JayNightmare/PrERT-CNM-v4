@@ -8,6 +8,8 @@ from pathlib import Path
 import sys
 from typing import Callable, Dict, List, Tuple
 
+from prert.config import load_dotenv_if_available
+
 
 ENTRYPOINTS: Dict[str, str] = {
     "extract": "prert.cli.extract",
@@ -51,6 +53,8 @@ def main() -> None:
 
 def run(argv: List[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+
+    load_dotenv_if_available(None)
 
     if not args:
         _print_help()

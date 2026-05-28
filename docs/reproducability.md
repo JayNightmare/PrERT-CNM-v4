@@ -175,6 +175,10 @@ prert phase3 \
 
 #### PrivBERT comparison run
 
+Before running the transformer path, set `HF_TOKEN` in the repository-root `.env`. The Phase 3 CLI now auto-loads that file before contacting Hugging Face.
+
+The `mukund/privbert` checkpoint is loaded into a sequence-classification head, so the one-time Transformers report about `lm_head.*` being unexpected and `classifier.*` weights being newly initialized is expected transfer-learning behavior.
+
 ```bash
 prert phase3 \
   --model-type privacybert \
