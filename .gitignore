@@ -220,3 +220,5 @@ docs/Proposal/*
 !docs/Proposal/*.pdf
 !docs/Proposal/*.bib
 !docs/Proposal/*.tex
+docs/Project/Documentation/*
+!docs/Project/Documentation/*.pdf
