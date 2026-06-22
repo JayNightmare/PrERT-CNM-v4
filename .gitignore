@@ -222,3 +222,5 @@ docs/Proposal/*
 !docs/Proposal/*.tex
 docs/Project/Documentation/*
 !docs/Project/Documentation/*.pdf
+
+docs/Project/Final/

@@ -13,7 +13,11 @@ from typing import Any, Dict, List, Optional
 
 import streamlit as st
 
-from prert.phase4.compliance_assessor import assess_policy_schema_compliance, resolve_default_model_path
+from prert.phase4.compliance_assessor import (
+    assess_policy_compliance,
+    assess_policy_schema_compliance,
+    resolve_default_model_path,
+)
 from prert.phase4.pipeline import run_phase4_validation
 from prert.phase4.synthetic import generate_synthetic_policy_schema_dataset
 
@@ -81,8 +85,9 @@ def main() -> None:
         _render_hero(
             title="Compliance Studio",
             body=(
-                "Upload a company privacy policy and database schema to generate a compliance score, "
-                "control coverage checks, and evidence-backed findings."
+                "Upload a company privacy policy to generate a compliance score against GDPR, NIST, "
+                "and ISO 27701 with evidence-backed findings and source citations. "
+                "Optionally add a database schema for schema-alignment checks."
             ),
         )
         _render_compliance_screen(model_path_text=model_path_text, auto_model_path=default_model)
@@ -174,7 +179,7 @@ def _render_compliance_settings_form() -> str:
         st.success("Assessment settings applied")
 
     st.caption("Supported policy files: .txt, .md, .pdf")
-    st.caption("Supported schema files: .sql, .txt, .json, .yaml, .yml")
+    st.caption("Supported schema files (optional): .sql, .txt, .json, .yaml, .yml")
     return str(st.session_state["prert_compliance_settings"]["model_path"])
 
 
@@ -650,43 +655,59 @@ def _render_compliance_screen(model_path_text: str, auto_model_path: Optional[Pa
     with policy_col:
         policy_file = st.file_uploader("Privacy Policy", type=["txt", "md", "pdf"], key="policy")
     with schema_col:
-        schema_file = st.file_uploader("Database Schema", type=["sql", "txt", "json", "yaml", "yml"], key="schema")
+        schema_file = st.file_uploader(
+            "Database Schema (Optional)",
+            type=["sql", "txt", "json", "yaml", "yml"],
+            key="schema",
+            help="Add a database schema for additional schema-alignment checks. Leave empty for policy-only analysis.",
+        )
 
-    can_run = policy_file is not None and schema_file is not None
+    can_run = policy_file is not None
     run_clicked = st.button("Analyze Compliance", type="primary", disabled=not can_run)
 
     if not run_clicked:
-        st.info("Upload both files to start compliance assessment.")
+        if policy_file is None:
+            st.info("Upload a privacy policy to start compliance assessment. Schema is optional.")
         return
 
     policy_result = _read_policy_upload(policy_file)
-    schema_result = _read_text_upload(schema_file)
 
     if policy_result["error"]:
         st.error(f"Policy file error: {policy_result['error']}")
         st.caption(f"File: {policy_result['file_name']} ({policy_result['size_bytes']} bytes)")
         return
 
-    if schema_result["error"]:
-        st.error(f"Schema file error: {schema_result['error']}")
-        st.caption(f"File: {schema_result['file_name']} ({schema_result['size_bytes']} bytes)")
-        return
-
     policy_text = str(policy_result["text"])
-    schema_text = str(schema_result["text"])
-
-    if not policy_text.strip() or not schema_text.strip():
-        st.error("One or both files were parsed as empty. Verify file encoding/content and retry.")
+    if not policy_text.strip():
+        st.error("Policy file was parsed as empty. Verify file encoding/content and retry.")
         return
 
     model_path = Path(model_path_text).expanduser() if model_path_text.strip() else None
-    result = assess_policy_schema_compliance(
-        policy_text=policy_text,
-        schema_text=schema_text,
-        model_path=model_path,
-    )
 
-    _render_results(result)
+    if schema_file is not None:
+        schema_result = _read_text_upload(schema_file)
+        if schema_result["error"]:
+            st.error(f"Schema file error: {schema_result['error']}")
+            st.caption(f"File: {schema_result['file_name']} ({schema_result['size_bytes']} bytes)")
+            return
+
+        schema_text = str(schema_result["text"])
+        if not schema_text.strip():
+            st.error("Schema file was parsed as empty. Verify file encoding/content and retry.")
+            return
+
+        result = assess_policy_schema_compliance(
+            policy_text=policy_text,
+            schema_text=schema_text,
+            model_path=model_path,
+        )
+        _render_results(result)
+    else:
+        result = assess_policy_compliance(
+            policy_text=policy_text,
+            model_path=model_path,
+        )
+        _render_policy_compliance_results(result)
 
 
 def _render_synthetic_generation_screen(settings: Dict[str, Any]) -> None:
@@ -1163,6 +1184,81 @@ def _render_results(result: Dict[str, Any]) -> None:
         "Download Compliance Report (JSON)",
         data=report_json,
         file_name="compliance_report.json",
+        mime="application/json",
+    )
+
+
+def _render_policy_compliance_results(result: Dict[str, Any]) -> None:
+    """Render policy-only compliance results with per-regulation verdicts and citations."""
+    st.divider()
+    score = float(result["overall_score"])
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Compliance Score", f"{score:.1f} / 100")
+    c2.metric("Grade", str(result["grade"]))
+    c3.metric("Status", str(result["status"]))
+    c4.metric("Clauses Analyzed", int(result["summary"]["clauses_analyzed"]))
+
+    st.progress(min(1.0, score / 100.0))
+
+    regulation_summary = result.get("regulation_summary", {})
+    if regulation_summary:
+        st.subheader("Regulation Summary")
+        reg_columns = st.columns(len(regulation_summary))
+        for col, (reg_name, reg_data) in zip(reg_columns, sorted(regulation_summary.items())):
+            display_name = reg_name.replace("_", " ")
+            pct = float(reg_data.get("compliance_pct", 0))
+            col.metric(display_name, f"{pct:.0f}%")
+            col.caption(
+                f"Pass: {reg_data.get('pass_count', 0)} / "
+                f"Fail: {reg_data.get('fail_count', 0)} / "
+                f"Controls: {reg_data.get('total_controls', 0)}"
+            )
+
+    claims = result.get("claims", [])
+    if claims:
+        st.subheader("Per-Claim Regulation Verdicts")
+        st.caption(
+            f"{len(claims)} claim(s) extracted from the policy. "
+            "Expand each claim to see how it was evaluated against every regulation."
+        )
+
+        for claim in claims:
+            claim_label = f"{claim['check_title']} — Clause #{claim['claim_index'] + 1}"
+            with st.expander(claim_label):
+                st.markdown("**Source Citation (Policy Text):**")
+                st.info(claim["claim_text"])
+
+                verdicts = claim.get("regulation_verdicts", [])
+                if verdicts:
+                    verdict_rows = []
+                    for verdict in verdicts:
+                        status_icon = "✅" if verdict["compliant"] else "❌"
+                        verdict_rows.append(
+                            {
+                                "Status": status_icon,
+                                "Regulation": verdict["regulation"].replace("_", " "),
+                                "Control": verdict["control_id"],
+                                "Title": verdict["control_title"],
+                                "Reason": verdict["reason"],
+                            }
+                        )
+                    st.dataframe(verdict_rows, use_container_width=True, hide_index=True)
+                else:
+                    st.caption("No regulation verdicts for this claim.")
+
+    model_signal = result.get("model_signal", {})
+    if model_signal:
+        st.subheader("Model Signal")
+        st.write(f"Score: {model_signal.get('score', 0):.2f}/{model_signal.get('max_score', 5):.2f}")
+        for detail in model_signal.get("details", []):
+            st.caption(detail)
+
+    report_json = json.dumps(result, indent=2, ensure_ascii=False)
+    st.download_button(
+        "Download Compliance Report (JSON)",
+        data=report_json,
+        file_name="policy_compliance_report.json",
         mime="application/json",
     )
 

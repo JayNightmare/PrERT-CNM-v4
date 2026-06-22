@@ -1,4 +1,9 @@
-"""Policy-and-schema compliance assessment helpers for Phase 4 GUI workflows."""
+"""Policy-and-schema compliance assessment helpers for Phase 4 GUI workflows.
+
+Includes a policy-only assessment path (assess_policy_compliance) that evaluates
+privacy policy clauses independently against GDPR, NIST, and ISO 27701 regulation
+controls, producing per-regulation pass/fail verdicts with source citations.
+"""
 
 from __future__ import annotations
 
@@ -62,6 +67,55 @@ SENSITIVE_FIELD_PATTERNS: tuple[str, ...] = (
     "salary",
     "income",
 )
+
+
+@dataclass(frozen=True)
+class RegulationControl:
+    """A single regulation requirement mapped to a compliance check."""
+    regulation: str
+    control_id: str
+    title: str
+    requirement: str
+
+
+@dataclass(frozen=True)
+class RegulationVerdict:
+    """Pass/fail result for a single policy claim against a single regulation control."""
+    regulation: str
+    control_id: str
+    control_title: str
+    compliant: bool
+    reason: str
+    cited_clauses: list[str]
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "regulation": self.regulation,
+            "control_id": self.control_id,
+            "control_title": self.control_title,
+            "compliant": self.compliant,
+            "reason": self.reason,
+            "cited_clauses": list(self.cited_clauses),
+        }
+
+
+@dataclass
+class PolicyClaimResult:
+    """Assessment of a single policy clause against all regulation frameworks."""
+    claim_index: int
+    claim_text: str
+    check_id: str
+    check_title: str
+    regulation_verdicts: list[RegulationVerdict]
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "claim_index": self.claim_index,
+            "claim_text": self.claim_text,
+            "check_id": self.check_id,
+            "check_title": self.check_title,
+            "regulation_verdicts": [v.as_dict() for v in self.regulation_verdicts],
+        }
 
 
 @dataclass(frozen=True)
@@ -179,6 +233,212 @@ POLICY_CHECK_SPECS: tuple[PolicyCheckSpec, ...] = (
         ),
     ),
 )
+
+
+REGULATION_CONTROLS: Dict[str, List[RegulationControl]] = {
+    "consent_transparency": [
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 6",
+            title="Lawfulness of processing",
+            requirement="Processing shall be lawful only if the data subject has given consent to the processing of their personal data for one or more specific purposes.",
+        ),
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 7",
+            title="Conditions for consent",
+            requirement="The controller shall be able to demonstrate that the data subject has consented to processing of their personal data.",
+        ),
+        RegulationControl(
+            regulation="NIST",
+            control_id="CT.PO-P1",
+            title="Transparency policies",
+            requirement="Policies, processes, and procedures for transparency are established and in place to inform individuals about data processing purposes and practices.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.2.3",
+            title="Determining information for consent",
+            requirement="The organisation shall determine and document the information needed for PII principals to give their consent for processing.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.2.4",
+            title="Obtaining consent",
+            requirement="The organisation shall obtain and record consent from PII principals as required by applicable legislation.",
+        ),
+    ],
+    "user_rights": [
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 15",
+            title="Right of access by the data subject",
+            requirement="The data subject shall have the right to obtain confirmation as to whether personal data concerning them is being processed and access to that data.",
+        ),
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 17",
+            title="Right to erasure ('right to be forgotten')",
+            requirement="The data subject shall have the right to obtain the erasure of personal data concerning them without undue delay.",
+        ),
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 20",
+            title="Right to data portability",
+            requirement="The data subject shall have the right to receive personal data in a structured, commonly used and machine-readable format.",
+        ),
+        RegulationControl(
+            regulation="NIST",
+            control_id="CT.DM-P3",
+            title="Data access and correction",
+            requirement="Mechanisms for individuals to access, correct, and delete their personal data are in place.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.3.2",
+            title="Determining information for PII principals",
+            requirement="The organisation shall provide PII principals with clear, accessible information about data processing and their rights.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.3.6",
+            title="Access, correction and erasure",
+            requirement="The organisation shall implement policies and procedures to meet obligations related to PII principals' requests for access, correction, or erasure.",
+        ),
+    ],
+    "security_safeguards": [
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 32",
+            title="Security of processing",
+            requirement="The controller and processor shall implement appropriate technical and organisational measures to ensure a level of security appropriate to the risk, including encryption and access controls.",
+        ),
+        RegulationControl(
+            regulation="NIST",
+            control_id="PR.DS-P1",
+            title="Data security",
+            requirement="Data-at-rest and data-in-transit are protected using safeguards commensurate with the risk.",
+        ),
+        RegulationControl(
+            regulation="NIST",
+            control_id="PR.AC-P1",
+            title="Access control",
+            requirement="Access to data and devices is limited to authorised individuals, processes, or devices and managed consistently.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.4.5",
+            title="PII de-identification and deletion at end of processing",
+            requirement="The organisation shall de-identify or delete PII at the end of processing unless there is a requirement to retain it.",
+        ),
+    ],
+    "data_retention": [
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 5.1(e)",
+            title="Storage limitation",
+            requirement="Personal data shall be kept in a form which permits identification of data subjects for no longer than is necessary for the purposes for which the data are processed.",
+        ),
+        RegulationControl(
+            regulation="NIST",
+            control_id="CT.DM-P7",
+            title="Data retention and disposal",
+            requirement="Retention schedules and disposal methods are established and data is disposed of according to policy.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.4.4",
+            title="PII minimisation objectives",
+            requirement="The organisation shall define and document data minimisation objectives and retention periods.",
+        ),
+    ],
+    "third_party_sharing": [
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 28",
+            title="Processor",
+            requirement="Processing by a processor shall be governed by a contract that sets out the subject-matter and duration of the processing, the nature and purpose, and the obligations of the processor.",
+        ),
+        RegulationControl(
+            regulation="NIST",
+            control_id="CT.PO-P4",
+            title="Third-party data sharing",
+            requirement="Policies for disclosing data processing activities to third parties including sharing, trading, and selling are established.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.5.1",
+            title="Identifying basis for PII transfer",
+            requirement="The organisation shall identify and document the relevant basis for transfers of PII to third parties.",
+        ),
+    ],
+    "purpose_limitation": [
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 5.1(b)",
+            title="Purpose limitation",
+            requirement="Personal data shall be collected for specified, explicit and legitimate purposes and not further processed in a manner incompatible with those purposes.",
+        ),
+        RegulationControl(
+            regulation="NIST",
+            control_id="CT.PO-P2",
+            title="Purpose specification",
+            requirement="Purposes for data processing are identified and communicated to individuals.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.2.1",
+            title="Identify and document purpose",
+            requirement="The organisation shall identify and document the specific purposes for which the PII will be processed.",
+        ),
+    ],
+    "incident_response": [
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 33",
+            title="Notification of a personal data breach to the supervisory authority",
+            requirement="In the case of a personal data breach, the controller shall notify the supervisory authority within 72 hours after having become aware of it.",
+        ),
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 34",
+            title="Communication of a personal data breach to the data subject",
+            requirement="When the breach is likely to result in a high risk to the rights and freedoms of natural persons, the controller shall communicate the breach to the data subject without undue delay.",
+        ),
+        RegulationControl(
+            regulation="NIST",
+            control_id="RS.CO-P1",
+            title="Response communication",
+            requirement="Response activities are coordinated with internal and external stakeholders, including breach notifications.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.3.9",
+            title="PII breach notification",
+            requirement="The organisation shall notify PII principals of breaches involving their PII when required by legislation or contract.",
+        ),
+    ],
+    "contact_and_dpo": [
+        RegulationControl(
+            regulation="GDPR",
+            control_id="Article 37",
+            title="Designation of the data protection officer",
+            requirement="The controller and the processor shall designate a data protection officer where core activities require regular and systematic monitoring of data subjects on a large scale.",
+        ),
+        RegulationControl(
+            regulation="NIST",
+            control_id="GV.PO-P3",
+            title="Roles and responsibilities",
+            requirement="Roles and responsibilities for the workforce are established with respect to privacy.",
+        ),
+        RegulationControl(
+            regulation="ISO_27701",
+            control_id="A.7.2.8",
+            title="Records related to processing PII",
+            requirement="The organisation shall determine and maintain records necessary to demonstrate compliance with its obligations for processing PII, including contact mechanisms.",
+        ),
+    ],
+}
 
 
 def assess_policy_schema_compliance(
@@ -538,6 +798,220 @@ def _grade_from_score(score: float) -> str:
     if score >= 40.0:
         return "D"
     return "F"
+
+
+def assess_policy_compliance(
+    policy_text: str,
+    model_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Assess a privacy policy against GDPR, NIST, and ISO 27701 independently.
+
+    Unlike assess_policy_schema_compliance, this function requires **only** the
+    privacy policy text. Each extracted clause is evaluated against every
+    regulation framework, producing per-regulation pass/fail verdicts with
+    source citations (the exact policy text supporting each verdict).
+    """
+    normalized_policy = _normalize_space(policy_text)
+    clauses = split_policy_clauses(policy_text)
+    if not clauses and normalized_policy:
+        clauses = [normalized_policy]
+
+    claims: List[PolicyClaimResult] = []
+    regulation_tallies: Dict[str, Dict[str, int]] = {}
+    regulation_control_totals: Dict[str, int] = {}
+
+    for claim_index, clause in enumerate(clauses):
+        lowered_clause = clause.lower()
+
+        for spec in POLICY_CHECK_SPECS:
+            matched_keywords = [
+                kw for kw in spec.keywords if kw in lowered_clause
+            ]
+            if not matched_keywords:
+                continue
+
+            controls = REGULATION_CONTROLS.get(spec.check_id, [])
+            verdicts: List[RegulationVerdict] = []
+
+            for control in controls:
+                compliant = _clause_satisfies_control(
+                    clause=clause,
+                    matched_keywords=matched_keywords,
+                    control=control,
+                )
+                reason = _build_verdict_reason(
+                    compliant=compliant,
+                    clause=clause,
+                    control=control,
+                    matched_keywords=matched_keywords,
+                )
+                verdicts.append(
+                    RegulationVerdict(
+                        regulation=control.regulation,
+                        control_id=control.control_id,
+                        control_title=control.title,
+                        compliant=compliant,
+                        reason=reason,
+                        cited_clauses=[clause],
+                    )
+                )
+
+                reg = control.regulation
+                if reg not in regulation_tallies:
+                    regulation_tallies[reg] = {"pass": 0, "fail": 0}
+                if compliant:
+                    regulation_tallies[reg]["pass"] += 1
+                else:
+                    regulation_tallies[reg]["fail"] += 1
+
+            claims.append(
+                PolicyClaimResult(
+                    claim_index=claim_index,
+                    claim_text=clause,
+                    check_id=spec.check_id,
+                    check_title=spec.title,
+                    regulation_verdicts=verdicts,
+                )
+            )
+
+    for controls in REGULATION_CONTROLS.values():
+        for control in controls:
+            reg = control.regulation
+            regulation_control_totals[reg] = regulation_control_totals.get(reg, 0) + 1
+
+    regulation_summary: Dict[str, Dict[str, Any]] = {}
+    for reg, totals in sorted(regulation_tallies.items()):
+        total_evaluated = totals["pass"] + totals["fail"]
+        coverage_pct = round(
+            (totals["pass"] / total_evaluated * 100) if total_evaluated > 0 else 0.0, 2
+        )
+        regulation_summary[reg] = {
+            "pass_count": totals["pass"],
+            "fail_count": totals["fail"],
+            "total_evaluated": total_evaluated,
+            "total_controls": regulation_control_totals.get(reg, 0),
+            "compliance_pct": coverage_pct,
+        }
+
+    for reg, total in sorted(regulation_control_totals.items()):
+        if reg not in regulation_summary:
+            regulation_summary[reg] = {
+                "pass_count": 0,
+                "fail_count": 0,
+                "total_evaluated": 0,
+                "total_controls": total,
+                "compliance_pct": 0.0,
+            }
+
+    model_signal = _score_model_signal(clauses=clauses, model_path=model_path)
+
+    total_pass = sum(t.get("pass_count", 0) for t in regulation_summary.values())
+    total_controls = sum(t.get("total_controls", 0) for t in regulation_summary.values())
+    raw_score = (total_pass / total_controls * 100) if total_controls > 0 else 0.0
+    overall_score = max(0.0, min(100.0, round(raw_score, 2)))
+    grade = _grade_from_score(overall_score)
+    status = _status_from_score(overall_score)
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "mode": "policy_only",
+        "overall_score": overall_score,
+        "grade": grade,
+        "status": status,
+        "summary": {
+            "clauses_analyzed": len(clauses),
+            "claims_generated": len(claims),
+            "regulations_evaluated": list(regulation_summary.keys()),
+        },
+        "claims": [c.as_dict() for c in claims],
+        "regulation_summary": regulation_summary,
+        "model_signal": model_signal,
+    }
+
+
+def _clause_satisfies_control(
+    clause: str,
+    matched_keywords: List[str],
+    control: RegulationControl,
+) -> bool:
+    """Determine whether a policy clause satisfies a regulation control.
+
+    Uses keyword overlap between the clause and the control's requirement text
+    as a deterministic relevance signal. A clause passes if at least two of its
+    matched keywords also appear in the control requirement, or if the clause
+    contains substantive language that maps to the control's domain.
+    """
+    lowered_requirement = control.requirement.lower()
+    lowered_clause = clause.lower()
+
+    requirement_overlap = sum(
+        1 for kw in matched_keywords if kw in lowered_requirement
+    )
+    if requirement_overlap >= 2:
+        return True
+
+    control_signals = _extract_control_signals(control)
+    signal_hits = sum(1 for signal in control_signals if signal in lowered_clause)
+    return signal_hits >= 1 and requirement_overlap >= 1
+
+
+def _extract_control_signals(control: RegulationControl) -> List[str]:
+    """Extract key terms from a control's requirement for matching."""
+    signal_map: Dict[str, List[str]] = {
+        "Article 6": ["lawful", "legal basis", "legitimate"],
+        "Article 7": ["demonstrate consent", "withdraw"],
+        "Article 15": ["access", "obtain confirmation"],
+        "Article 17": ["erasure", "right to be forgotten", "delete"],
+        "Article 20": ["portability", "machine-readable"],
+        "Article 28": ["processor", "contract", "sub-processor"],
+        "Article 32": ["encrypt", "security measure", "access control"],
+        "Article 33": ["notify", "72 hours", "supervisory authority"],
+        "Article 34": ["communicate", "high risk", "breach"],
+        "Article 37": ["data protection officer", "dpo"],
+        "Article 5.1(b)": ["specified purpose", "legitimate purpose", "compatible"],
+        "Article 5.1(e)": ["no longer than necessary", "storage limitation", "retention period"],
+        "CT.PO-P1": ["transparency", "inform"],
+        "CT.PO-P2": ["purpose", "communicated"],
+        "CT.PO-P4": ["third party", "sharing", "disclosure"],
+        "CT.DM-P3": ["access", "correct", "delete"],
+        "CT.DM-P7": ["retention schedule", "disposal"],
+        "PR.DS-P1": ["protect", "safeguard"],
+        "PR.AC-P1": ["access control", "authorised"],
+        "RS.CO-P1": ["response", "notification"],
+        "GV.PO-P3": ["roles", "responsibilities", "privacy team"],
+        "A.7.2.1": ["purpose", "documented"],
+        "A.7.2.3": ["consent", "information"],
+        "A.7.2.4": ["obtain consent", "record"],
+        "A.7.2.8": ["records", "demonstrate compliance", "contact"],
+        "A.7.3.2": ["clear", "accessible information"],
+        "A.7.3.6": ["access", "correction", "erasure"],
+        "A.7.3.9": ["breach notification", "notify"],
+        "A.7.4.4": ["minimisation", "retention"],
+        "A.7.4.5": ["de-identify", "deletion"],
+        "A.7.5.1": ["transfer", "basis"],
+    }
+    return signal_map.get(control.control_id, [])
+
+
+def _build_verdict_reason(
+    compliant: bool,
+    clause: str,
+    control: RegulationControl,
+    matched_keywords: List[str],
+) -> str:
+    """Build a human-readable reason for a regulation verdict."""
+    keywords_csv = ", ".join(f"'{kw}'" for kw in matched_keywords[:4])
+    if compliant:
+        return (
+            f"Policy clause addresses {control.control_id} ({control.title}). "
+            f"Matched keywords [{keywords_csv}] align with the requirement: "
+            f"\"{control.requirement[:120]}...\""
+        )
+    return (
+        f"Policy clause mentions [{keywords_csv}] but does not sufficiently "
+        f"address {control.control_id} ({control.title}): "
+        f"\"{control.requirement[:120]}...\""
+    )
 
 
 def _status_from_score(score: float) -> str:
