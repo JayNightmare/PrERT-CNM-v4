@@ -16,6 +16,7 @@ import re
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from prert.phase3.classifier import NaiveBayesTextClassifier
+from prert.phase3.risk import compute_bayesian_risk
 
 
 LABELS: tuple[str, str, str] = ("user", "system", "organization")
@@ -87,6 +88,7 @@ class RegulationVerdict:
     compliant: bool
     reason: str
     cited_clauses: list[str]
+    remediation_advice: str
 
     def as_dict(self) -> Dict[str, Any]:
         return {
@@ -96,6 +98,7 @@ class RegulationVerdict:
             "compliant": self.compliant,
             "reason": self.reason,
             "cited_clauses": list(self.cited_clauses),
+            "remediation_advice": self.remediation_advice,
         }
 
 
@@ -107,6 +110,8 @@ class PolicyClaimResult:
     check_id: str
     check_title: str
     regulation_verdicts: list[RegulationVerdict]
+    predicted_label: str
+    confidence: float
 
     def as_dict(self) -> Dict[str, Any]:
         return {
@@ -115,6 +120,8 @@ class PolicyClaimResult:
             "check_id": self.check_id,
             "check_title": self.check_title,
             "regulation_verdicts": [v.as_dict() for v in self.regulation_verdicts],
+            "predicted_label": self.predicted_label,
+            "confidence": self.confidence,
         }
 
 
@@ -819,8 +826,33 @@ def assess_policy_compliance(
     claims: List[PolicyClaimResult] = []
     regulation_tallies: Dict[str, Dict[str, int]] = {}
     regulation_control_totals: Dict[str, int] = {}
+    predictions_for_risk = []
+
+    resolved_model_path = model_path
+    if resolved_model_path is None:
+        resolved_model_path = resolve_default_model_path()
+        
+    classifier = None
+    if resolved_model_path is not None and resolved_model_path.exists():
+        try:
+            classifier = NaiveBayesTextClassifier.load(resolved_model_path)
+        except Exception:
+            pass
 
     for claim_index, clause in enumerate(clauses):
+        predicted_label = "unknown"
+        confidence = 0.0
+        if classifier is not None:
+            probabilities = classifier.predict_proba(clause)
+            predicted_label = max(probabilities.items(), key=lambda item: item[1])[0]
+            confidence = float(probabilities.get(predicted_label, 0.0))
+            
+        predictions_for_risk.append({
+            "predicted_label": predicted_label,
+            "confidence": confidence,
+            "text": clause,
+        })
+        
         lowered_clause = clause.lower()
 
         for spec in POLICY_CHECK_SPECS:
@@ -845,6 +877,12 @@ def assess_policy_compliance(
                     control=control,
                     matched_keywords=matched_keywords,
                 )
+                remediation_advice = ""
+                if compliant:
+                    remediation_advice = f"Clause meets {control.control_id} requirements. To improve further, ensure the language is highly specific."
+                else:
+                    remediation_advice = f"Update the policy to address {control.control_id}: {control.requirement}"
+
                 verdicts.append(
                     RegulationVerdict(
                         regulation=control.regulation,
@@ -853,6 +891,7 @@ def assess_policy_compliance(
                         compliant=compliant,
                         reason=reason,
                         cited_clauses=[clause],
+                        remediation_advice=remediation_advice,
                     )
                 )
 
@@ -871,6 +910,8 @@ def assess_policy_compliance(
                     check_id=spec.check_id,
                     check_title=spec.title,
                     regulation_verdicts=verdicts,
+                    predicted_label=predicted_label,
+                    confidence=confidence,
                 )
             )
 
@@ -912,6 +953,10 @@ def assess_policy_compliance(
     grade = _grade_from_score(overall_score)
     status = _status_from_score(overall_score)
 
+    bayesian_risk = None
+    if predictions_for_risk and classifier is not None:
+        bayesian_risk = compute_bayesian_risk(predictions_for_risk)
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "mode": "policy_only",
@@ -926,6 +971,7 @@ def assess_policy_compliance(
         "claims": [c.as_dict() for c in claims],
         "regulation_summary": regulation_summary,
         "model_signal": model_signal,
+        "bayesian_risk": bayesian_risk,
     }
 
 

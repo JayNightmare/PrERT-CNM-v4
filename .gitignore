@@ -224,3 +224,5 @@ docs/Project/Documentation/*
 !docs/Project/Documentation/*.pdf
 
 docs/Project/Final/
+
+.agents/*

@@ -142,7 +142,7 @@ def test_privacybert_fit_enables_eval_and_best_model_with_validation(monkeypatch
         loss_type="focal",
         focal_gamma=2.0,
         weight_decay=0.01,
-        warmup_ratio=0.1,
+        warmup_steps=0.1,
         early_stopping_patience=2,
     )
     classifier.fit(
@@ -165,7 +165,7 @@ def test_privacybert_fit_enables_eval_and_best_model_with_validation(monkeypatch
     assert args["load_best_model_at_end"] is True
     assert args["metric_for_best_model"] == "macro_f1"
     assert args["weight_decay"] == 0.01
-    assert args["warmup_ratio"] == 0.1
+    assert args["warmup_steps"] == 0.1
     # label_smoothing_factor must NOT appear under focal loss
     assert "label_smoothing_factor" not in args
 

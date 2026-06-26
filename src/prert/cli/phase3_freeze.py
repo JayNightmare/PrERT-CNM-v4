@@ -43,7 +43,7 @@ def main() -> None:
         privacybert_focal_gamma=args.privacybert_focal_gamma,
         privacybert_label_smoothing=args.privacybert_label_smoothing,
         privacybert_weight_decay=args.privacybert_weight_decay,
-        privacybert_warmup_ratio=args.privacybert_warmup_ratio,
+        privacybert_warmup_steps=args.privacybert_warmup_steps,
         privacybert_early_stopping_patience=args.privacybert_early_stopping_patience,
         enable_bayesian_scoring=not args.disable_bayesian_scoring,
         bayesian_priors_path=args.bayesian_priors_path,
@@ -181,7 +181,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--privacybert-focal-gamma", type=float, default=2.0, help="Focal-loss gamma. Higher values focus more on hard examples.")
     parser.add_argument("--privacybert-label-smoothing", type=float, default=0.05, help="Label smoothing factor. Applies only when --privacybert-loss-type=ce.")
     parser.add_argument("--privacybert-weight-decay", type=float, default=0.01, help="AdamW weight decay for privacybert backend.")
-    parser.add_argument("--privacybert-warmup-ratio", type=float, default=0.1, help="Linear warmup ratio for privacybert backend.")
+    parser.add_argument("--privacybert-warmup-steps", type=int, default=0, help="Number of warmup steps for privacybert backend.")
     parser.add_argument("--privacybert-early-stopping-patience", type=int, default=1, help="Early-stopping patience (in eval rounds) when validation split is supplied.")
 
     parser.add_argument(

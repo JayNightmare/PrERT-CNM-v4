@@ -646,7 +646,7 @@ def train_classifier(
     privacybert_focal_gamma: float = 2.0,
     privacybert_label_smoothing: float = 0.05,
     privacybert_weight_decay: float = 0.01,
-    privacybert_warmup_steps: float = 0.1,
+    privacybert_warmup_steps: float = 0,
     privacybert_early_stopping_patience: int = 1,
     validation_examples: Sequence[ClauseExample] | None = None,
 ) -> Tuple[TextClassifier, Dict[str, float]]:

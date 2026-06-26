@@ -1201,6 +1201,13 @@ def _render_policy_compliance_results(result: Dict[str, Any]) -> None:
 
     st.progress(min(1.0, score / 100.0))
 
+    bayesian_risk = result.get("bayesian_risk")
+    if bayesian_risk:
+        st.subheader("Bayesian Risk")
+        primary_score = bayesian_risk.get("overall", {}).get("primary_score", 0.0)
+        st.metric("Global Bayesian Score", f"{primary_score:.4f}")
+        st.caption("Lower is better. Risk computed across all extracted clauses.")
+
     regulation_summary = result.get("regulation_summary", {})
     if regulation_summary:
         st.subheader("Regulation Summary")
@@ -1224,7 +1231,9 @@ def _render_policy_compliance_results(result: Dict[str, Any]) -> None:
         )
 
         for claim in claims:
-            claim_label = f"{claim['check_title']} — Clause #{claim['claim_index'] + 1}"
+            confidence = claim.get("confidence", 0.0)
+            predicted_label = claim.get("predicted_label", "unknown")
+            claim_label = f"{claim['check_title']} — Clause #{claim['claim_index'] + 1} (Label: {predicted_label}, Conf: {confidence:.2f})"
             with st.expander(claim_label):
                 st.markdown("**Source Citation (Policy Text):**")
                 st.info(claim["claim_text"])
@@ -1241,6 +1250,7 @@ def _render_policy_compliance_results(result: Dict[str, Any]) -> None:
                                 "Control": verdict["control_id"],
                                 "Title": verdict["control_title"],
                                 "Reason": verdict["reason"],
+                                "Remediation": verdict.get("remediation_advice", ""),
                             }
                         )
                     st.dataframe(verdict_rows, use_container_width=True, hide_index=True)
