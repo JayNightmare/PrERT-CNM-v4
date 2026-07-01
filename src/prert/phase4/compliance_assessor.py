@@ -7,13 +7,15 @@ controls, producing per-regulation pass/fail verdicts with source citations.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 import json
 import os
 import re
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple
 
 from prert.phase3.classifier import NaiveBayesTextClassifier
 from prert.phase3.risk import compute_bayesian_risk
@@ -21,6 +23,7 @@ from prert.phase3.risk import compute_bayesian_risk
 
 LABELS: tuple[str, str, str] = ("user", "system", "organization")
 MODEL_PATH_ENV: str = "PRERT_PHASE4_MODEL_PATH"
+DEFAULT_PHASE1_CONTROLS_PATH: str = "artifacts/phase-1/controls_all.jsonl"
 
 
 PII_FIELD_PATTERNS: tuple[str, ...] = (
@@ -131,6 +134,16 @@ class PolicyCheckSpec:
     title: str
     weight: float
     keywords: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class EvidenceMatch:
+    regulation: str
+    control_id: str
+    title: str
+    requirement: str
+    source: str
+    score: float
 
 
 POLICY_CHECK_SPECS: tuple[PolicyCheckSpec, ...] = (
@@ -810,62 +823,116 @@ def _grade_from_score(score: float) -> str:
 def assess_policy_compliance(
     policy_text: str,
     model_path: Optional[Path] = None,
+    selected_regulations: Optional[Sequence[str]] = None,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> Dict[str, Any]:
-    """Assess a privacy policy against GDPR, NIST, and ISO 27701 independently.
+    final_result: Dict[str, Any] = {}
+    for event in assess_policy_compliance_stream(
+        policy_text=policy_text,
+        model_path=model_path,
+        selected_regulations=selected_regulations,
+    ):
+        _emit_progress(progress_callback, event)
+        if str(event.get("event")) == "complete":
+            final_result = dict(event.get("result") or {})
+    return final_result
 
-    Unlike assess_policy_schema_compliance, this function requires **only** the
-    privacy policy text. Each extracted clause is evaluated against every
-    regulation framework, producing per-regulation pass/fail verdicts with
-    source citations (the exact policy text supporting each verdict).
-    """
+
+def assess_policy_compliance_stream(
+    policy_text: str,
+    model_path: Optional[Path] = None,
+    selected_regulations: Optional[Sequence[str]] = None,
+) -> Iterator[Dict[str, Any]]:
+    """Yield assessment events and a final completion payload for live UIs."""
     normalized_policy = _normalize_space(policy_text)
     clauses = split_policy_clauses(policy_text)
     if not clauses and normalized_policy:
         clauses = [normalized_policy]
 
+    allowed_regulations = _normalize_selected_regulations(selected_regulations)
+    retriever = _EvidenceRetriever(allowed_regulations=allowed_regulations)
     claims: List[PolicyClaimResult] = []
-    regulation_tallies: Dict[str, Dict[str, int]] = {}
+    regulation_tallies: Dict[str, Dict[str, int]] = defaultdict(lambda: {"pass": 0, "fail": 0})
     regulation_control_totals: Dict[str, int] = {}
-    predictions_for_risk = []
+    predictions_for_risk: List[Dict[str, Any]] = []
 
     resolved_model_path = model_path
     if resolved_model_path is None:
         resolved_model_path = resolve_default_model_path()
-        
+
     classifier = None
     if resolved_model_path is not None and resolved_model_path.exists():
         try:
             classifier = NaiveBayesTextClassifier.load(resolved_model_path)
         except Exception:
-            pass
+            classifier = None
+
+    yield {
+        "event": "start",
+        "stage": "read_claim",
+        "clauses_total": len(clauses),
+        "evidence_provider": retriever.provider,
+        "selected_regulations": sorted(allowed_regulations) if allowed_regulations else list_available_regulations(),
+    }
+
+    regulation_control_totals.update(_collect_regulation_control_totals(allowed_regulations=allowed_regulations))
 
     for claim_index, clause in enumerate(clauses):
+        yield {
+            "event": "clause_start",
+            "stage": "read_claim",
+            "claim_index": claim_index,
+            "clauses_total": len(clauses),
+            "clause_preview": clause[:140],
+        }
+
         predicted_label = "unknown"
         confidence = 0.0
         if classifier is not None:
             probabilities = classifier.predict_proba(clause)
             predicted_label = max(probabilities.items(), key=lambda item: item[1])[0]
             confidence = float(probabilities.get(predicted_label, 0.0))
-            
-        predictions_for_risk.append({
-            "predicted_label": predicted_label,
-            "confidence": confidence,
-            "text": clause,
-        })
-        
-        lowered_clause = clause.lower()
+            yield {
+                "event": "classification_complete",
+                "stage": "classify_claim",
+                "claim_index": claim_index,
+                "predicted_label": predicted_label,
+                "confidence": round(confidence, 6),
+            }
 
+        predictions_for_risk.append(
+            {
+                "predicted_label": predicted_label,
+                "confidence": confidence,
+                "text": clause,
+            }
+        )
+
+        lowered_clause = clause.lower()
         for spec in POLICY_CHECK_SPECS:
-            matched_keywords = [
-                kw for kw in spec.keywords if kw in lowered_clause
-            ]
+            matched_keywords = [kw for kw in spec.keywords if kw in lowered_clause]
             if not matched_keywords:
                 continue
 
-            controls = REGULATION_CONTROLS.get(spec.check_id, [])
+            yield {
+                "event": "check_match",
+                "stage": "match_checks",
+                "claim_index": claim_index,
+                "check_id": spec.check_id,
+                "check_title": spec.title,
+                "matched_keywords": list(matched_keywords),
+            }
+
+            evidence_matches = retriever.retrieve(clause=clause, spec=spec, matched_keywords=matched_keywords, limit=18)
             verdicts: List[RegulationVerdict] = []
 
-            for control in controls:
+            for match in evidence_matches:
+                control = RegulationControl(
+                    regulation=match.regulation,
+                    control_id=match.control_id,
+                    title=match.title,
+                    requirement=match.requirement,
+                )
                 compliant = _clause_satisfies_control(
                     clause=clause,
                     matched_keywords=matched_keywords,
@@ -876,12 +943,14 @@ def assess_policy_compliance(
                     clause=clause,
                     control=control,
                     matched_keywords=matched_keywords,
+                    evidence_source=match.source,
+                    evidence_score=match.score,
                 )
-                remediation_advice = ""
-                if compliant:
-                    remediation_advice = f"Clause meets {control.control_id} requirements. To improve further, ensure the language is highly specific."
-                else:
-                    remediation_advice = f"Update the policy to address {control.control_id}: {control.requirement}"
+                remediation_advice = (
+                    f"Clause currently satisfies {control.control_id}. Strengthen with explicit implementation details."
+                    if compliant
+                    else f"Add explicit language covering {control.control_id}: {control.requirement}"
+                )
 
                 verdicts.append(
                     RegulationVerdict(
@@ -895,13 +964,22 @@ def assess_policy_compliance(
                     )
                 )
 
-                reg = control.regulation
-                if reg not in regulation_tallies:
-                    regulation_tallies[reg] = {"pass": 0, "fail": 0}
-                if compliant:
-                    regulation_tallies[reg]["pass"] += 1
-                else:
-                    regulation_tallies[reg]["fail"] += 1
+                regulation_tallies[control.regulation]["pass" if compliant else "fail"] += 1
+
+                yield {
+                    "event": "verdict_complete",
+                    "stage": "score_controls",
+                    "claim_index": claim_index,
+                    "check_id": spec.check_id,
+                    "regulation": control.regulation,
+                    "control_id": control.control_id,
+                    "control_title": control.title,
+                    "compliant": compliant,
+                    "evidence_source": match.source,
+                    "evidence_score": round(match.score, 6),
+                    "regulation_pass": regulation_tallies[control.regulation]["pass"],
+                    "regulation_fail": regulation_tallies[control.regulation]["fail"],
+                }
 
             claims.append(
                 PolicyClaimResult(
@@ -915,37 +993,11 @@ def assess_policy_compliance(
                 )
             )
 
-    for controls in REGULATION_CONTROLS.values():
-        for control in controls:
-            reg = control.regulation
-            regulation_control_totals[reg] = regulation_control_totals.get(reg, 0) + 1
-
-    regulation_summary: Dict[str, Dict[str, Any]] = {}
-    for reg, totals in sorted(regulation_tallies.items()):
-        total_evaluated = totals["pass"] + totals["fail"]
-        coverage_pct = round(
-            (totals["pass"] / total_evaluated * 100) if total_evaluated > 0 else 0.0, 2
-        )
-        regulation_summary[reg] = {
-            "pass_count": totals["pass"],
-            "fail_count": totals["fail"],
-            "total_evaluated": total_evaluated,
-            "total_controls": regulation_control_totals.get(reg, 0),
-            "compliance_pct": coverage_pct,
-        }
-
-    for reg, total in sorted(regulation_control_totals.items()):
-        if reg not in regulation_summary:
-            regulation_summary[reg] = {
-                "pass_count": 0,
-                "fail_count": 0,
-                "total_evaluated": 0,
-                "total_controls": total,
-                "compliance_pct": 0.0,
-            }
-
+    regulation_summary = _build_regulation_summary(
+        regulation_tallies=regulation_tallies,
+        regulation_control_totals=regulation_control_totals,
+    )
     model_signal = _score_model_signal(clauses=clauses, model_path=model_path)
-
     total_pass = sum(t.get("pass_count", 0) for t in regulation_summary.values())
     total_controls = sum(t.get("total_controls", 0) for t in regulation_summary.values())
     raw_score = (total_pass / total_controls * 100) if total_controls > 0 else 0.0
@@ -957,7 +1009,7 @@ def assess_policy_compliance(
     if predictions_for_risk and classifier is not None:
         bayesian_risk = compute_bayesian_risk(predictions_for_risk)
 
-    return {
+    result = {
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "mode": "policy_only",
         "overall_score": overall_score,
@@ -967,11 +1019,18 @@ def assess_policy_compliance(
             "clauses_analyzed": len(clauses),
             "claims_generated": len(claims),
             "regulations_evaluated": list(regulation_summary.keys()),
+            "evidence_provider": retriever.provider,
         },
         "claims": [c.as_dict() for c in claims],
         "regulation_summary": regulation_summary,
         "model_signal": model_signal,
         "bayesian_risk": bayesian_risk,
+    }
+
+    yield {
+        "event": "complete",
+        "stage": "finalize",
+        "result": result,
     }
 
 
@@ -1044,20 +1103,341 @@ def _build_verdict_reason(
     clause: str,
     control: RegulationControl,
     matched_keywords: List[str],
+    evidence_source: str,
+    evidence_score: float,
 ) -> str:
-    """Build a human-readable reason for a regulation verdict."""
+    """Build an evidence-backed reason for a regulation verdict."""
     keywords_csv = ", ".join(f"'{kw}'" for kw in matched_keywords[:4])
-    if compliant:
-        return (
-            f"Policy clause addresses {control.control_id} ({control.title}). "
-            f"Matched keywords [{keywords_csv}] align with the requirement: "
-            f"\"{control.requirement[:120]}...\""
-        )
+    verdict = "satisfies" if compliant else "does not satisfy"
+    requirement_excerpt = control.requirement[:160].strip()
+    clause_excerpt = clause[:160].strip()
     return (
-        f"Policy clause mentions [{keywords_csv}] but does not sufficiently "
-        f"address {control.control_id} ({control.title}): "
-        f"\"{control.requirement[:120]}...\""
+        f"Clause {verdict} {control.control_id} ({control.title}). "
+        f"Evidence source={evidence_source}, match_score={evidence_score:.3f}, "
+        f"matched_keywords=[{keywords_csv}], control_requirement=\"{requirement_excerpt}\", "
+        f"clause_excerpt=\"{clause_excerpt}\"."
     )
+
+
+def _emit_progress(
+    callback: Optional[Callable[[Dict[str, Any]], None]],
+    event: Dict[str, Any],
+) -> None:
+    if callback is None:
+        return
+    try:
+        callback(event)
+    except Exception:
+        return
+
+
+def list_available_regulations() -> List[str]:
+    regulations: set[str] = set()
+    for controls in REGULATION_CONTROLS.values():
+        for control in controls:
+            regulations.add(control.regulation)
+    for row in _load_ground_truth_controls():
+        regulation = str(row.get("regulation", "")).strip()
+        if regulation:
+            regulations.add(regulation)
+    return sorted(regulations)
+
+
+def _normalize_selected_regulations(selected_regulations: Optional[Sequence[str]]) -> set[str]:
+    if not selected_regulations:
+        return set()
+    return {str(item).strip() for item in selected_regulations if str(item).strip()}
+
+
+def _collect_regulation_control_totals(allowed_regulations: Optional[set[str]] = None) -> Dict[str, int]:
+    totals: Dict[str, int] = {}
+    allow_all = not allowed_regulations
+
+    for controls in REGULATION_CONTROLS.values():
+        for control in controls:
+            if not allow_all and control.regulation not in allowed_regulations:
+                continue
+            totals[control.regulation] = totals.get(control.regulation, 0) + 1
+
+    for row in _load_ground_truth_controls():
+        regulation = str(row.get("regulation", "")).strip()
+        if not regulation:
+            continue
+        if not allow_all and regulation not in allowed_regulations:
+            continue
+        totals[regulation] = max(totals.get(regulation, 0), 1)
+    return totals
+
+
+def _build_regulation_summary(
+    regulation_tallies: Mapping[str, Mapping[str, int]],
+    regulation_control_totals: Mapping[str, int],
+) -> Dict[str, Dict[str, Any]]:
+    summary: Dict[str, Dict[str, Any]] = {}
+    for reg, totals in sorted(regulation_tallies.items()):
+        pass_count = int(totals.get("pass", 0))
+        fail_count = int(totals.get("fail", 0))
+        total_evaluated = pass_count + fail_count
+        compliance_pct = round((pass_count / total_evaluated * 100.0) if total_evaluated else 0.0, 2)
+        summary[reg] = {
+            "pass_count": pass_count,
+            "fail_count": fail_count,
+            "total_evaluated": total_evaluated,
+            "total_controls": int(regulation_control_totals.get(reg, 0)),
+            "compliance_pct": compliance_pct,
+        }
+
+    for reg, total_controls in sorted(regulation_control_totals.items()):
+        if reg in summary:
+            continue
+        summary[reg] = {
+            "pass_count": 0,
+            "fail_count": 0,
+            "total_evaluated": 0,
+            "total_controls": int(total_controls),
+            "compliance_pct": 0.0,
+        }
+    return summary
+
+
+def _load_ground_truth_controls_path() -> Optional[Path]:
+    env_path = os.getenv("PRERT_CONTROLS_PATH", "").strip()
+    if env_path:
+        candidate = Path(env_path).expanduser()
+        if candidate.exists():
+            return candidate
+
+    current = Path(__file__).resolve()
+    for parent in (current.parent, *current.parents):
+        candidate = parent / DEFAULT_PHASE1_CONTROLS_PATH
+        if candidate.exists():
+            return candidate
+    return None
+
+
+@lru_cache(maxsize=1)
+def _load_ground_truth_controls() -> Tuple[Dict[str, Any], ...]:
+    controls_path = _load_ground_truth_controls_path()
+    if controls_path is None:
+        return tuple()
+
+    rows: List[Dict[str, Any]] = []
+    try:
+        with controls_path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                payload = json.loads(line)
+                if not isinstance(payload, dict):
+                    continue
+                rows.append(payload)
+    except Exception:
+        return tuple()
+
+    return tuple(rows)
+
+
+def _normalize_control_row(row: Mapping[str, Any], source: str) -> EvidenceMatch:
+    control_id = str(row.get("native_id") or row.get("control_id") or row.get("normalized_id") or "unknown")
+    title = str(row.get("title") or control_id)
+    requirement = str(row.get("text") or row.get("requirement") or "")
+    regulation = str(row.get("regulation") or "UNKNOWN")
+    return EvidenceMatch(
+        regulation=regulation,
+        control_id=control_id,
+        title=title,
+        requirement=requirement,
+        source=source,
+        score=0.0,
+    )
+
+
+def _tokenize_text(text: str) -> set[str]:
+    tokens = re.findall(r"[a-z0-9]+", text.lower())
+    return {token for token in tokens if len(token) > 2}
+
+
+def _score_control_match(
+    clause_tokens: set[str],
+    matched_keywords: Sequence[str],
+    candidate: EvidenceMatch,
+) -> float:
+    control_tokens = _tokenize_text(f"{candidate.control_id} {candidate.title} {candidate.requirement}")
+    if not control_tokens:
+        return 0.0
+    overlap = len(clause_tokens.intersection(control_tokens))
+    keyword_hits = sum(1 for keyword in matched_keywords if keyword.lower() in candidate.requirement.lower())
+    return float(overlap) + (keyword_hits * 2.0)
+
+
+class _EvidenceRetriever:
+    def __init__(self, allowed_regulations: Optional[set[str]] = None) -> None:
+        self.provider = "local"
+        self.allowed_regulations = allowed_regulations or set()
+        self._chroma_client = None
+        self._collection_name = ""
+        self._configure_chroma()
+
+    def _configure_chroma(self) -> None:
+        try:
+            from prert.config import ChromaSettings
+            from prert.chroma import ChromaCloudClient
+
+            settings = ChromaSettings.from_env()
+            self._chroma_client = ChromaCloudClient(settings)
+            self._collection_name = settings.default_collection_name
+            self.provider = "chroma"
+        except Exception:
+            self._chroma_client = None
+            self._collection_name = ""
+            self.provider = "local"
+
+    def retrieve(
+        self,
+        clause: str,
+        spec: PolicyCheckSpec,
+        matched_keywords: Sequence[str],
+        limit: int,
+    ) -> List[EvidenceMatch]:
+        chroma_matches = self._retrieve_chroma(clause=clause, limit=limit)
+        if chroma_matches:
+            scored = self._rank_matches(
+                matches=chroma_matches,
+                clause=clause,
+                matched_keywords=matched_keywords,
+                limit=limit,
+            )
+            if scored:
+                return scored
+
+        local_matches = self._retrieve_local(clause=clause, spec=spec, matched_keywords=matched_keywords, limit=limit)
+        return local_matches
+
+    def _retrieve_chroma(self, clause: str, limit: int) -> List[EvidenceMatch]:
+        if self._chroma_client is None:
+            return []
+        try:
+            response = self._chroma_client.search(
+                collection_name=self._collection_name,
+                query_text=clause,
+                n_results=limit,
+            )
+        except Exception:
+            self.provider = "local"
+            self._chroma_client = None
+            return []
+
+        matches: List[EvidenceMatch] = []
+        if not isinstance(response, dict):
+            return matches
+
+        documents = response.get("documents") or []
+        metadatas = response.get("metadatas") or []
+        if documents and isinstance(documents, list) and isinstance(documents[0], list):
+            documents = documents[0]
+        if metadatas and isinstance(metadatas, list) and isinstance(metadatas[0], list):
+            metadatas = metadatas[0]
+
+        for idx, document in enumerate(documents if isinstance(documents, list) else []):
+            metadata = {}
+            if isinstance(metadatas, list) and idx < len(metadatas) and isinstance(metadatas[idx], dict):
+                metadata = metadatas[idx]
+            row = {
+                "regulation": metadata.get("regulation", "UNKNOWN"),
+                "native_id": metadata.get("native_id") or metadata.get("control_id") or metadata.get("normalized_id") or f"ctrl-{idx}",
+                "title": metadata.get("title") or metadata.get("native_id") or metadata.get("control_id") or "Control",
+                "text": str(document or ""),
+            }
+            normalized = _normalize_control_row(row, source="chroma")
+            if self.allowed_regulations and normalized.regulation not in self.allowed_regulations:
+                continue
+            matches.append(normalized)
+        return matches
+
+    def _retrieve_local(
+        self,
+        clause: str,
+        spec: PolicyCheckSpec,
+        matched_keywords: Sequence[str],
+        limit: int,
+    ) -> List[EvidenceMatch]:
+        clause_tokens = _tokenize_text(clause)
+        candidates: List[EvidenceMatch] = []
+
+        for control in REGULATION_CONTROLS.get(spec.check_id, []):
+            if self.allowed_regulations and control.regulation not in self.allowed_regulations:
+                continue
+            candidates.append(
+                EvidenceMatch(
+                    regulation=control.regulation,
+                    control_id=control.control_id,
+                    title=control.title,
+                    requirement=control.requirement,
+                    source="legacy",
+                    score=0.0,
+                )
+            )
+
+        for row in _load_ground_truth_controls():
+            match = _normalize_control_row(row, source="ground_truth")
+            if not match.requirement:
+                continue
+            if self.allowed_regulations and match.regulation not in self.allowed_regulations:
+                continue
+            candidates.append(match)
+
+        ranked = self._rank_matches(
+            matches=candidates,
+            clause=clause,
+            matched_keywords=matched_keywords,
+            limit=limit,
+            clause_tokens=clause_tokens,
+        )
+        return ranked
+
+    def _rank_matches(
+        self,
+        matches: Sequence[EvidenceMatch],
+        clause: str,
+        matched_keywords: Sequence[str],
+        limit: int,
+        clause_tokens: Optional[set[str]] = None,
+    ) -> List[EvidenceMatch]:
+        tokens = clause_tokens if clause_tokens is not None else _tokenize_text(clause)
+        scored: List[EvidenceMatch] = []
+        for match in matches:
+            score = _score_control_match(tokens, matched_keywords, match)
+            if score <= 0:
+                continue
+            scored.append(
+                EvidenceMatch(
+                    regulation=match.regulation,
+                    control_id=match.control_id,
+                    title=match.title,
+                    requirement=match.requirement,
+                    source=match.source,
+                    score=score,
+                )
+            )
+
+        scored.sort(key=lambda item: (item.score, item.regulation, item.control_id), reverse=True)
+
+        deduped: List[EvidenceMatch] = []
+        seen: set[tuple[str, str]] = set()
+        per_reg_count: Dict[str, int] = defaultdict(int)
+        max_per_reg = max(2, min(5, limit // 3 if limit > 0 else 2))
+        for item in scored:
+            key = (item.regulation, item.control_id)
+            if key in seen:
+                continue
+            if per_reg_count[item.regulation] >= max_per_reg:
+                continue
+            seen.add(key)
+            per_reg_count[item.regulation] += 1
+            deduped.append(item)
+            if len(deduped) >= limit:
+                break
+        return deduped
 
 
 def _status_from_score(score: float) -> str:

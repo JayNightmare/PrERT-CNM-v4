@@ -1,0 +1,64 @@
+{
+	"schema_version": "1.0",
+	"dataset": "OPP-115 consolidation-0.75 held-out validation/test split",
+	"metric_source": "Stored Phase 3 published metrics bundled with the Space",
+	"generated_from": [
+		"deployment/demo-assets/phase-3-freeze/classifier_metrics.json",
+		"deployment/demo-assets/phase-3-freeze/phase3_manifest.json"
+	],
+	"notes": [
+		"The published Hugging Face model is the current PrERT-CNM v4 PrivacyBERT sequence classifier.",
+		"A separate upstream/base PrivacyBERT held-out benchmark artifact is not bundled, so that reference row is shown without fabricated metrics.",
+		"Rows are ranked only when stored test macro F1 and test accuracy are available."
+	],
+	"models": [
+		{
+			"model_id": "__MODEL_ID__",
+			"display_name": "PrERT-CNM v4 PrivacyBERT",
+			"model_family": "PrivacyBERT fine-tuned classifier",
+			"status": "available",
+			"role": "published_huggingface_model",
+			"notes": "Current Hugging Face model prepared from the Phase 3 PrivacyBERT freeze.",
+			"training_rows": 15645,
+			"validation_rows": 1803,
+			"test_rows": 2272,
+			"metrics": {
+				"validation_macro_f1": 0.849021,
+				"validation_accuracy": 0.948419,
+				"test_macro_f1": 0.894166,
+				"test_accuracy": 0.957306,
+				"bayesian_primary_score": 0.987538,
+				"calibration_test_ece": null,
+				"test_per_class": {
+					"organization": {
+						"precision": 0.982039,
+						"recall": 0.968229,
+						"f1": 0.975085,
+						"support": 1920
+					},
+					"system": {
+						"precision": 0.813333,
+						"recall": 0.859155,
+						"f1": 0.835616,
+						"support": 71
+					},
+					"user": {
+						"precision": 0.838816,
+						"recall": 0.907473,
+						"f1": 0.871795,
+						"support": 281
+					}
+				}
+			}
+		},
+		{
+			"model_id": "mukund/privbert",
+			"display_name": "PrivacyBERT upstream reference",
+			"model_family": "PrivacyBERT base model",
+			"status": "reference_only",
+			"role": "external_reference",
+			"notes": "No separate held-out OPP-115 benchmark artifact is bundled for the upstream/base checkpoint.",
+			"metrics": {}
+		}
+	]
+}

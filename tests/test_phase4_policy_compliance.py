@@ -4,6 +4,7 @@ from pathlib import Path
 
 from prert.phase4.compliance_assessor import (
     assess_policy_compliance,
+    assess_policy_compliance_stream,
     split_policy_clauses,
     REGULATION_CONTROLS,
 )
@@ -70,7 +71,8 @@ def test_claims_have_regulation_verdicts_with_citations() -> None:
         assert len(claim["regulation_verdicts"]) > 0
 
         for verdict in claim["regulation_verdicts"]:
-            assert verdict["regulation"] in {"GDPR", "NIST", "ISO_27701"}
+            assert isinstance(verdict["regulation"], str)
+            assert verdict["regulation"]
             assert isinstance(verdict["compliant"], bool)
             assert isinstance(verdict["reason"], str)
             assert len(verdict["reason"]) > 0
@@ -86,7 +88,7 @@ def test_all_three_regulation_frameworks_appear() -> None:
 
     regulation_summary = result["regulation_summary"]
     assert "GDPR" in regulation_summary
-    assert "NIST" in regulation_summary
+    assert "NIST" in regulation_summary or "NISTPF" in regulation_summary
     assert "ISO_27701" in regulation_summary
 
     for reg, summary in regulation_summary.items():
@@ -164,6 +166,36 @@ def test_regulation_controls_cover_all_check_specs() -> None:
         assert "GDPR" in regulations_covered, f"GDPR missing for {spec.check_id}"
         assert "NIST" in regulations_covered, f"NIST missing for {spec.check_id}"
         assert "ISO_27701" in regulations_covered, f"ISO_27701 missing for {spec.check_id}"
+
+
+def test_assess_policy_compliance_stream_emits_complete_with_result() -> None:
+    events = list(
+        assess_policy_compliance_stream(
+            policy_text=COMPREHENSIVE_POLICY,
+            model_path=Path("does-not-exist-model.json"),
+        )
+    )
+    assert events
+    assert events[0]["event"] == "start"
+    assert events[-1]["event"] == "complete"
+    final_result = events[-1]["result"]
+    assert final_result["summary"]["clauses_analyzed"] > 0
+    assert "evidence_provider" in final_result["summary"]
+
+
+def test_selected_regulations_filter_verdicts_and_summary() -> None:
+    result = assess_policy_compliance(
+        policy_text=COMPREHENSIVE_POLICY,
+        model_path=Path("does-not-exist-model.json"),
+        selected_regulations=["GDPR"],
+    )
+
+    assert "GDPR" in result["regulation_summary"]
+    assert "ISO_27701" not in result["regulation_summary"]
+
+    for claim in result["claims"]:
+        for verdict in claim["regulation_verdicts"]:
+            assert verdict["regulation"] == "GDPR"
 
 
 def test_grading_boundaries_consistent() -> None:

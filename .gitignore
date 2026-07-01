@@ -220,5 +220,4 @@ docs/Proposal/*
 docs/Project/Final/
 
 .agents/*
-huggingface/*
 space_outputs/*
