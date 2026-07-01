@@ -26,6 +26,7 @@ MODEL_REVISION = os.getenv("MODEL_REVISION", "main")
 MAX_LENGTH = int(os.getenv("MAX_LENGTH", "512"))
 GENERATED_OUTPUT_ROOT = Path(tempfile.gettempdir()) / "prert-cnm-space"
 BENCHMARKS_PATH = SPACE_ROOT / "benchmarks.json"
+BENCHMARK_PRIMARY_MODEL_ID = os.getenv("BENCHMARK_PRIMARY_MODEL_ID", "JayNightmare/PrERT-CNM-v4-privacybert")
 
 
 def _discover_project_root() -> Path:
@@ -333,7 +334,18 @@ def run_live_privacybert_benchmark(
 def _discover_similar_privacybert_models(limit: int) -> List[Dict[str, Any]]:
     token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
     api = HfApi(token=token)
-    discovered: List[Dict[str, Any]] = []
+    primary_model_id = _resolve_primary_benchmark_model_id()
+    discovered: List[Dict[str, Any]] = [
+        {
+            "model_id": primary_model_id,
+            "pipeline_tag": "text-classification",
+            "downloads": 0,
+            "likes": 0,
+            "last_modified": "",
+            "is_primary": True,
+        }
+    ]
+    competitors: List[Dict[str, Any]] = []
 
     try:
         models_iter = api.list_models(search="privacy bert", limit=60, full=True)
@@ -344,34 +356,44 @@ def _discover_similar_privacybert_models(limit: int) -> List[Dict[str, Any]]:
         model_id = str(getattr(info, "id", "") or "")
         if not model_id:
             continue
-        if model_id == MODEL_ID:
+        if model_id == primary_model_id:
+            discovered[0] = {
+                "model_id": primary_model_id,
+                "pipeline_tag": str(getattr(info, "pipeline_tag", "") or "text-classification"),
+                "downloads": int(getattr(info, "downloads", 0) or 0),
+                "likes": int(getattr(info, "likes", 0) or 0),
+                "last_modified": str(getattr(info, "last_modified", "") or ""),
+                "is_primary": True,
+            }
             continue
         pipeline_tag = str(getattr(info, "pipeline_tag", "") or "")
         tags = {str(tag) for tag in (getattr(info, "tags", []) or [])}
         if pipeline_tag != "text-classification" and "text-classification" not in tags:
             continue
 
-        discovered.append(
-            {
-                "model_id": "JayNightmare/PrERT-CNM-v4-privacybert",
-                "pipeline_tag": "text-classification",
-                "downloads": 0,
-                "likes": 0,
-                "last_modified": "",
-            }   
-        )
-        discovered.append(
+        competitors.append(
             {
                 "model_id": model_id,
                 "pipeline_tag": pipeline_tag or "n/a",
                 "downloads": int(getattr(info, "downloads", 0) or 0),
                 "likes": int(getattr(info, "likes", 0) or 0),
                 "last_modified": str(getattr(info, "last_modified", "") or ""),
+                "is_primary": False,
             }
         )
 
-    discovered.sort(key=lambda item: (item["downloads"], item["likes"]), reverse=True)
-    return discovered[:limit]
+    competitors.sort(key=lambda item: (item["downloads"], item["likes"]), reverse=True)
+    total_limit = max(1, int(limit))
+    competitor_limit = max(0, total_limit - 1)
+    discovered.extend(competitors[:competitor_limit])
+    return discovered
+
+
+def _resolve_primary_benchmark_model_id() -> str:
+    candidate = MODEL_ID if MODEL_ID and MODEL_ID != DEFAULT_MODEL_ID else ""
+    if candidate:
+        return candidate
+    return BENCHMARK_PRIMARY_MODEL_ID
 
 
 def _generate_benchmark_samples(samples_per_band: int, seed: int) -> List[Dict[str, Any]]:
@@ -551,6 +573,15 @@ def _format_live_benchmark_summary(payload: Mapping[str, Any]) -> str:
         f"- Policy samples: {payload.get('total_samples', 0)}",
         f"- Best average confidence: **{top_conf.get('model_id', '')}** ({_format_optional_float(top_conf.get('average_confidence'))})",
     ]
+    primary_model_id = _resolve_primary_benchmark_model_id()
+    primary_result = next((row for row in results if str(row.get("model_id", "")) == primary_model_id), None)
+    if primary_result is not None:
+        lines.append(
+            f"- Primary model ({primary_model_id}) average confidence: {_format_optional_float(primary_result.get('average_confidence'))}"
+        )
+        lines.append(
+            f"- Primary model tri-label accuracy: {_format_optional_float(primary_result.get('tri_label_accuracy'))}"
+        )
     if top_acc is not None:
         lines.append(
             f"- Best tri-label accuracy: **{top_acc.get('model_id', '')}** ({_format_optional_float(top_acc.get('tri_label_accuracy'))})"
@@ -562,7 +593,14 @@ def _format_live_benchmark_summary(payload: Mapping[str, Any]) -> str:
 def _live_benchmark_rows(payload: Mapping[str, Any]) -> List[List[Any]]:
     rows: List[List[Any]] = []
     results = [_as_dict(item) for item in _as_list(payload.get("results"))]
-    ranked = sorted(results, key=lambda item: float(item.get("average_confidence") or -1.0), reverse=True)
+    primary_model_id = _resolve_primary_benchmark_model_id()
+    ranked = sorted(
+        results,
+        key=lambda item: (
+            0 if str(item.get("model_id", "")) == primary_model_id else 1,
+            -float(item.get("average_confidence") or -1.0),
+        ),
+    )
     for idx, row in enumerate(ranked, start=1):
         rows.append(
             [
@@ -584,7 +622,16 @@ def _live_benchmark_rows(payload: Mapping[str, Any]) -> List[List[Any]]:
 
 def _model_specs_rows(model_specs: Sequence[Mapping[str, Any]]) -> List[List[Any]]:
     rows: List[List[Any]] = []
-    for spec in model_specs:
+    primary_model_id = _resolve_primary_benchmark_model_id()
+    ordered_specs = sorted(
+        [_as_dict(spec) for spec in model_specs],
+        key=lambda item: (
+            0 if str(item.get("model_id", "")) == primary_model_id else 1,
+            -int(item.get("downloads", 0) or 0),
+            -int(item.get("likes", 0) or 0),
+        ),
+    )
+    for spec in ordered_specs:
         rows.append(
             [
                 spec.get("model_id", ""),
