@@ -704,7 +704,7 @@ def _render_dictionary_markdown() -> str:
             "## Intended Use",
             "",
             "- Regression tests for compliance scoring behavior.",
-            "- Manual supervisor upload demos in the Streamlit GUI.",
+            "- Manual supervisor upload demos in the Gradio GUI.",
             "- Stressing low/medium/high compliance scenarios with reproducible seed control.",
             "",
             "## Non-Use",

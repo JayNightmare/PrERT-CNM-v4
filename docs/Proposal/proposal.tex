@@ -173,7 +173,7 @@ To design, implement and validate an AI-driven, standards-aligned framework for 
         \emph{(S)} Validation report comparing the integrated model against logistic-regression and naive-Bayes baselines; \emph{(M)} statistically significant improvement on at least one calibration metric (Brier score or ECE) with bootstrap CIs; \emph{(A)} ablation pipelines already exist in the project repository; \emph{(R)} satisfies MSc assessment criteria; \emph{(T)} final submission on 30 June 2026.
 \end{description}
 
-Intermediate, enabling deliverables include a reproducible build pipeline, a unit-test suite covering parsers and chunking, and a small Streamlit/Flask demonstration interface for the validation phase.
+Intermediate, enabling deliverables include a reproducible build pipeline, a unit-test suite covering parsers and chunking, and a small Gradio demonstration interface for the validation phase.
 
 % =====================================================================
 \section{Literature Review}\label{sec:litrev}
@@ -231,7 +231,7 @@ The project's technology choices are summarised in \autoref{tab:tech} together w
         Standards corpus & Local copies of ISO/IEC, NIST and GDPR documents \parencite{iso27001_2022, iso27701_2019, iso29100_2011, iso29151_2017, nist_pf_2020, nist_aiRMF_2023, gdpr2016} & Online lookup --- rejected: rate-limit and version drift. \\
         Compute & Local CUDA GPU (16~GB) & Cloud GPU (Colab Pro, AWS) --- retained as fallback if local compute fails. \\
         Evaluation / testing & \texttt{pytest}, scikit-learn, bootstrap CIs & Bespoke test code --- rejected: maintenance overhead. \\
-        Demonstration interface & Flask / Streamlit web app & Jupyter-only demo --- rejected: not stakeholder-facing. \\
+        Demonstration interface & Gradio web app & Jupyter-only demo --- rejected: not stakeholder-facing. \\
         Version control / CI & Git, GitHub & Self-hosted --- rejected: marginal benefit for an MSc-scale project. \\
         \bottomrule
     \end{tabularx}

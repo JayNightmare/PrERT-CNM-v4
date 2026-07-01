@@ -172,7 +172,7 @@ def _run_guide(argv: List[str]) -> int:
     if args.goal in {"full", "phase4", "validation"}:
         print("Phase 4")
         print("1. Validate artifacts: prert phase4 --baseline-dir artifacts/phase-3-freeze")
-        print("2. Launch web app: prert phase4-web --port 8501")
+        print("2. Launch web app: prert phase4-web --public")
         print("3. Optional synthetic fixtures: prert phase4-synth --output-dir artifacts/phase-4/synthetic-compliance")
 
     return 0
@@ -269,7 +269,7 @@ def _interactive_options(goal: str) -> List[Tuple[str, List[str]]]:
         options.extend(
             [
                 ("Phase 4: Validate baseline artifacts", ["phase4", "--baseline-dir", "artifacts/phase-3-freeze"]),
-                ("Phase 4: Launch compliance web app", ["phase4-web", "--port", "8501"]),
+                ("Phase 4: Launch compliance web app", ["phase4-web", "--port", "7860"]),
                 (
                     "Phase 4: Generate synthetic compliance fixtures",
                     ["phase4-synth", "--output-dir", "artifacts/phase-4/synthetic-compliance"],
@@ -370,7 +370,7 @@ def _print_help() -> None:
     print("  phase3         Run Phase 3 baseline training")
     print("  phase3-freeze  Run Phase 3 acceptance freeze")
     print("  phase4         Run Phase 4 validation benchmark")
-    print("  phase4-web     Launch Phase 4 Streamlit web app")
+    print("  phase4-web     Launch Phase 4 Gradio web app")
     print("  phase4-synth   Generate synthetic policy/schema fixtures")
     print("")
     print("Helper commands:")
@@ -383,7 +383,7 @@ def _print_help() -> None:
     print("  prert interactive")
     print("  prert interactive --goal phase1 --select 1 --execute")
     print("  prert extract --chunk --output-dir artifacts/phase-1")
-    print("  prert phase4-web --port 8501")
+    print("  prert phase4-web --public")
 
 
 if __name__ == "__main__":

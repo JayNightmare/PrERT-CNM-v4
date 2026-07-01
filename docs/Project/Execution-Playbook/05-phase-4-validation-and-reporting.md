@@ -57,15 +57,10 @@ MVP outputs:
 Supervisor-facing GUI workflow:
 
 ```bash
-PYTHONPATH=src python scripts/run_phase4_web.py --port 8501
+PYTHONPATH=src python scripts/run_phase4_web.py --public
 ```
 
-The GUI allows uploads for:
-
-- company privacy policy documents
-- database schema files
-
-and returns an evidence-backed compliance score with detected risks.
+The Gradio GUI provides policy-only compliance assessment, synthetic policy/schema generation, stored Phase 3 benchmark results, artifact browsing, and raw classifier scoring. Use `--public` to request a temporary Gradio share URL for supervisor review.
 
 Notes:
 
@@ -124,11 +119,11 @@ Notes:
 ## Risks and Mitigations
 
 - Risk: Benchmark definitions are too vague.
-     - Mitigation: Lock thresholds before large test execution.
+  - Mitigation: Lock thresholds before large test execution.
 - Risk: Last-minute model changes invalidate comparisons.
-     - Mitigation: Freeze baseline and track all post-freeze deltas.
+  - Mitigation: Freeze baseline and track all post-freeze deltas.
 - Risk: Report quality suffers due to time compression.
-     - Mitigation: Start report skeleton in Week 1 and update continuously.
+  - Mitigation: Start report skeleton in Week 1 and update continuously.
 
 ## Recommended Week-by-Week Breakdown
 

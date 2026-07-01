@@ -68,7 +68,7 @@ prert phase4 --baseline-dir artifacts/phase-3-freeze
 | Phase 3 | `prert phase3`            | Train and evaluate baseline model                        | `artifacts/phase-3*/*`                     |
 | Phase 3 | `prert phase3-freeze`     | Run acceptance freeze workflow                           | `artifacts/phase-3-freeze/*`               |
 | Phase 4 | `prert phase4`            | Validate and compare artifact sets                       | `artifacts/phase-4/*`                      |
-| Phase 4 | `prert phase4-web`        | Launch Streamlit compliance studio                       | Local web app                              |
+| Phase 4 | `prert phase4-web`        | Launch Gradio compliance studio                          | Local or public web app                    |
 | Phase 4 | `prert phase4-synth`      | Generate synthetic policy/schema fixtures                | `artifacts/phase-4/synthetic-compliance/*` |
 
 ## Workflow Presets

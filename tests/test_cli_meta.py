@@ -8,6 +8,7 @@ from prert.cli import main as cli_main
 from prert.cli import app350 as cli_app350
 from prert.cli import phase3 as cli_phase3
 from prert.cli import phase3_freeze as cli_phase3_freeze
+from prert.cli import phase4_web as cli_phase4_web
 from prert.phase3.classifier import DEFAULT_PRIVACYBERT_MODEL_NAME
 
 
@@ -140,6 +141,29 @@ def test_phase3_cli_accepts_auxiliary_labeled_input_path(monkeypatch) -> None:
     args = cli_phase3._parse_args()
 
     assert args.auxiliary_labeled_input_path == Path("auxiliary.jsonl")
+
+
+def test_phase4_web_public_mode_builds_gradio_launch_kwargs(monkeypatch) -> None:
+    monkeypatch.setattr(sys, "argv", ["prert-phase4-web", "--public", "--port", "7861"])
+
+    args = cli_phase4_web._parse_args()
+    launch_kwargs = cli_phase4_web._build_launch_kwargs(args)
+
+    assert launch_kwargs == {
+        "server_port": 7861,
+        "server_name": "0.0.0.0",
+        "share": True,
+    }
+
+
+def test_phase4_web_custom_host_preserves_explicit_address(monkeypatch) -> None:
+    monkeypatch.setattr(sys, "argv", ["prert-phase4-web", "--host", "192.0.2.10"])
+
+    args = cli_phase4_web._parse_args()
+    launch_kwargs = cli_phase4_web._build_launch_kwargs(args)
+
+    assert launch_kwargs["server_name"] == "192.0.2.10"
+    assert launch_kwargs["server_port"] == cli_phase4_web.DEFAULT_PORT
 
 
 def test_phase3_main_loads_dotenv_before_pipeline(monkeypatch) -> None:
