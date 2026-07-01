@@ -72,11 +72,13 @@ def run_phase3_pipeline(
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_input_set = input_set
 
-    # C4: unify seed/random_state. Historically the pipeline accepted both
-    # (split/bootstrap used `seed`; the classifier used `random_state`).
-    # Treat `seed` as the authoritative source of randomness; warn if the
-    # caller passes a divergent `random_state` so we never silently freeze
-    # an artifact built from two different RNG seeds.
+    """ 
+    C4: unify seed/random_state. Historically the pipeline accepted both
+    (split/bootstrap used `seed`; the classifier used `random_state`).
+    Treat `seed` as the authoritative source of randomness; warn if the
+    caller passes a divergent `random_state` so we never silently freeze
+    an artifact built from two different RNG seeds. 
+    """
     if random_state != seed:
         _LOGGER.warning(
             "random_state=%d differs from seed=%d; using seed for split/bootstrap and "

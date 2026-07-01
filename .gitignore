@@ -226,3 +226,5 @@ docs/Project/Documentation/*
 docs/Project/Final/
 
 .agents/*
+huggingface/*
+space_outputs/*

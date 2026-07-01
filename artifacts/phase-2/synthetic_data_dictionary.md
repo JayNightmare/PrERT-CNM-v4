@@ -13,6 +13,17 @@
 - missing_fields: Count of missing required fields for penalty application.
 - observed_confidence: Observed confidence in [0, 1].
 - metadata.generator: Synthetic generator version identifier.
+- metadata.policy_id: Link to synthetic_policies.policy_id when generated.
+- metadata.policy_claim_id: Link to the claim that informed this observation.
+
+## File: synthetic_policies.jsonl
+
+- policy_id: Stable synthetic policy identifier.
+- scenario: One of normal, stressed, adversarial.
+- compliance_band: Target posture high, medium, or low.
+- organization/sector/region: Synthetic deployment context.
+- policy_text: Full synthetic privacy policy containing multiple claims.
+- claims: Claim-level records with mapped controls, metric ids, compliance status, strength, and text.
 
 ## File: metric_specs.jsonl
 

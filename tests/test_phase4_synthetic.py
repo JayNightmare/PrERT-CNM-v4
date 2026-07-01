@@ -26,11 +26,24 @@ def test_phase4_synthetic_generator_writes_expected_artifacts(tmp_path: Path) ->
     rows = read_jsonl(dataset_path)
     assert len(rows) == 9
     assert {row["compliance_band"] for row in rows} == {"low", "medium", "high"}
+    assert all(len(row["policy_claims"]) >= 5 for row in rows)
+    assert all(len(row["schema_tables"]) >= 3 for row in rows)
+    assert {claim["compliance_status"] for row in rows for claim in row["policy_claims"]} >= {
+        "compliant",
+        "partial",
+        "noncompliant",
+    }
 
     manifest_payload = read_json(manifest_path)
     assert manifest_payload["counts_by_band"] == {"low": 2, "medium": 3, "high": 4}
     assert manifest_payload["upload_fixtures"]["enabled"] is True
     assert manifest_payload["upload_fixtures"]["files_written"] == len(rows) * 2
+
+    fixture_dir = output_dir / "upload-fixtures"
+    policy_fixture = next(fixture_dir.glob("*-policy.md"))
+    schema_fixture = next(fixture_dir.glob("*-schema.sql"))
+    assert len(policy_fixture.read_text(encoding="utf-8").splitlines()) >= 15
+    assert schema_fixture.read_text(encoding="utf-8").count("CREATE TABLE") >= 3
 
 
 def test_phase4_synthetic_generator_produces_ordered_band_scores(tmp_path: Path) -> None:

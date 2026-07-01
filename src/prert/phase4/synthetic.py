@@ -74,6 +74,181 @@ HIGH_POLICY_FRAGMENT_GROUPS = [
 ]
 
 
+POLICY_DOCUMENT_PROFILES: Dict[str, Dict[str, Any]] = {
+    "low": {
+        "organization": "LooseLeaf Retail",
+        "sector": "retail loyalty and marketing",
+        "sections": [
+            (
+                "Information We Collect",
+                [
+                    "We collect account details, browsing activity, device identifiers, location signals, payment references, support messages, and other information that may help us understand customers.",
+                    "We may combine information from visits, messages, promotions, and partner activity to maintain a useful customer profile.",
+                ],
+            ),
+            (
+                "Consent And Choices",
+                [
+                    "Using the service implies consent to our baseline data handling terms, including optional analytics and personalization features.",
+                    "Some browser and cookie controls may be available, but product features can continue to collect information after preferences change.",
+                ],
+            ),
+            (
+                "Sharing And Operations",
+                [
+                    "We may share account information with partners, affiliates, and service providers to operate, promote, and improve our services.",
+                    "Policy terms and operational practices may change over time without detailed implementation guarantees for each data category.",
+                    "Customers can send questions to support, although response timing and escalation paths are handled case by case.",
+                ],
+            ),
+        ],
+    },
+    "medium": {
+        "organization": "Midline Health Apps",
+        "sector": "wellness platform",
+        "sections": [
+            (
+                "Notice And Consent",
+                [
+                    "We provide a transparent privacy notice and request consent before enabling optional data uses such as reminders, analytics, and personalization.",
+                    "Users can change non-essential preferences in account settings, though some operational processing remains required for service delivery.",
+                ],
+            ),
+            (
+                "Individual Rights",
+                [
+                    "Users can access account records, correct profile details, and request deletion through support channels or account settings.",
+                    "Deletion requests are reviewed for legal and safety exceptions before the final response is sent.",
+                ],
+            ),
+            (
+                "Security And Vendors",
+                [
+                    "Data is protected with encryption, secure storage, and role-based access control safeguards in production systems.",
+                    "Limited third-party vendors and processors support hosting, billing, and support workflows under contractual obligations.",
+                    "We retain records for the storage period needed to provide services and delete inactive support tickets during scheduled archive reviews.",
+                ],
+            ),
+        ],
+    },
+    "high": {
+        "organization": "Aegis Civic Cloud",
+        "sector": "public-service case management",
+        "sections": [
+            (
+                "Transparent Notice And Consent",
+                [
+                    "We provide transparent privacy notice details, request explicit consent, record consent history, and offer opt out controls for optional processing before data is collected.",
+                    "Personal data is collected only for documented purpose limitation requirements, necessary service delivery, and compatible legitimate interest operations.",
+                ],
+            ),
+            (
+                "Individual Rights",
+                [
+                    "Users can access, correct, rectify, delete, erase, and port personal data through the privacy portal, and completed requests receive dated confirmation.",
+                    "Users can contact the privacy team, complaint channel, or Data Protection Officer (DPO) to submit a request, escalation, or complaint.",
+                ],
+            ),
+            (
+                "Security, Sharing, And Incidents",
+                [
+                    "Security safeguards include encryption at rest and in transit, multi-factor authentication, strict access control, monitoring, and layered protections for sensitive systems.",
+                    "We disclose each third-party processor, vendor, affiliate, transfer category, and contractual purpose involved in data sharing operations.",
+                    "If an incident or breach occurs, we notify affected users and supervisory contacts, investigate unauthorized compromise, and preserve response evidence.",
+                ],
+            ),
+            (
+                "Retention And Sensitive Data",
+                [
+                    "We define retention schedules, storage period limits, archive rules, and delete after timelines for records at the end of processing.",
+                    "Special category and sensitive data handling controls are documented in dedicated governance procedures with additional approvals and review evidence.",
+                ],
+            ),
+        ],
+    },
+}
+
+
+SCHEMA_EXTENSION_TEMPLATES: Dict[str, str] = {
+    "low": """
+
+CREATE TABLE customer_tracking_events_{suffix} (
+  event_id BIGINT PRIMARY KEY,
+  profile_id BIGINT,
+  cookie_id VARCHAR(128),
+  device_fingerprint VARCHAR(255),
+  ip_address VARCHAR(64),
+  precise_location TEXT,
+  referring_url TEXT,
+  event_payload TEXT
+);
+
+CREATE TABLE partner_exports_{suffix} (
+  export_id BIGINT PRIMARY KEY,
+  profile_id BIGINT,
+  partner_name VARCHAR(160),
+  full_name VARCHAR(255),
+  email VARCHAR(255),
+  phone VARCHAR(30),
+  credit_card_number VARCHAR(40),
+  exported_at TIMESTAMP
+);
+""".strip(),
+    "medium": """
+
+CREATE TABLE consent_preferences_{suffix} (
+  preference_id BIGINT PRIMARY KEY,
+  account_id BIGINT,
+  consent_state VARCHAR(32),
+  notice_version VARCHAR(40),
+  opted_out_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+
+CREATE TABLE vendor_processing_{suffix} (
+  vendor_event_id BIGINT PRIMARY KEY,
+  account_id BIGINT,
+  processor_name VARCHAR(160),
+  processor_purpose VARCHAR(255),
+  shared_email VARCHAR(255),
+  transfer_region VARCHAR(80),
+  created_at TIMESTAMP
+);
+""".strip(),
+    "high": """
+
+CREATE TABLE consent_ledger_{suffix} (
+  consent_event_id UUID PRIMARY KEY,
+  account_id UUID,
+  notice_version VARCHAR(40),
+  consent_state VARCHAR(32),
+  lawful_basis VARCHAR(80),
+  recorded_at TIMESTAMP,
+  withdrawn_at TIMESTAMP
+);
+
+CREATE TABLE privacy_rights_requests_{suffix} (
+  request_id UUID PRIMARY KEY,
+  account_id UUID,
+  request_type VARCHAR(40),
+  identity_verified_at TIMESTAMP,
+  due_at TIMESTAMP,
+  completed_at TIMESTAMP,
+  evidence_ref VARCHAR(128)
+);
+
+CREATE TABLE processor_register_{suffix} (
+  processor_id UUID PRIMARY KEY,
+  processor_vendor_code VARCHAR(32),
+  processor_region VARCHAR(32),
+  processing_purpose VARCHAR(255),
+  transfer_basis VARCHAR(120),
+  contract_reviewed_at TIMESTAMP
+);
+""".strip(),
+}
+
+
 SCHEMA_TEMPLATES = {
     "low": [
         """
@@ -215,8 +390,8 @@ def generate_synthetic_policy_schema_dataset(
         for band_index in range(count):
             running_index += 1
             sample_id = f"synth-{running_index:05d}"
-            policy_text = _render_policy_text(band=band, rnd=rnd)
-            schema_text = _render_schema_text(band=band, rnd=rnd, suffix=f"{running_index:05d}")
+            policy_text, policy_claims = _render_policy_text(band=band, rnd=rnd, sample_id=sample_id)
+            schema_text, schema_tables = _render_schema_text(band=band, rnd=rnd, suffix=f"{running_index:05d}")
 
             _emit_progress(
                 progress_callback,
@@ -245,7 +420,9 @@ def generate_synthetic_policy_schema_dataset(
                     "target_score_max": high,
                     "within_target_band": low <= overall_score <= high,
                     "policy_text": policy_text,
+                    "policy_claims": policy_claims,
                     "schema_text": schema_text,
+                    "schema_tables": schema_tables,
                     "assessment": {
                         "overall_score": overall_score,
                         "grade": assessment["grade"],
@@ -259,6 +436,8 @@ def generate_synthetic_policy_schema_dataset(
                         "generator": "phase4_synthetic_policy_schema_v1",
                         "seed": seed,
                         "include_model_signal": bool(include_model_signal),
+                        "policy_claim_count": len(policy_claims),
+                        "schema_table_count": len(schema_tables),
                     },
                 }
             )
@@ -354,25 +533,83 @@ def _resolve_counts_by_band(counts_by_band: Optional[Mapping[str, int]]) -> Dict
     return resolved
 
 
-def _render_policy_text(band: str, rnd: Random) -> str:
-    if band == "low":
-        fragments = list(LOW_POLICY_FRAGMENTS)
-        rnd.shuffle(fragments)
-        selected = fragments[: rnd.randint(2, 3)]
-    elif band == "medium":
-        selected = list(rnd.choice(MEDIUM_POLICY_FRAGMENT_GROUPS))
-    elif band == "high":
-        selected = list(rnd.choice(HIGH_POLICY_FRAGMENT_GROUPS))
-    else:
+def _render_policy_text(band: str, rnd: Random, sample_id: str) -> tuple[str, List[Dict[str, Any]]]:
+    profile = POLICY_DOCUMENT_PROFILES.get(band)
+    if profile is None:
         raise ValueError(f"Unsupported compliance band: {band}")
 
-    return "\n\n".join(selected)
+    organization = str(profile["organization"])
+    sector = str(profile["sector"])
+    section_entries = [
+        (str(title), list(claims))
+        for title, claims in profile["sections"]
+    ]
+
+    policy_claims: List[Dict[str, Any]] = []
+    lines = [
+        f"# {organization} Privacy Policy",
+        "",
+        f"Target compliance band: {band}",
+        f"Scope: This synthetic policy covers {sector} products, support channels, analytics, vendors, and customer rights workflows.",
+        "",
+        "## Data Categories And Processing Context",
+        "We process account records, device activity, support interactions, transaction details, and operational logs when people use the service.",
+        "",
+    ]
+
+    claim_index = 0
+    for section_title, claims in section_entries:
+        rnd.shuffle(claims)
+        lines.append(f"## {section_title}")
+        lines.append("")
+        for claim in claims:
+            claim_index += 1
+            status = _claim_status_for_band(band=band, claim_index=claim_index)
+            policy_claims.append(
+                {
+                    "claim_id": f"{sample_id}-claim-{claim_index:02d}",
+                    "section": section_title,
+                    "compliance_status": status,
+                    "text": claim,
+                }
+            )
+            lines.append(f"- {claim}")
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Review And Contact",
+            f"Questions about this synthetic policy may be sent to privacy@{organization.lower().replace(' ', '')}.example.",
+        ]
+    )
+    return "\n".join(lines).strip(), policy_claims
 
 
-def _render_schema_text(band: str, rnd: Random, suffix: str) -> str:
+def _render_schema_text(band: str, rnd: Random, suffix: str) -> tuple[str, List[str]]:
     templates = SCHEMA_TEMPLATES[band]
-    template = rnd.choice(templates)
-    return template.format(suffix=suffix)
+    base_schema = rnd.choice(templates).format(suffix=suffix)
+    extension = SCHEMA_EXTENSION_TEMPLATES[band].format(suffix=suffix)
+    schema_text = "\n\n".join([base_schema, extension]).strip()
+    return schema_text, _extract_table_names(schema_text)
+
+
+def _claim_status_for_band(band: str, claim_index: int) -> str:
+    if band == "high":
+        return "compliant"
+    if band == "medium":
+        return "partial" if claim_index % 3 else "compliant"
+    if claim_index % 4 == 0:
+        return "partial"
+    return "noncompliant"
+
+
+def _extract_table_names(schema_text: str) -> List[str]:
+    tables: List[str] = []
+    for line in schema_text.splitlines():
+        stripped = line.strip()
+        if stripped.lower().startswith("create table "):
+            tables.append(stripped.split()[2].strip('`"[]('))
+    return tables
 
 
 def _compute_score_summary(rows: List[Mapping[str, Any]]) -> Dict[str, Any]:
@@ -419,6 +656,9 @@ def _write_upload_fixtures(output_dir: Path, rows: List[Mapping[str, Any]]) -> D
     fixture_dir = output_dir / "upload-fixtures"
     fixture_dir.mkdir(parents=True, exist_ok=True)
 
+    for stale_file in [*fixture_dir.glob("synth-*-policy.md"), *fixture_dir.glob("synth-*-schema.sql")]:
+        stale_file.unlink()
+
     files_written = 0
     for row in rows:
         sample_id = str(row.get("sample_id", "sample"))
@@ -455,7 +695,9 @@ def _render_dictionary_markdown() -> str:
             "- target_score_max: Upper bound for intended compliance score range.",
             "- within_target_band: Whether generated assessment score fell in the intended range.",
             "- policy_text: Synthetic privacy policy text block.",
+            "- policy_claims: Extracted claim records with claim_id, section, compliance_status, and text.",
             "- schema_text: Synthetic database schema text block.",
+            "- schema_tables: SQL table names included in the generated schema.",
             "- assessment: Structured output from `assess_policy_schema_compliance`.",
             "- metadata: Generator metadata (seed, version, model-signal setting).",
             "",

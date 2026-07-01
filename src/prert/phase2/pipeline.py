@@ -9,7 +9,7 @@ from prert.phase2.io import read_jsonl, write_json, write_jsonl
 from prert.phase2.metrics import build_metric_coverage_summary, build_metric_specs
 from prert.phase2.public_mapping import load_public_rows, map_public_rows, summarize_public_mapping
 from prert.phase2.scoring import score_observations
-from prert.phase2.synthetic import generate_synthetic_observations
+from prert.phase2.synthetic import generate_synthetic_observations, generate_synthetic_policy_documents
 
 
 def run_phase2_pipeline(
@@ -24,7 +24,8 @@ def run_phase2_pipeline(
     metric_specs = build_metric_specs(controls)
     coverage_summary = build_metric_coverage_summary(controls, metric_specs)
 
-    observations = generate_synthetic_observations(metric_specs, seed=seed)
+    policy_documents = generate_synthetic_policy_documents(metric_specs, seed=seed)
+    observations = generate_synthetic_observations(metric_specs, seed=seed, policy_documents=policy_documents)
     metric_rows, level_rows, scenario_rows = score_observations(metric_specs, observations)
 
     public_rows = load_public_rows(public_input_path)
@@ -33,6 +34,7 @@ def run_phase2_pipeline(
     public_summary = summarize_public_mapping(mapped_public_rows)
 
     write_jsonl(output_dir / "metric_specs.jsonl", (spec.as_dict() for spec in metric_specs))
+    write_jsonl(output_dir / "synthetic_policies.jsonl", (policy.as_dict() for policy in policy_documents))
     write_jsonl(output_dir / "synthetic_events.jsonl", (row.as_dict() for row in observations))
     write_jsonl(output_dir / "public_data_mapped.jsonl", mapped_public_rows)
     write_jsonl(output_dir / "baseline_scores.jsonl", [*metric_rows, *level_rows, *scenario_rows])
@@ -50,6 +52,7 @@ def run_phase2_pipeline(
         "public_mapping_summary": public_summary,
         "output_counts": {
             "metric_specs": len(metric_specs),
+            "synthetic_policies": len(policy_documents),
             "synthetic_events": len(observations),
             "public_data_mapped": len(mapped_public_rows),
             "metric_score_rows": len(metric_rows),
@@ -79,6 +82,17 @@ def _write_data_dictionary(path: Path) -> None:
 - missing_fields: Count of missing required fields for penalty application.
 - observed_confidence: Observed confidence in [0, 1].
 - metadata.generator: Synthetic generator version identifier.
+- metadata.policy_id: Link to synthetic_policies.policy_id when generated.
+- metadata.policy_claim_id: Link to the claim that informed this observation.
+
+## File: synthetic_policies.jsonl
+
+- policy_id: Stable synthetic policy identifier.
+- scenario: One of normal, stressed, adversarial.
+- compliance_band: Target posture high, medium, or low.
+- organization/sector/region: Synthetic deployment context.
+- policy_text: Full synthetic privacy policy containing multiple claims.
+- claims: Claim-level records with mapped controls, metric ids, compliance status, strength, and text.
 
 ## File: metric_specs.jsonl
 

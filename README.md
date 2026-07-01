@@ -9,11 +9,11 @@
 |       v1       | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/8e8bea5e-4532-4823-9e8a-e64b5aef2c5e) |            20 hours |
 |       v2       | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/4cfafaba-bafb-4ed8-8e0d-9d074a369e55) |            15 hours |
 |       v3       | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411) |            25 hours |
-|       v4       |                                                                                                             [![wakatime](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4.svg)](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4) |            10 hours |
+|       v4       |                                                                                                             [![wakatime](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4.svg)](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4) |            35 hours |
 |                |
-| **Total Sums** |                                                                                                                                                                                                                                      **56 hrs 56 mins** |          **70 hrs** |
+| **Total Sums** |                                                                                                                                                                                                                                      **56 hrs 56 mins** |          **95 hrs** |
 |                |
-|   **Total**    |                                                                                                                                                                                                                                     **126 hrs 56 mins** |                     |
+|   **Total**    |                                                                                                                                                                                                                                     **151 hrs 56 mins** |                     |
 
 ## Phase Breakdowns
 
@@ -24,8 +24,18 @@ Phase 1 implementation for regulation-specific control extraction and Chroma Clo
 This extracts ground-truth controls from:
 
 - GDPR (articles and sub-clauses)
-- ISO/IEC 27001
+  - 2016/679
+- ISO/IEC Standards
+  - 27001
+  - 27002
+  - 27005
+  - 27018
+  - 27701
+  - 29100
+  - 29151
+  - 15944-12
 - NIST Privacy Framework 1.1
+  - v1.1 (2022-01-14)
 
 It then normalizes and chunks the controls for search and ingestion into Chroma Cloud.
 
@@ -225,7 +235,7 @@ Optional public dataset mapping:
 
 ```bash
 PYTHONPATH=src python scripts/run_phase2_metrics.py \
-	--public-input path/to/public_breach_data.csv
+ --public-input path/to/public_breach_data.csv
 ```
 
 ## 6) Preprocess OPP-115 For Phase 2 Public Mapping
@@ -246,7 +256,7 @@ Then run Phase 2 with processed OPP-115:
 
 ```bash
 PYTHONPATH=src python scripts/run_phase2_metrics.py \
-	--public-input data/processed/opp115_public_mapping.csv
+ --public-input data/processed/opp115_public_mapping.csv
 ```
 
 ## 7) Run Phase 3 Baseline / Freeze
@@ -525,23 +535,23 @@ Example fields:
 
 ```json
 {
-	"record_id": "3672973e6fc2f8823ea66176",
-	"regulation": "GDPR",
-	"source_document_id": "gdpr-2016_679",
-	"source_path": "docs/Standards/Regulations/GDPR-2016_679.docx",
-	"native_id": "Article 1",
-	"normalized_id": "gdpr::Article_1",
-	"title": "Subject-matter and objectives",
-	"text": "...",
-	"hierarchy_path": ["CHAPTER I", "General provisions", "Article 1"],
-	"chapter": "CHAPTER I",
-	"section": "Article 1",
-	"clause": "Article 1",
-	"parser_confidence": 0.95,
-	"metadata": {
-		"format_profile": "gdpr_article_subclause",
-		"ground_truth_source": true
-	}
+ "record_id": "3672973e6fc2f8823ea66176",
+ "regulation": "GDPR",
+ "source_document_id": "gdpr-2016_679",
+ "source_path": "docs/Standards/Regulations/GDPR-2016_679.docx",
+ "native_id": "Article 1",
+ "normalized_id": "gdpr::Article_1",
+ "title": "Subject-matter and objectives",
+ "text": "...",
+ "hierarchy_path": ["CHAPTER I", "General provisions", "Article 1"],
+ "chapter": "CHAPTER I",
+ "section": "Article 1",
+ "clause": "Article 1",
+ "parser_confidence": 0.95,
+ "metadata": {
+  "format_profile": "gdpr_article_subclause",
+  "ground_truth_source": true
+ }
 }
 ```
 
@@ -551,25 +561,25 @@ Example fields:
 
 ```json
 {
-	"chunk_id": "ee2cfd5603c8be0b857fc8b3",
-	"regulation": "GDPR",
-	"source_document_id": "gdpr-2016_679",
-	"control_id": "gdpr::Article_1",
-	"chunk_index": 0,
-	"text": "...",
-	"metadata": {
-		"regulation": "GDPR",
-		"control_id": "gdpr::Article_1",
-		"native_control_id": "Article 1",
-		"source_document_id": "gdpr-2016_679",
-		"source_path": "docs/Standards/Regulations/GDPR-2016_679.docx",
-		"chunk_index": 0,
-		"chapter": "CHAPTER I",
-		"section": "Article 1",
-		"clause": "Article 1",
-		"format_profile": "gdpr_article_subclause",
-		"ground_truth_source": true
-	}
+ "chunk_id": "ee2cfd5603c8be0b857fc8b3",
+ "regulation": "GDPR",
+ "source_document_id": "gdpr-2016_679",
+ "control_id": "gdpr::Article_1",
+ "chunk_index": 0,
+ "text": "...",
+ "metadata": {
+  "regulation": "GDPR",
+  "control_id": "gdpr::Article_1",
+  "native_control_id": "Article 1",
+  "source_document_id": "gdpr-2016_679",
+  "source_path": "docs/Standards/Regulations/GDPR-2016_679.docx",
+  "chunk_index": 0,
+  "chapter": "CHAPTER I",
+  "section": "Article 1",
+  "clause": "Article 1",
+  "format_profile": "gdpr_article_subclause",
+  "ground_truth_source": true
+ }
 }
 ```
 

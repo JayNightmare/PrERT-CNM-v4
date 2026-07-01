@@ -42,3 +42,38 @@ class SyntheticObservation:
 
     def as_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+
+@dataclass
+class SyntheticPolicyClaim:
+    claim_id: str
+    control_id: str
+    metric_id: str
+    level: str
+    regulation: str
+    claim_type: str
+    compliance_status: str
+    compliance_strength: float
+    text: str
+    expected_failure: bool
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def as_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class SyntheticPolicyDocument:
+    policy_id: str
+    scenario: str
+    compliance_band: str
+    organization: str
+    sector: str
+    region: str
+    effective_date: str
+    policy_text: str
+    claims: List[SyntheticPolicyClaim]
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def as_dict(self) -> Dict[str, Any]:
+        return asdict(self)

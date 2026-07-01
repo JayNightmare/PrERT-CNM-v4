@@ -4,6 +4,11 @@ from pathlib import Path
 from prert.phase2.pipeline import run_phase2_pipeline
 
 
+def _read_jsonl(path: Path) -> list[dict]:
+    with path.open("r", encoding="utf-8") as handle:
+        return [json.loads(line) for line in handle if line.strip()]
+
+
 def _write_controls(path: Path) -> None:
     controls = [
         {
@@ -51,8 +56,10 @@ def test_phase2_pipeline_writes_isolated_outputs(tmp_path: Path) -> None:
 
     assert manifest["coverage_summary"]["mapped_controls"] == 3
     assert manifest["coverage_summary"]["missing_controls"] == []
+    assert manifest["output_counts"]["synthetic_policies"] == 18
 
     assert (output_dir / "metric_specs.jsonl").exists()
+    assert (output_dir / "synthetic_policies.jsonl").exists()
     assert (output_dir / "synthetic_events.jsonl").exists()
     assert (output_dir / "public_data_mapped.jsonl").exists()
     assert (output_dir / "baseline_scores.jsonl").exists()
@@ -78,3 +85,33 @@ def test_phase2_scores_stay_in_range(tmp_path: Path) -> None:
                 assert 0.0 <= float(row["risk_score"]) <= 1.0
             if "compliance_score" in row:
                 assert 0.0 <= float(row["compliance_score"]) <= 1.0
+
+
+def test_phase2_synthetic_policies_have_multiple_varied_claims(tmp_path: Path) -> None:
+    controls_path = tmp_path / "controls_all.jsonl"
+    output_dir = tmp_path / "phase-2"
+    _write_controls(controls_path)
+
+    run_phase2_pipeline(
+        controls_path=controls_path,
+        output_dir=output_dir,
+        public_input_path=None,
+        seed=13,
+    )
+
+    policies = _read_jsonl(output_dir / "synthetic_policies.jsonl")
+    events = _read_jsonl(output_dir / "synthetic_events.jsonl")
+
+    assert policies
+    assert {policy["compliance_band"] for policy in policies} == {"high", "medium", "low"}
+
+    claim_statuses = set()
+    for policy in policies:
+        claims = policy["claims"]
+        assert len(claims) >= 5
+        assert len(policy["policy_text"].splitlines()) > len(claims)
+        claim_statuses.update(claim["compliance_status"] for claim in claims)
+
+    assert {"compliant", "partial", "noncompliant"}.issubset(claim_statuses)
+    assert all(row["metadata"].get("policy_id") for row in events)
+    assert all(row["metadata"].get("policy_claim_id") for row in events)

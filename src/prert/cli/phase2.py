@@ -24,6 +24,7 @@ def main() -> None:
     print("Phase 2 pipeline complete")
     print(f"Mapped controls: {coverage['mapped_controls']} / {coverage['total_controls']}")
     print(f"Metric specs: {outputs['metric_specs']}")
+    print(f"Synthetic policies: {outputs.get('synthetic_policies', 0)}")
     print(f"Synthetic events: {outputs['synthetic_events']}")
     print(f"Public mapped rows: {outputs['public_data_mapped']}")
     print(f"Baseline score rows: {outputs['baseline_score_rows_total']}")

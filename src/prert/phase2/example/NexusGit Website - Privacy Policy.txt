@@ -1,0 +1,55 @@
+
+PRIVACY POLICY
+Last updated October 01, 2025
+
+
+This Privacy Policy describes how NexusGit collects, uses, and shares your personal information when you visit our portfolio website.
+
+1. INFORMATION WE COLLECT
+When you visit NexusGit, we may collect the following types of information:
+
+    Automatically Collected Information: IP address, browser type, operating system, referring URLs, and pages visited
+    Contact Information: If you contact us through the website, we may collect your name, email address, and message content
+    Cookies and Tracking: We may use cookies and similar technologies to enhance your browsing experience
+
+
+2. HOW WE USE YOUR INFORMATION
+We use the collected information to:
+
+    Provide and maintain our website
+    Analyze website usage and improve user experience
+    Respond to your inquiries and contact requests
+    Comply with legal obligations
+
+
+3. INFORMATION SHARING
+We do not sell, trade, or otherwise transfer your personal information to third parties, except:
+
+    To trusted service providers who assist us in operating our website
+    When required by law or to protect our rights
+    With your explicit consent
+
+
+4. DATA SECURITY
+We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the internet is 100% secure.
+
+5. COOKIES AND TRACKING TECHNOLOGIES
+Our website may use cookies and similar tracking technologies to enhance your browsing experience. You can control cookie preferences through your browser settings.
+
+6. THIRD-PARTY LINKS
+Our website may contain links to external sites. We are not responsible for the privacy practices of these third-party websites. We encourage you to review their privacy policies.
+
+7. DATA RETENTION
+We retain your personal information only as long as necessary to fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required by law.
+
+8. YOUR RIGHTS
+Depending on your location, you may have certain rights regarding your personal information, including the right to access, update, or delete your data. Contact us to exercise these rights.
+
+9. CHANGES TO THIS POLICY
+We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
+
+10. CONTACT US
+If you have any questions about this Privacy Policy, please contact us at:
+Email: jay@nexusgit.info
+Website: https://nexusgit.com
+
