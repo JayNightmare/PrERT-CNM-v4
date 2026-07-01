@@ -12,6 +12,7 @@ DEFAULT_CHECKPOINT = ROOT / "artifacts/phase-3-privacybert/classifier_checkpoint
 MODEL_TEMPLATE_DIR = ROOT / "huggingface/model-card"
 SPACE_TEMPLATE_DIR = ROOT / "huggingface/space"
 PACKAGE_SOURCE_DIR = ROOT / "src/prert"
+PHASE1_CONTROLS_SOURCE = ROOT / "artifacts/phase-1/controls_all.jsonl"
 
 MODEL_FILE_NAMES = {
     ".gitattributes",
@@ -127,6 +128,12 @@ def prepare_space(space_output, model_id, space_title):
         package_target,
         ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache"),
     )
+
+    # Include ground-truth controls corpus so the Space can list all frameworks.
+    if PHASE1_CONTROLS_SOURCE.exists():
+        controls_target_dir = space_output / "artifacts/phase-1"
+        controls_target_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(PHASE1_CONTROLS_SOURCE, controls_target_dir / "controls_all.jsonl")
 
 
 def validation_warnings(checkpoint, copied_files):

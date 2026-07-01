@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import gc
 import json
 import os
 import sys
@@ -10,9 +11,10 @@ import uuid
 import zipfile
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple
 
 import gradio as gr
+from huggingface_hub import HfApi
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
@@ -249,10 +251,389 @@ def run_synthetic_generation(
 
 def show_model_benchmarks() -> Tuple[str, List[List[Any]], List[List[Any]], Dict[str, Any], Optional[str]]:
     registry = _load_benchmark_registry()
-    rows = _benchmark_leaderboard_rows(registry)
-    per_class_rows = _benchmark_per_class_rows(registry)
+    rows = _benchmark_static_rows(registry)
+    per_class_rows = _benchmark_static_model_specs(registry)
     report_path = _write_temp_json("benchmark_registry", registry)
     return _format_benchmark_summary(registry), rows, per_class_rows, registry, report_path
+
+
+def run_live_privacybert_benchmark(
+    max_models: float,
+    samples_per_band: float,
+    seed: float,
+    progress: gr.Progress = gr.Progress(),
+) -> Tuple[str, List[List[Any]], List[List[Any]], Dict[str, Any], Optional[str]]:
+    if PHASE4_IMPORT_ERROR is not None:
+        return (
+            f"### Live Benchmark Failed\n\nPhase 4 modules could not be imported: {PHASE4_IMPORT_ERROR}",
+            [],
+            [],
+            {},
+            None,
+        )
+
+    n_models = max(1, min(int(max_models), 8))
+    n_band = max(2, min(int(samples_per_band), 24))
+    run_seed = int(seed)
+
+    progress(0.02, desc="Discovering similar PrivacyBERT models")
+    model_specs = _discover_similar_privacybert_models(limit=n_models)
+    if not model_specs:
+        return (
+            "### Live Benchmark Failed\n\nNo similar text-classification PrivacyBERT models were discoverable from Hugging Face search.",
+            [],
+            [],
+            {},
+            None,
+        )
+
+    progress(0.08, desc="Generating level-playfield policies across compliance bands")
+    benchmark_rows = _generate_benchmark_samples(samples_per_band=n_band, seed=run_seed)
+    if not benchmark_rows:
+        return (
+            "### Live Benchmark Failed\n\nUnable to generate benchmark policies for evaluation.",
+            [],
+            _model_specs_rows(model_specs),
+            {},
+            None,
+        )
+
+    total = len(model_specs)
+    results: List[Dict[str, Any]] = []
+    for idx, spec in enumerate(model_specs, start=1):
+        progress(0.1 + (0.85 * idx / max(total, 1)), desc=f"Running {idx}/{total}: {spec['model_id']}")
+        results.append(_evaluate_model_on_benchmark(spec=spec, rows=benchmark_rows))
+
+    payload = {
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "query": "privacy bert",
+        "models_evaluated": len(results),
+        "samples_per_band": n_band,
+        "total_samples": len(benchmark_rows),
+        "metrics": [
+            "average_confidence",
+            "tri_label_accuracy",
+            "binary_accuracy",
+        ],
+        "results": results,
+        "model_specs": model_specs,
+    }
+    report_path = _write_temp_json("live_privacybert_benchmark", payload)
+
+    progress(1.0, desc="Benchmark complete")
+    return (
+        _format_live_benchmark_summary(payload),
+        _live_benchmark_rows(payload),
+        _model_specs_rows(model_specs),
+        payload,
+        report_path,
+    )
+
+
+def _discover_similar_privacybert_models(limit: int) -> List[Dict[str, Any]]:
+    token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    api = HfApi(token=token)
+    discovered: List[Dict[str, Any]] = []
+
+    try:
+        models_iter = api.list_models(search="privacy bert", limit=60, full=True)
+    except Exception:
+        return []
+
+    for info in models_iter:
+        model_id = str(getattr(info, "id", "") or "")
+        if not model_id:
+            continue
+        if model_id == MODEL_ID:
+            continue
+        pipeline_tag = str(getattr(info, "pipeline_tag", "") or "")
+        tags = {str(tag) for tag in (getattr(info, "tags", []) or [])}
+        if pipeline_tag != "text-classification" and "text-classification" not in tags:
+            continue
+
+        discovered.append(
+            {
+                "model_id": "JayNightmare/PrERT-CNM-v4-privacybert",
+                "pipeline_tag": "text-classification",
+                "downloads": 0,
+                "likes": 0,
+                "last_modified": "",
+            }   
+        )
+        discovered.append(
+            {
+                "model_id": model_id,
+                "pipeline_tag": pipeline_tag or "n/a",
+                "downloads": int(getattr(info, "downloads", 0) or 0),
+                "likes": int(getattr(info, "likes", 0) or 0),
+                "last_modified": str(getattr(info, "last_modified", "") or ""),
+            }
+        )
+
+    discovered.sort(key=lambda item: (item["downloads"], item["likes"]), reverse=True)
+    return discovered[:limit]
+
+
+def _generate_benchmark_samples(samples_per_band: int, seed: int) -> List[Dict[str, Any]]:
+    output_dir = _new_synthetic_output_dir()
+    try:
+        manifest = generate_synthetic_policy_schema_dataset(  # type: ignore[misc]
+            output_dir=output_dir,
+            counts_by_band={
+                "low": samples_per_band,
+                "medium": samples_per_band,
+                "high": samples_per_band,
+            },
+            seed=seed,
+            include_model_signal=False,
+            model_path=None,
+            export_upload_fixtures=False,
+            progress_callback=None,
+        )
+    except Exception:
+        return []
+
+    output_files = _as_dict(manifest.get("output_files"))
+    dataset_path = Path(str(output_files.get("dataset", "")))
+    rows = _read_jsonl_file(dataset_path)
+    samples: List[Dict[str, Any]] = []
+    for row in rows:
+        policy_text = str(row.get("policy_text", "")).strip()
+        band = str(row.get("compliance_band", "")).strip().lower()
+        if not policy_text or band not in {"low", "medium", "high"}:
+            continue
+        samples.append({"policy_text": policy_text, "band": band})
+    return samples
+
+
+def _evaluate_model_on_benchmark(spec: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    model_id = str(spec.get("model_id", ""))
+    total = len(rows)
+    if not model_id or total == 0:
+        return {
+            "model_id": model_id,
+            "status": "failed",
+            "error": "Missing model id or benchmark rows",
+            "average_confidence": None,
+            "tri_label_accuracy": None,
+            "binary_accuracy": None,
+            "evaluated_samples": 0,
+        }
+
+    token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    load_kwargs: Dict[str, Any] = {}
+    if token:
+        load_kwargs["token"] = token
+
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_id, **load_kwargs)
+        model = AutoModelForSequenceClassification.from_pretrained(model_id, **load_kwargs)
+        device = 0 if torch.cuda.is_available() else -1
+        clf = pipeline(
+            "text-classification",
+            model=model,
+            tokenizer=tokenizer,
+            device=device,
+            truncation=True,
+            max_length=MAX_LENGTH,
+        )
+    except Exception as exc:
+        return {
+            "model_id": model_id,
+            "status": "failed",
+            "error": str(exc),
+            "average_confidence": None,
+            "tri_label_accuracy": None,
+            "binary_accuracy": None,
+            "evaluated_samples": 0,
+        }
+
+    confidence_sum = 0.0
+    scored_count = 0
+    tri_hits = 0
+    tri_count = 0
+    bin_hits = 0
+    bin_count = 0
+
+    for row in rows:
+        text = str(row.get("policy_text", ""))
+        true_band = str(row.get("band", "")).lower()
+        try:
+            output = clf(text, top_k=None)
+        except Exception:
+            continue
+
+        predictions = output[0] if output and isinstance(output[0], list) else output
+        predictions = predictions if isinstance(predictions, list) else []
+        if not predictions:
+            continue
+        sorted_scores = sorted(predictions, key=lambda item: float(item.get("score", 0.0)), reverse=True)
+        top = _as_dict(sorted_scores[0])
+        confidence = float(top.get("score", 0.0))
+        confidence_sum += confidence
+        scored_count += 1
+
+        predicted_band = _normalize_compliance_label(str(top.get("label", "")))
+        if predicted_band is not None:
+            tri_count += 1
+            if predicted_band == true_band:
+                tri_hits += 1
+
+            pred_bin = _to_binary_compliance(predicted_band)
+            true_bin = _to_binary_compliance(true_band)
+            if pred_bin is not None and true_bin is not None:
+                bin_count += 1
+                if pred_bin == true_bin:
+                    bin_hits += 1
+
+    evaluated = max(1, scored_count)
+    tri_acc = (tri_hits / tri_count) if tri_count else None
+    bin_acc = (bin_hits / bin_count) if bin_count else None
+
+    del clf
+    del model
+    del tokenizer
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    return {
+        "model_id": model_id,
+        "status": "ok",
+        "average_confidence": confidence_sum / evaluated,
+        "tri_label_accuracy": tri_acc,
+        "binary_accuracy": bin_acc,
+        "evaluated_samples": total,
+        "tri_samples": tri_count,
+        "binary_samples": bin_count,
+        "downloads": int(spec.get("downloads", 0) or 0),
+        "likes": int(spec.get("likes", 0) or 0),
+    }
+
+
+def _normalize_compliance_label(label: str) -> Optional[str]:
+    text = str(label or "").strip().lower().replace("_", " ").replace("-", " ")
+    if not text:
+        return None
+    if "medium" in text or "partial" in text:
+        return "medium"
+    if "low" in text or "non compliant" in text or "noncompliant" in text or "violation" in text or "risk" in text:
+        return "low"
+    if "high" in text or ("compliant" in text and "non" not in text) or "positive" in text:
+        return "high"
+    return None
+
+
+def _to_binary_compliance(label: str) -> Optional[str]:
+    normalized = _normalize_compliance_label(label) if label not in {"low", "medium", "high"} else label
+    if normalized is None:
+        return None
+    return "non_compliant" if normalized == "low" else "compliant"
+
+
+def _format_live_benchmark_summary(payload: Mapping[str, Any]) -> str:
+    results = [
+        _as_dict(item)
+        for item in _as_list(payload.get("results"))
+        if _as_dict(item).get("status") == "ok"
+    ]
+    if not results:
+        return "### Live Benchmark\n\nNo models completed successfully."
+
+    top_conf = sorted(results, key=lambda item: float(item.get("average_confidence") or -1.0), reverse=True)[0]
+    with_tri = [row for row in results if row.get("tri_label_accuracy") is not None]
+    top_acc = sorted(with_tri, key=lambda item: float(item.get("tri_label_accuracy") or -1.0), reverse=True)[0] if with_tri else None
+
+    lines = [
+        "### Live PrivacyBERT Benchmark",
+        f"- Query source: Hugging Face model search for `privacy bert`",
+        f"- Models evaluated: {payload.get('models_evaluated', 0)}",
+        f"- Policy samples: {payload.get('total_samples', 0)}",
+        f"- Best average confidence: **{top_conf.get('model_id', '')}** ({_format_optional_float(top_conf.get('average_confidence'))})",
+    ]
+    if top_acc is not None:
+        lines.append(
+            f"- Best tri-label accuracy: **{top_acc.get('model_id', '')}** ({_format_optional_float(top_acc.get('tri_label_accuracy'))})"
+        )
+    lines.append("- Note: accuracy is computed only when model label names can be normalized to compliance bands.")
+    return "\n".join(lines)
+
+
+def _live_benchmark_rows(payload: Mapping[str, Any]) -> List[List[Any]]:
+    rows: List[List[Any]] = []
+    results = [_as_dict(item) for item in _as_list(payload.get("results"))]
+    ranked = sorted(results, key=lambda item: float(item.get("average_confidence") or -1.0), reverse=True)
+    for idx, row in enumerate(ranked, start=1):
+        rows.append(
+            [
+                idx,
+                row.get("model_id", ""),
+                row.get("status", ""),
+                _format_optional_float(row.get("average_confidence")),
+                _format_optional_float(row.get("tri_label_accuracy")),
+                _format_optional_float(row.get("binary_accuracy")),
+                row.get("tri_samples", 0),
+                row.get("binary_samples", 0),
+                row.get("downloads", 0),
+                row.get("likes", 0),
+                row.get("error", ""),
+            ]
+        )
+    return rows
+
+
+def _model_specs_rows(model_specs: Sequence[Mapping[str, Any]]) -> List[List[Any]]:
+    rows: List[List[Any]] = []
+    for spec in model_specs:
+        rows.append(
+            [
+                spec.get("model_id", ""),
+                spec.get("pipeline_tag", ""),
+                spec.get("downloads", 0),
+                spec.get("likes", 0),
+                spec.get("last_modified", ""),
+            ]
+        )
+    return rows
+
+
+def _benchmark_static_rows(registry: Mapping[str, Any]) -> List[List[Any]]:
+    rows: List[List[Any]] = []
+    models = _rank_benchmark_models(_as_list(registry.get("models")))
+    for index, model in enumerate(models, start=1):
+        metrics = _as_dict(model.get("metrics"))
+        notes = "; ".join(str(note) for note in _as_list(model.get("notes")) if note)
+        rows.append(
+            [
+                index,
+                model.get("name", "n/a"),
+                model.get("status", "n/a"),
+                "n/a",
+                _format_optional_float(metrics.get("test_accuracy")),
+                _format_optional_float(metrics.get("validation_accuracy")),
+                "n/a",
+                "n/a",
+                "n/a",
+                "n/a",
+                notes,
+            ]
+        )
+    return rows
+
+
+def _benchmark_static_model_specs(registry: Mapping[str, Any]) -> List[List[Any]]:
+    rows: List[List[Any]] = []
+    for model in _rank_benchmark_models(_as_list(registry.get("models"))):
+        rows.append(
+            [
+                model.get("name", "n/a"),
+                model.get("family", "n/a"),
+                "n/a",
+                "n/a",
+                "n/a",
+            ]
+        )
+    return rows
 
 def select_synthetic_sample(choice: Any, rows: List[Dict[str, Any]]) -> Tuple[str, str, Dict[str, Any]]:
     if not rows:
@@ -919,12 +1300,17 @@ def _available_regulation_choices() -> List[str]:
     if list_available_regulations is None:
         return ["GDPR", "NIST", "ISO_27701"]
     try:
-        choices = [str(item) for item in list_available_regulations() if str(item).strip()]  # type: ignore[misc]
+        choices = [str(item) for item in list_available_regulations() if str(item).strip()]
     except Exception:
         return ["GDPR", "NIST", "ISO_27701"]
     if not choices:
         return ["GDPR", "NIST", "ISO_27701"]
-    return choices
+    choice_set = set(choices)
+    if "NISTPF" in choice_set and "NIST" in choice_set:
+        choice_set.remove("NIST")
+    if "ISO27701" in choice_set and "ISO_27701" in choice_set:
+        choice_set.remove("ISO_27701")
+    return sorted(choice_set)
 
 
 theme = gr.themes.Soft(primary_hue="teal", neutral_hue="stone")
@@ -1050,15 +1436,19 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
         with gr.Tab("Benchmark Validation"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    benchmark_button = gr.Button("Refresh Model Results", variant="primary")
+                    benchmark_button = gr.Button("Refresh Registry View", variant="secondary")
+                    run_benchmark_button = gr.Button("Run Benchmark", variant="primary")
+                    benchmark_model_limit = gr.Slider(label="Models to evaluate", minimum=2, maximum=8, value=4, step=1)
+                    benchmark_samples_per_band = gr.Slider(label="Samples per compliance band", minimum=3, maximum=24, value=8, step=1)
+                    benchmark_seed = gr.Number(label="Benchmark seed", value=42, precision=0)
                 with gr.Column(scale=2):
                     benchmark_summary = gr.Markdown()
                     benchmark_leaderboard = gr.Dataframe(
-                        headers=["Rank", "Model", "Family", "Status", "Test Macro F1", "Test Accuracy", "Validation Macro F1", "Validation Accuracy", "Bayesian Score", "Calibration ECE", "Notes"],
+                        headers=["Rank", "Model", "Status", "Avg Confidence", "Tri-label Accuracy", "Binary Accuracy", "Tri Samples", "Binary Samples", "Downloads", "Likes", "Error"],
                         interactive=False,
                     )
                     benchmark_per_class = gr.Dataframe(
-                        headers=["Model", "Class", "Precision", "Recall", "F1", "Support"],
+                        headers=["Model", "Pipeline", "Downloads", "Likes", "Last Modified"],
                         interactive=False,
                     )
                     benchmark_json = gr.JSON(label="Benchmark report")
@@ -1067,6 +1457,12 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
             benchmark_button.click(
                 show_model_benchmarks,
                 inputs=[],
+                outputs=[benchmark_summary, benchmark_leaderboard, benchmark_per_class, benchmark_json, benchmark_download],
+                **_event_kwargs(),
+            )
+            run_benchmark_button.click(
+                run_live_privacybert_benchmark,
+                inputs=[benchmark_model_limit, benchmark_samples_per_band, benchmark_seed],
                 outputs=[benchmark_summary, benchmark_leaderboard, benchmark_per_class, benchmark_json, benchmark_download],
                 **_event_kwargs(),
             )
