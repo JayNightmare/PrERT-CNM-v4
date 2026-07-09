@@ -9,6 +9,23 @@ class _DummyBundle:
         self.revision = "main"
 
 
+class _DummyConfig:
+    def __init__(self) -> None:
+        self.output_hidden_states = False
+        self.output_attentions = False
+        self.attn_implementation = "sdpa"
+        self._attn_implementation = "sdpa"
+
+
+class _DummyModelWithSetter:
+    def __init__(self) -> None:
+        self.config = _DummyConfig()
+        self.calls = []
+
+    def set_attn_implementation(self, mode: str) -> None:
+        self.calls.append(mode)
+
+
 def test_run_visual_layers_single_clause_with_stubbed_backend(monkeypatch) -> None:
     monkeypatch.setattr(visual_layers, "_get_model_bundle", lambda model_id, revision: _DummyBundle())
 
@@ -164,3 +181,15 @@ def test_render_attention_heatmap_png() -> None:
     path = Path(visual_layers.render_attention_heatmap_png(analysis, layer=1, head=0))
     assert path.exists()
     assert path.suffix == ".png"
+
+
+def test_force_eager_attention_sets_model_and_config() -> None:
+    model = _DummyModelWithSetter()
+
+    visual_layers._force_eager_attention(model)
+
+    assert model.config.output_hidden_states is True
+    assert model.config.output_attentions is True
+    assert model.config.attn_implementation == "eager"
+    assert model.config._attn_implementation == "eager"
+    assert model.calls == ["eager"]

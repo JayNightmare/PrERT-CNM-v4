@@ -55,6 +55,26 @@ def _load_kwargs(revision: str) -> Dict[str, Any]:
     return kwargs
 
 
+def _force_eager_attention(model: Any) -> None:
+    config = getattr(model, "config", None)
+    if config is not None:
+        setattr(config, "output_hidden_states", True)
+        setattr(config, "output_attentions", True)
+        # Newer Transformers versions may read either public or private keys.
+        if hasattr(config, "attn_implementation"):
+            setattr(config, "attn_implementation", "eager")
+        if hasattr(config, "_attn_implementation"):
+            setattr(config, "_attn_implementation", "eager")
+
+    setter = getattr(model, "set_attn_implementation", None)
+    if callable(setter):
+        try:
+            setter("eager")
+        except Exception:
+            # Keep graceful fallback for architectures without runtime switching.
+            pass
+
+
 @lru_cache(maxsize=3)
 def _get_model_bundle(model_id: str, revision: str) -> _ModelBundle:
     normalized_model_id = _normalize_model_id(model_id)
@@ -67,11 +87,21 @@ def _get_model_bundle(model_id: str, revision: str) -> _ModelBundle:
 
     load_kwargs = _load_kwargs(normalized_revision)
     tokenizer = transformers_module.AutoTokenizer.from_pretrained(normalized_model_id, **load_kwargs)
-    model = transformers_module.AutoModelForSequenceClassification.from_pretrained(normalized_model_id, **load_kwargs)
+    eager_load_kwargs = dict(load_kwargs)
+    eager_load_kwargs["attn_implementation"] = "eager"
+    try:
+        model = transformers_module.AutoModelForSequenceClassification.from_pretrained(
+            normalized_model_id,
+            **eager_load_kwargs,
+        )
+    except TypeError:
+        # Some older model classes do not accept attn_implementation at load time.
+        model = transformers_module.AutoModelForSequenceClassification.from_pretrained(
+            normalized_model_id,
+            **load_kwargs,
+        )
 
-    if getattr(model, "config", None) is not None:
-        setattr(model.config, "output_hidden_states", True)
-        setattr(model.config, "output_attentions", True)
+    _force_eager_attention(model)
 
     model.eval()
     return _ModelBundle(

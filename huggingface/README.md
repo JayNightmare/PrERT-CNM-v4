@@ -37,7 +37,7 @@ The Benchmark Validation tab displays bundled published metrics from `huggingfac
 Create the repositories on Hugging Face, then upload the generated folders:
 
 ```bash
-hf login
+hf auth login
 hf upload JayNightmare/PrERT-CNM-v4-privacybert dist/huggingface/model --repo-type model
 hf upload JayNightmare/PrERT-CNM-v4-privacybert-demo dist/huggingface/space --repo-type space
 ```
