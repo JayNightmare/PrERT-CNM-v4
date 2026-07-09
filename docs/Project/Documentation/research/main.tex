@@ -56,8 +56,9 @@ is organised as a reproducible four-phase pipeline: (i) regulation-specific
 extraction of normalised privacy controls from GDPR, eight ISO/IEC
 standards, and the NIST Privacy Framework; (ii) definition of multi-level
 metrics with synthetic baseline scoring; (iii) clause classification and
-Bayesian risk integration; and (iv) validation, calibration, and
-compliance assessment. On the OPP-115 corpus, a fine-tuned
+Bayesian risk integration across freeze and ablation variants; and (iv)
+validation, calibration, and policy-compliance assessment with
+regulation-specific verdict traceability. On the OPP-115 corpus, a fine-tuned
 PrivBERT-backed classifier attains a test macro-F1 of $0.869$
 (95\% CI $[0.845, 0.892]$) and accuracy of $0.954$, exceeding a
 same-split multinomial na\"ive-Bayes baseline ($0.649$ macro-F1;
@@ -119,16 +120,18 @@ principal contributions are:
   baseline scoring to exercise edge cases (Section~\ref{sec:phase2}).
   \item \textbf{A calibrated clause classifier} fine-tuned on OPP-115 using
   a PrivBERT privacy-policy checkpoint, attaining a test macro-F1 of $0.869$
-  and an expected calibration error of $0.0525$, with TF-IDF
-  logistic-regression and na\"ive-Bayes ablations
+  and an expected calibration error of $0.0525$, with retained
+  phase-specific ablations (na\"ive-Bayes, TF-IDF logistic regression,
+  and Bayesian-disabled scoring variants)
   (Sections~\ref{sec:phase3} and~\ref{sec:results}).
   \item \textbf{A Bayesian risk-integration layer} that converts clause
   probabilities into level-specific posterior risk scores with bootstrap
   credible intervals and standards traceability
   (Section~\ref{sec:phase3}).
   \item \textbf{A reproducible validation and compliance-assessment stage}
-  with acceptance checks, synthetic policy/schema fixtures, and a Gradio web
-  interface for local or public review
+  with acceptance checks, synthetic policy/schema fixtures, a policy-only
+  regulation-assessment path with clause citations and per-regulation verdicts,
+  and a Gradio web interface for local or public review
   (Section~\ref{sec:results}).
 \end{itemize}
 
@@ -296,7 +299,12 @@ observations.
 % =====================================================================
 Phase~3 is the analytical core. A clause classifier maps policy text to the
 three-level taxonomy, and a Bayesian layer converts its probabilistic outputs
-into standards-traceable risk posteriors.
+into standards-traceable risk posteriors. The implementation tracks five
+artifact paths: the accepted release candidate (\texttt{phase-3-freeze}),
+a same-split multinomial na\"ive-Bayes baseline (\texttt{phase-3}), and
+three archived variant paths (\texttt{phase-3-privacybert},
+\texttt{phase-3-logreg}, and \texttt{phase-3-no-bayes}) used for technique
+coverage and ablation analysis.
 
 \paragraph{Clause classification}
 The primary classifier fine-tunes the PrivBERT privacy-policy checkpoint
@@ -336,9 +344,13 @@ characterised by stratified bootstrap confidence
 intervals~\cite{efron1993bootstrap}. A separate compliance-assessment module
 scores arbitrary policy text against weighted checks, covering consent and
 transparency, user rights, data security, data minimisation, retention,
-third-party sharing, and personally identifiable information protection, and
-a Gradio web demonstrator exposes the full pipeline interactively for local
-or temporary public review~\cite{gradio_docs,huggingface_spaces_docs}.
+third-party sharing, and personally identifiable information protection.
+The latest revision adds a policy-only mode that emits independent
+per-regulation verdicts (GDPR, NIST Privacy Framework, ISO/IEC 27701)
+with explicit supporting clause citations, enabling transparent
+cross-framework reasoning without a required schema input. A Gradio web
+demonstrator exposes the full pipeline interactively for local or temporary
+public review~\cite{gradio_docs,huggingface_spaces_docs}.
 
 % =====================================================================
 \section{Experimental Setup}\label{sec:setup}
@@ -362,7 +374,9 @@ policies), $1{,}764$ validation rows (11 policies), and $2{,}472$ test rows
 partitions is zero. The corpus is markedly imbalanced, approximately 84\%
 \texttt{organisation}, 12\% \texttt{user}, and 4\% \texttt{system}, which
 directly motivates the focal-loss objective and the use of macro-averaged
-metrics.
+metrics. Archived variant runs retained for technique coverage were produced
+on an earlier split family (1803 validation / 2272 test) and are reported
+with explicit non-comparability caveats in Section~\ref{sec:results}.
 
 \subsection{Model Configuration}
 The freeze classifier fine-tunes \texttt{mukund/privbert} for two epochs with
@@ -384,31 +398,35 @@ credible intervals.
 \section{Results}\label{sec:results}
 % =====================================================================
 \subsection{Model Comparison}
-Table~\ref{tab:modelcomp} reports the three classifiers on the held-out
-validation and test partitions. The July~2026 PrivBERT freeze achieves a test
-macro-F1 of $0.869$ and accuracy of $0.954$, improving on the same-split
+Table~\ref{tab:modelcomp} reports the accepted freeze model together with all
+tracked Phase~3 variants. The July~2026 PrivBERT freeze (accepted) achieves a
+test macro-F1 of $0.869$ and accuracy of $0.954$, improving on the same-split
 na\"ive-Bayes baseline by $21.9$ macro-F1 points and $13.3$ accuracy points.
-The archived TF-IDF logistic-regression ablation is reported for technique
-coverage but was produced on an earlier policy split, so it is not used as a
-same-split acceptance comparison. The gap is most pronounced on the minority
-classes, where contextual representations are decisive.
+Archived variant rows are included for technique coverage and ablation
+completeness, but were generated on an earlier policy split and are therefore
+not interpreted as same-split acceptance comparisons.
 
 \begin{table}[t]
 \centering
-\caption{Classifier comparison on OPP-115 (macro-F1 and accuracy).}
+\caption{Phase~3 classifier comparison on OPP-115 (macro-F1 and accuracy).}
 \label{tab:modelcomp}
-\footnotesize
-\begin{tabular}{@{}l cc cc@{}}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l cccc@{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{Validation}} & \multicolumn{2}{c}{\textbf{Test}} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
 \textbf{Model} & Macro-F1 & Acc. & Macro-F1 & Acc. \\
 \midrule
-\textbf{PrivBERT freeze}          & \textbf{0.935} & \textbf{0.973} & \textbf{0.869} & \textbf{0.954} \\
-Na\"ive Bayes (same split)        & 0.704 & 0.842 & 0.649 & 0.821 \\
-LogReg TF-IDF (archived split)    & 0.758 & 0.890 & 0.779 & 0.893 \\
+\textbf{PrivBERT freeze (S1)} & \textbf{0.935} & \textbf{0.973} & \textbf{0.869} & \textbf{0.954} \\
+Na\"ive Bayes baseline (S1) & 0.704 & 0.842 & 0.649 & 0.821 \\
+PrivacyBERT variant (S0) & 0.872 & 0.951 & 0.892 & 0.956 \\
+LogReg TF-IDF variant (S0) & 0.758 & 0.890 & 0.779 & 0.893 \\
+LogReg TF-IDF no Bayes (S0) & 0.758 & 0.890 & 0.779 & 0.893 \\
 \bottomrule
 \end{tabular}
+\\[-0.5ex]
+{\scriptsize S1: accepted split (1764/2472). S0: archived split (1803/2272).}
 \end{table}
 
 \subsection{Per-Class Performance}
@@ -443,7 +461,10 @@ one-vs-rest ECE is $0.0460$.
 Stratified bootstrap resampling ($n = 1{,}000$) yields a 95\% confidence
 interval of $[0.845, 0.892]$ for test macro-F1 and $[0.946, 0.962]$ for test
 accuracy, confirming that the headline results are statistically stable
-rather than artefacts of a single favourable split.
+rather than artefacts of a single favourable split. Because calibration and
+bootstrap outputs are acceptance-gating criteria in the freeze path, they are
+reported for the accepted split and not used to rank archived
+non-comparable variants.
 
 \subsection{Bayesian Risk Posteriors}
 The Bayesian layer produces a primary posterior score of $0.901$ on the test
@@ -464,11 +485,21 @@ OPP-115 only. This design choice keeps the held-out evaluation interpretable
 and avoids presenting auxiliary data as beneficial before a defensible label
 mapping is available.
 
+\subsection{Phase 4 Compliance Output Update}
+Beyond acceptance validation, the updated Phase~4 assessor supports a
+policy-only compliance path that emits check-level outcomes and
+framework-specific verdict objects with clause citations. This extends the
+earlier aggregate compliance score into a traceable evidence view across GDPR,
+NIST Privacy Framework, and ISO/IEC 27701 controls. Current repository outputs
+include demonstrator reports generated on synthetic policy snippets; these are
+treated as workflow evidence rather than as a benchmark of real-world policy
+compliance prevalence.
+
 % =====================================================================
 \section{Discussion}\label{sec:discussion}
 % =====================================================================
 The results substantiate the central claim that clause-level NLP and
-standards-traceable probabilistic scoring can be productively unified. Three
+standards-traceable probabilistic scoring can be productively unified. Four
 observations stand out. First, calibration matters as much as accuracy: a
 classifier feeding a downstream risk model must report trustworthy
 probabilities, and the observed ECE of $0.0525$ indicates that the freeze
@@ -476,7 +507,10 @@ classifier's confidence can be propagated into the Bayesian layer without
 aggressive re-calibration. Second, class imbalance is the dominant obstacle to further
 gains; the minority \texttt{system} class, with only 97 test instances,
 caps macro-F1 despite strong majority-class performance, and focal loss
-mitigates but does not eliminate this effect. Third, traceability is a
+mitigates but does not eliminate this effect. Third, split discipline is
+critical for interpretation: archived variants may show higher point
+estimates than the accepted freeze, but on different partition sizes and are
+therefore unsuitable for direct acceptance comparison. Fourth, traceability is a
 first-class design property rather than an afterthought: because every
 posterior retains its contributing clauses and every clause is linked through
 Phase~1 to a specific standard, the framework can answer not only ``how risky''
@@ -511,9 +545,13 @@ tier under Kingston University's self-certification process. Synthetic events
 contain no identifiable information, and the public breach
 datasets~\cite{enisa_tl_2024,prc_breaches} comprise incident summaries rather
 than personal records. Use of OPP-115 complies with its research-and-teaching
-licence. The framework is intended as a decision-support and transparency aid;
-its scores are advisory and should not substitute for qualified legal
-assessment of compliance.
+licence. Ethical deployment constraints remain central: (i) model outputs are
+probabilistic and may under-represent minority disclosure patterns;
+(ii) compliance verdicts are evidence-linked but not legal determinations;
+and (iii) per-regulation scoring should be reviewed by domain experts before
+operational decisions are made. The framework is intended as a
+decision-support and transparency aid; its scores are advisory and should not
+substitute for qualified legal assessment of compliance.
 
 % =====================================================================
 \section{Conclusion and Future Work}\label{sec:conclusion}
@@ -524,7 +562,10 @@ clause classifier (test macro-F1 $0.869$; ECE $0.0525$) with a
 standards-traceable Bayesian risk layer, the framework bridges the long-standing gap between
 automated policy analysis and regulatory measurement, while a reproducible
 four-phase pipeline with explicit acceptance criteria underpins its
-trustworthiness. Future work will pursue three directions: domain-adaptive
+trustworthiness. The updated implementation further contributes a
+variant-tracked Phase~3 evaluation stack and a policy-only Phase~4
+cross-regulation compliance pathway with auditable clause citations.
+Future work will pursue three directions: domain-adaptive
 pre-training and targeted augmentation to lift minority-class performance;
 sensitivity analysis and elicitation procedures for the Bayesian priors; and
 external validation against multilingual and cross-jurisdictional policy

@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formative Viva - PrERT-CNM-v4</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section data-background-gradient="linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #0b3b4c 100%)">
+                <h4 class="title-light">PrERT-CNM-v4</h4>
+                <h2 class="title-light small-gap">Strengthening User Privacy through AI-Driven Risk Quantification and
+                    International Standards Alignment</h2>
+                <p class="title-light tiny">Jordan (Jay) Bell • MSc Artificial Intelligence • Kingston University
+                </p>
+                <aside class="notes">
+                    - I will summarise where the project is now and what remains before dissertation submission.
+                    - The core theme is turning privacy-policy text into standards-traceable risk evidence.
+                    - I welcome feedback on limitations, evaluation rigour, and completion priorities.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Agenda</h3>
+                <div class="agenda-grid">
+                    <div>1. Background and motivation</div>
+                    <div>2. Work to date and key results</div>
+                    <div>3. Problems, resolutions, and current risks</div>
+                    <div>4. Future plan to dissertation completion</div>
+                    <div>5. Ethics and data governance</div>
+                    <div>6. Legal and professional issues</div>
+                </div>
+                <aside class="notes">
+                    - I will cover all items requested in the formative brief.
+                    - The emphasis is work completed, critical reflection, and realistic next actions.
+                    - Questions are welcome throughout or in the final discussion slot.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Background and Motivation</h3>
+                <ul>
+                    <li>My background is Computer Science, and I am currently undertaking an MSc in Artificial
+                        Intelligence.</li>
+                    <li>I plan to continue to PhD-level research, where publication quality and reproducibility are
+                        central.</li>
+                    <li>I joined Prof. Razi Arshad's project to help build a new privacy-focused AI transformer model.
+                    </li>
+                    <li>Core motivation: close the gap between policy text classification and standards-traceable risk
+                        reasoning.</li>
+                </ul>
+                <aside class="notes">
+                    - My motivation is both academic and practical: strong publication-ready research and practical
+                    privacy tooling.
+                    - This opportunity aligned with my PhD ambitions and my interest in AI for cybersecurity/privacy.
+                    - I wanted a project where method quality and real-world relevance are equally important.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Project Aim and Research Gap</h3>
+                <div class="split">
+                    <div>
+                        <h4>Gap</h4>
+                        <ul>
+                            <li>Policy NLP often stops at labels/probabilities.</li>
+                            <li>Regulations define obligations but not operational metrics.</li>
+                            <li>Stakeholders need measurable, explainable, and auditable risk indicators.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Response</h4>
+                        <ul>
+                            <li>Build a four-phase pipeline from standards extraction to validated compliance outputs.
+                            </li>
+                            <li>Use transformer classification with Bayesian posterior risk integration.</li>
+                            <li>Preserve traceability from score to clause to regulation control.</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    - Existing work often gives labels but not measurable compliance evidence.
+                    - Standards frameworks are strong on obligations but weak on operational scoring.
+                    - My contribution is the bridge: prediction, uncertainty, and standards traceability in one
+                    pipeline.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Work to Date: System Architecture</h3>
+                <div class="phase-ribbon">
+                    <div><span>P1</span>Extract controls</div>
+                    <div><span>P2</span>Define metrics</div>
+                    <div><span>P3</span>Classify + risk</div>
+                    <div><span>P4</span>Validate + demo</div>
+                </div>
+                <ol>
+                    <li><strong>Phase 1:</strong> regulation-specific extraction of GDPR, NIST Privacy Framework, and
+                        ISO/IEC 15944-12, 27001, 27002, 27005, 27018, 27701, 29100, 29151 controls.
+                    </li>
+                    <li><strong>Phase 2:</strong> metric design + synthetic baseline scenarios (normal, stressed,
+                        adversarial).</li>
+                    <li><strong>Phase 3:</strong> clause classification on OPP-115 + Bayesian risk layer.</li>
+                    <li><strong>Phase 4:</strong> acceptance validation, calibration checks, and Gradio demonstration.
+                    </li>
+                </ol>
+                <p class="tiny">Pipeline is artifact-driven and reproducible (versioned JSONL/manifests).</p>
+                <aside class="notes">
+                    - The architecture is intentionally staged so each phase leaves auditable artifacts.
+                    - This design makes experiments reproducible and easier to debug.
+                    - It also supports defensible reporting for dissertation and publication contexts.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Work to Date: Objectives Achieved</h3>
+                <div class="kpi-grid">
+                    <div><strong>4 Phases</strong><span>implemented and connected</span></div>
+                    <div><strong>10 Frameworks</strong><span>GDPR + ISO/IEC + NIST controls in the full pipeline</span>
+                    </div>
+                    <div><strong>Clause citations</strong><span>for transparent pass/fail reasoning</span></div>
+                    <div><strong>Phase 4 tests</strong><span>new policy-only pathway covered</span></div>
+                </div>
+                <ul>
+                    <li>Implemented accepted freeze path with policy-level train/validation/test split discipline and
+                        leakage checks.</li>
+                    <li>Delivered regulation-aligned compliance assessment and traceability across all 10 frameworks in
+                        the PrERT-CNM-v4 pipeline.</li>
+                    <li>Added clause-level citations for every compliance verdict to support auditability.</li>
+                    <li>Completed test coverage for new Phase 4 policy compliance path (new tests plus full Phase 4
+                        pass).</li>
+                    <li>Maintained public demo workflow through Gradio and Hugging Face packaging support.</li>
+                </ul>
+                <aside class="notes">
+                    - These are the concrete outputs that demonstrate work-to-date progress.
+                    - The compliance pathway is aligned to the full 10-framework scope of the project.
+                    - Traceability and test coverage were prioritised to improve trust in outputs.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Preliminary Results: Accepted Split (S1)</h3>
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Metric (Test)</th>
+                            <th>PrivBERT Freeze</th>
+                            <th>Naive Bayes Baseline</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Macro-F1</td>
+                            <td><strong>0.869</strong></td>
+                            <td>0.649</td>
+                        </tr>
+                        <tr>
+                            <td>Accuracy</td>
+                            <td><strong>0.954</strong></td>
+                            <td>0.821</td>
+                        </tr>
+                        <tr>
+                            <td>ECE (calibration)</td>
+                            <td>0.0525</td>
+                            <td>n/a</td>
+                        </tr>
+                        <tr>
+                            <td>Brier score</td>
+                            <td>0.0400</td>
+                            <td>n/a</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="bar-group">
+                    <div class="bar-row"><span>Macro-F1</span>
+                        <div class="bar-wrap">
+                            <div class="bar pb" style="--w:86.9%">PrivBERT 0.869</div>
+                            <div class="bar nb" style="--w:64.9%">NB 0.649</div>
+                        </div>
+                    </div>
+                    <div class="bar-row"><span>Accuracy</span>
+                        <div class="bar-wrap">
+                            <div class="bar pb" style="--w:95.4%">PrivBERT 0.954</div>
+                            <div class="bar nb" style="--w:82.1%">NB 0.821</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="tiny">Bayesian primary posterior score: 0.901 with level-specific credible intervals and
+                    evidence traces.</p>
+                <aside class="notes">
+                    - On the accepted split, PrivBERT clearly outperforms Naive Bayes on both macro-F1 and accuracy.
+                    - Calibration is strong enough to support Bayesian downstream integration.
+                    - This is my main benchmark claim because the split and acceptance checks are controlled.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Model Comparison: PrivacyBERT vs NB vs LogReg (S0 Tests)</h3>
+                <p class="tiny">Same test size (n=2272) from tracked variant runs for technique comparison.</p>
+                <div class="model-cards">
+                    <article class="model-card">
+                        <h4>PrivacyBERT</h4>
+                        <p><strong>Macro-F1:</strong> 0.892</p>
+                        <p><strong>Accuracy:</strong> 0.956</p>
+                    </article>
+                    <article class="model-card">
+                        <h4>LogReg TF-IDF</h4>
+                        <p><strong>Macro-F1:</strong> 0.779</p>
+                        <p><strong>Accuracy:</strong> 0.893</p>
+                    </article>
+                    <article class="model-card">
+                        <h4>Naive Bayes</h4>
+                        <p><strong>Macro-F1:</strong> 0.640</p>
+                        <p><strong>Accuracy:</strong> 0.815</p>
+                    </article>
+                </div>
+                <div class="bar-group compact">
+                    <div class="bar-row"><span>Macro-F1</span>
+                        <div class="bar-wrap triple">
+                            <div class="bar pb" style="--w:89.2%">0.892</div>
+                            <div class="bar lr" style="--w:77.9%">0.779</div>
+                            <div class="bar nb" style="--w:64.0%">0.640</div>
+                        </div>
+                    </div>
+                    <div class="bar-row"><span>Accuracy</span>
+                        <div class="bar-wrap triple">
+                            <div class="bar pb" style="--w:95.6%">0.956</div>
+                            <div class="bar lr" style="--w:89.3%">0.893</div>
+                            <div class="bar nb" style="--w:81.5%">0.815</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="tiny">Interpretation note: S0 and S1 are not directly comparable for acceptance decisions.</p>
+                <aside class="notes">
+                    - This slide addresses direct model family comparison including logreg and Naive Bayes.
+                    - PrivacyBERT remains strongest, with logreg as a useful lightweight baseline.
+                    - I explicitly separate this from S1 acceptance evidence to avoid split-mixing bias.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Evidence of Ongoing Progress</h3>
+                <ul>
+                    <li><strong>Changelog:</strong> policy-only assessment, independent per-regulation scoring, source
+                        citations, and GUI updates.</li>
+                    <li><strong>Project memory records:</strong> architecture decisions, dual assessment path, and
+                        roadmap items.</li>
+                    <li><strong>Research write-up:</strong> full methodology, experiments, limitations, ethics, and
+                        future work in dissertation draft.</li>
+                    <li><strong>Master plan draft:</strong> defined next-stage model scaling and evidence-grounded
+                        research direction.</li>
+                    <li><strong>Commit history:</strong> continuous iteration on benchmarking, artifacts, and
+                        documentation quality.</li>
+                </ul>
+                <aside class="notes">
+                    - Progress is evidenced across changelog, memory records, write-up, and commits.
+                    - This is not a single experiment snapshot; it is an evolving, documented pipeline.
+                    - The documentation trail supports auditability for viva and final dissertation.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Problems Encountered and Resolution Status</h3>
+                <div class="split">
+                    <div>
+                        <h4>Problems</h4>
+                        <ul>
+                            <li>Class imbalance, especially limited \"system\" examples, caps macro-F1 gains.</li>
+                            <li>Risk of misleading model comparisons when splits differ across variants.</li>
+                            <li>Auxiliary APP-350 mapping reduced useful label coverage for the current taxonomy.</li>
+                            <li>Bayesian posterior can be sensitive to analyst-defined priors.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Resolution / Plan</h4>
+                        <ul>
+                            <li>Use focal loss and keep macro metrics as primary decision signals.</li>
+                            <li>Enforce policy-level split discipline and non-comparability caveats.</li>
+                            <li>Treat APP-350 outcome as negative evidence and keep OPP-115 as benchmark anchor.</li>
+                            <li>Schedule prior sensitivity analysis and elicitation workflow in next phase.</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    - The biggest technical issue is minority-class performance, especially for system.
+                    - Methodologically, split discipline and comparability are essential to avoid overstated claims.
+                    - Current mitigations are active, and unresolved risks are explicitly in the plan.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Methods for Future Work</h3>
+                <ol>
+                    <li>Domain-adaptive pretraining and targeted augmentation to improve minority class behaviour.</li>
+                    <li>Compare stronger and long-context transformer families under controlled scaling schedules.</li>
+                    <li>Expand evidence-grounding: retrieval of external behavioural indicators to test
+                        policy-application consistency.</li>
+                    <li>Run repeated-seed ablations with fixed splits and leakage controls for defensible claims.</li>
+                    <li>Validate externally on multilingual and cross-jurisdiction policy corpora.</li>
+                </ol>
+                <aside class="notes">
+                    - Future methods are focused on stronger evidence, not only better scores.
+                    - I will test architecture, data strategy, and evidence-grounded verification in sequence.
+                    - Evaluation will continue to include calibration and uncertainty metrics.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Future Plan (Now to Dissertation)</h3>
+                <div class="timeline">
+                    <div class="time-item"><span>Now</span>
+                        <p>Stabilise viva narrative, finalise reproducible evidence bundle, and lock accepted
+                            benchmarks.</p>
+                    </div>
+                    <div class="time-item"><span>Short term</span>
+                        <p>Implement scaling/architecture experiments and calibration-first evaluation protocol.</p>
+                    </div>
+                    <div class="time-item"><span>Mid term</span>
+                        <p>Add external evidence retrieval + contradiction scoring for policy-vs-practice analysis.</p>
+                    </div>
+                    <div class="time-item"><span>Final stage</span>
+                        <p>Integrate thesis write-up, full ablation tables, and defensible discussion of limits and
+                            impact.</p>
+                    </div>
+                </div>
+                <aside class="notes">
+                    - This is my completion roadmap from current state to final dissertation.
+                    - Each stage has a technical objective and a reporting objective.
+                    - Supervisor feedback will be used to prioritise feasible high-impact tasks.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Ethics and Data Governance</h3>
+                <ul>
+                    <li>No human participant recruitment and no direct personal data collection in this pipeline.</li>
+                    <li>Data sources are public research corpora and synthetic records under project controls.</li>
+                    <li>OPP-115 usage follows research-and-teaching licence constraints noted in project records.</li>
+                    <li>Model outputs are probabilistic: they support decisions but do not replace expert legal
+                        judgement.</li>
+                    <li>Deployment principle: transparent evidence links, uncertainty disclosure, and human oversight
+                        before action.</li>
+                </ul>
+                <aside class="notes">
+                    - Ethics stance: low-risk data handling but high responsibility in interpretation and deployment.
+                    - Outputs are advisory and should not be treated as legal conclusions.
+                    - Transparency and expert oversight are necessary safeguards.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Legal and Professional Issues</h3>
+                <div class="split">
+                    <div>
+                        <h4>Dataset provenance (OPP-115)</h4>
+                        <ul>
+                            <li>Treat OPP-115 as the canonical benchmark anchor for near-term claims.</li>
+                            <li>Preserve citation, source URL, access dates, and transformation scripts.</li>
+                            <li>Respect non-commercial/research use constraints and avoid unclear redistribution.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Professional AI practice</h4>
+                        <ul>
+                            <li>Report accuracy and calibration together to avoid over-trust in raw predictions.</li>
+                            <li>Avoid presenting compliance scores as legal determinations.</li>
+                            <li>Document model limits, bias risks, and uncertainty in all stakeholder-facing outputs.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    - Legally, dataset provenance and reuse boundaries must be explicit.
+                    - Professionally, we should communicate uncertainty and avoid over-claiming compliance outcomes.
+                    - I have aligned the project documentation to preserve this defensibility.
+                </aside>
+            </section>
+
+            <section>
+                <h3>Current Contribution and Readiness</h3>
+                <ul>
+                    <li>Delivered an end-to-end, standards-aligned, reproducible privacy risk framework.</li>
+                    <li>Demonstrated strong accepted-split benchmark performance with calibrated outputs.</li>
+                    <li>Added traceable cross-regulation compliance reporting with explicit clause citations.</li>
+                    <li>Established a clear and realistic plan for deeper thesis-stage advancement.</li>
+                </ul>
+                <p class="tiny">Key message: the project has moved beyond proof-of-concept into auditable
+                    decision-support tooling.</p>
+                <aside class="notes">
+                    - The project now has a stable core contribution with measurable and traceable outputs.
+                    - Remaining work is about depth, robustness, and external validity.
+                    - I am looking for guidance on prioritisation before final dissertation submission.
+                </aside>
+            </section>
+
+            <section data-background-gradient="linear-gradient(135deg, #052e2b 0%, #0b5b66 100%)">
+                <h2 class="title-light">Thank You</h2>
+                <p class="title-light">Questions and discussion</p>
+                <p class="title-light tiny">Formative viva goal: feedback to strengthen final dissertation and
+                    completion plan.</p>
+                <aside class="notes">
+                    - Thank you for reviewing this formative update.
+                    - I am particularly interested in feedback on methodology rigour and future-work prioritisation.
+                    - Happy to walk through artifacts or specific metrics in detail.
+                </aside>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: "c/t",
+            transition: "slide",
+            transitionSpeed: "default",
+            controlsTutorial: false,
+            progress: true,
+            center: false,
+            plugins: [RevealNotes, RevealHighlight],
+        });
+    </script>
+</body>
+
+</html>

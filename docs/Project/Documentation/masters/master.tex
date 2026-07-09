@@ -1,0 +1,58 @@
+\documentclass[12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{setspace}
+\usepackage[numbers]{natbib}
+\usepackage{hyperref}
+
+\onehalfspacing
+
+\title{MSc Project\\
+Towards A Deeper Privacy-Cybersecurity Intelligence Model}
+\author{Jordan Bell Compaan}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+In this document, I reframe the next stage of the PrERT-CNM project as a deeper research programme focused on model capability growth, not only compliance classification. My goal is to investigate whether larger model capacity, larger and better-targeted datasets, and external web evidence can materially improve accuracy, F1, recall, and confidence calibration while also producing a richer report about whether a company appears to apply its stated privacy commitments in practice. I position this approach as explicitly evidence-grounded and benchmarked against prior privacy-policy NLP systems and modern transformer scaling results.
+\end{abstract}
+
+\section{Motivation And Research Direction}
+The current stage of my project has already shown that a specialised PrivacyBERT-style classifier can produce useful compliance signals. The next stage is intentionally more ambitious: I now ask whether the model can become a decision-support system rather than only a text classifier. In practice, this means evaluating three linked questions in depth: whether increasing model capacity and changing architecture improves policy-compliance and risk-prediction quality; whether increasing and improving dataset coverage raises not only accuracy-related metrics (accuracy, macro F1, recall) but also confidence quality; and whether external evidence from public web behaviour can be incorporated to test whether a policy appears to be implemented in practice rather than merely stated in text. I ground this direction in the legal and governance reality that modern data-processing obligations are both textual and operational under major regimes such as GDPR \citep{gdpr2016}.
+
+\section{What Prior Work Shows About Scaling}
+Progress in transformer-based NLP has repeatedly shown that pretrained language models can substantially improve downstream classification quality \citep{devlin2019bert,liu2019roberta}. However, a larger parameter count alone is not a guaranteed path to better quality per unit of compute. Compute-optimal scaling results indicate that balancing model size and token count is more effective than only increasing parameters \citep{hoffmann2022chinchilla}. For my master's project, this finding implies a concrete design rule: any experiment in which I scale model size should also scale high-quality training tokens. In addition, domain-adaptive pretraining has been shown to improve performance in specialised corpora, which suggests that privacy-policy and cybersecurity-specific adaptation should outperform generic fine-tuning when enough in-domain text is available \citep{gururangan2020dontstop}.
+
+Policy documents are often long and structurally complex, which creates an architectural constraint. Standard BERT-length inputs force aggressive truncation and may drop legally critical clauses. Long-context transformer variants are therefore relevant for my project because they were explicitly developed to process long documents more efficiently \citep{beltagy2020longformer}. For that reason, my deeper model roadmap will compare at least one stronger encoder family and at least one long-document architecture, rather than only repeating base-model fine-tuning.
+
+\section{Dataset Scale, Label Quality, And Expected Metric Effects}
+Evidence from legal and domain NLP indicates that in-domain pretraining and task-adaptive pretraining can produce measurable gains, especially when task text is specialised \citep{gururangan2020dontstop,chalkidis2020legalbert}. For privacy-specific data, prior corpora such as OPP-115 demonstrate both feasibility and the annotation complexity required for fine-grained policy understanding \citep{wilson2016opp115}. This supports a strategy in which I treat dataset growth not as simple volume expansion, but as controlled expansion in both policy diversity and annotation richness.
+
+In practical terms, my hypothesis is that larger datasets will improve recall and macro F1 first, while confidence reliability may lag unless calibration is addressed explicitly. This expectation is consistent with calibration research showing that modern neural networks can be overconfident even when predictive accuracy is high \citep{guo2017calibration}. Accordingly, I will treat confidence as a target metric in its own right (for example through ECE and Brier score), not as a side effect of higher classification accuracy.
+
+\section{From Policy Text To Policy Application Evidence}
+The most important expansion beyond my completed work is an evidence layer that tests policy claims against observable behaviour. Prior measurement studies have shown that online tracking and data-sharing ecosystems are widespread and measurable at web scale \citep{englehardt2016tracking}. Separate privacy-policy studies have reported contradictions and inconsistencies between disclosures and observed behaviour in app ecosystems \citep{okoyomon2019notice,andow2019policylint}. These findings justify adding a web-observation pipeline to my thesis: a system that extracts verifiable policy commitments (for example, third-party sharing restrictions or retention claims), gathers observable signals from external sources, and then scores consistency between stated policy and observed practice.
+
+Methodologically, I will implement this layer as retrieval-grounded reasoning rather than free-form generation. Retrieval-augmented paradigms are now widely used when systems must justify outputs against external evidence and reduce unsupported claims \citep{lewis2020rag}. In my project, the retrieval index will contain both internal compliance controls and external evidence artefacts, and each report sentence will be tied to traceable references. The final output will therefore move from \emph{is this policy compliant?} to \emph{what is claimed, what is observed, where they align, and where risk is likely elevated}.
+
+\section{Positioning: First, Early, Or Similar?}
+I do not claim to be the first to build an automated privacy-policy analysis system. Prior systems such as Polisis explicitly presented themselves as early generic frameworks for detailed automated privacy-policy analysis \citep{harkous2018polisis}. There is also substantial prior work on contradiction detection and disclosure inconsistencies \citep{andow2019policylint,okoyomon2019notice}. My novelty claim is therefore narrower and stronger: I aim to develop an early specialised privacy-cybersecurity model that unifies compliance classification, cross-framework control reasoning, calibration-aware confidence reporting, and external evidence checks in one reproducible pipeline. I consider this positioning novel enough to be publishable while still remaining factually aligned with the literature.
+
+\section{Research Design In Narrative Form}
+My empirical programme will proceed in three phases. In the first phase, I will test architecture and scale decisions by comparing stronger encoder backbones, long-document variants, and controlled parameter-and-data scaling schedules. In the second phase, I will test data strategy by expanding in-domain corpora and annotation depth, then measuring effects on accuracy, macro F1, recall, and calibration quality. In the third phase, I will add policy-application verification through external evidence retrieval and contradiction scoring, producing a company-level report that separates text-only compliance from evidence-supported operational consistency.
+
+To keep my claims valid, I will use fixed splits, repeated seeds, and ablations over model size, token budget, and retrieval components in each phase. My evaluation will report classification metrics, calibration metrics, and evidence-grounding metrics. I will only treat a result as a meaningful improvement if it is consistent across repeated runs and cannot be explained by data leakage or annotation artefacts. My overall deliverable is therefore not merely a stronger score table, but a stronger methodological answer to when and why a specialised privacy model should be trusted.
+
+\section{Conclusion}
+I frame the next master's stage as depth rather than repetition: deeper scaling experiments, deeper datasets, and deeper validation against real-world evidence. The literature supports this direction, but it also sets a high bar for rigour. By combining compute-aware scaling, domain-adaptive training, calibration-aware reporting, and evidence-grounded policy-application checks, I aim for this thesis to make a concrete contribution to specialised AI for privacy and cybersecurity that is both practically useful and academically defensible.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

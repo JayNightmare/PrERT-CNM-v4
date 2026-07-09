@@ -217,9 +217,5 @@ docs/Proposal/*
 !docs/Proposal/*.bib
 !docs/Proposal/*.tex
 
-docs/Project/Final/
-
 .agents/*
 space_outputs/*
-docs/Export
-docs/Project/Documentation/masters/*
