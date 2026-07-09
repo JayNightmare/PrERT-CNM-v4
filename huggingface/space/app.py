@@ -57,6 +57,14 @@ try:
         resolve_default_model_path,
     )
     from prert.phase4.synthetic import generate_synthetic_policy_schema_dataset
+    from prert.phase4.visual_layers import (
+        build_visual_layers_markdown,
+        export_visual_layers_map,
+        render_attention_heatmap_png,
+        render_visual_layers_svg,
+        run_visual_layers_analysis,
+        write_visual_layers_json,
+    )
 
     PHASE4_IMPORT_ERROR: Optional[Exception] = None
 except Exception as phase4_exc:  # pragma: no cover - runtime deployment guard
@@ -65,6 +73,12 @@ except Exception as phase4_exc:  # pragma: no cover - runtime deployment guard
     list_available_regulations = None  # type: ignore[assignment]
     resolve_default_model_path = None  # type: ignore[assignment]
     generate_synthetic_policy_schema_dataset = None  # type: ignore[assignment]
+    run_visual_layers_analysis = None  # type: ignore[assignment]
+    render_visual_layers_svg = None  # type: ignore[assignment]
+    render_attention_heatmap_png = None  # type: ignore[assignment]
+    export_visual_layers_map = None  # type: ignore[assignment]
+    write_visual_layers_json = None  # type: ignore[assignment]
+    build_visual_layers_markdown = None  # type: ignore[assignment]
     PHASE4_IMPORT_ERROR = phase4_exc
 
 
@@ -103,6 +117,333 @@ def classify_text(text: str) -> Tuple[Dict[str, float], List[Dict[str, Any]]]:
     sorted_scores = sorted(raw_scores, key=lambda score: score["score"], reverse=True)
     label_scores = {score["label"]: float(score["score"]) for score in sorted_scores}
     return label_scores, sorted_scores
+
+
+def _visual_layers_activation_rows(analysis: Mapping[str, Any]) -> List[List[Any]]:
+    mode = str(analysis.get("mode", "single_clause"))
+    result = _as_dict(analysis.get("result"))
+    if mode == "full_policy":
+        aggregate = _as_dict(result.get("aggregate"))
+        rows_source = _as_list(aggregate.get("layer_activation"))
+    else:
+        rows_source = _as_list(result.get("layer_activation"))
+
+    rows: List[List[Any]] = []
+    for item in rows_source:
+        row = _as_dict(item)
+        rows.append(
+            [
+                int(row.get("layer", 0)),
+                f"{float(row.get('mean_norm', 0.0)):.5f}",
+                f"{float(row.get('max_norm', 0.0)):.5f}",
+                f"{float(row.get('mean_abs', 0.0)):.5f}",
+            ]
+        )
+    return rows
+
+
+def _visual_layers_attention_rows(analysis: Mapping[str, Any]) -> List[List[Any]]:
+    mode = str(analysis.get("mode", "single_clause"))
+    result = _as_dict(analysis.get("result"))
+    if mode == "full_policy":
+        aggregate = _as_dict(result.get("aggregate"))
+        rows_source = _as_list(aggregate.get("attention"))
+    else:
+        rows_source = _as_list(result.get("attention"))
+
+    rows: List[List[Any]] = []
+    for item in rows_source:
+        row = _as_dict(item)
+        focus_tokens = ", ".join(
+            f"{_as_dict(token).get('token', '')}:{float(_as_dict(token).get('score', 0.0)):.3f}"
+            for token in _as_list(row.get("cls_focus"))[:5]
+        )
+        rows.append(
+            [
+                int(row.get("layer", 0)),
+                int(row.get("head", 0)),
+                f"{float(row.get('mean', 0.0)):.5f}",
+                f"{float(row.get('max', 0.0)):.5f}",
+                f"{float(row.get('entropy', 0.0)):.5f}",
+                focus_tokens,
+            ]
+        )
+    return rows
+
+
+def _visual_layers_math_markdown(analysis: Mapping[str, Any]) -> str:
+    mode = str(analysis.get("mode", "single_clause"))
+    result = _as_dict(analysis.get("result"))
+    math_payload = _as_dict(result.get("math_breakdown"))
+
+    if mode == "full_policy":
+        clauses = _as_list(result.get("clauses"))
+        if clauses:
+            math_payload = _as_dict(_as_dict(clauses[0]).get("math_breakdown"))
+
+    if not math_payload:
+        return "### Math Breakdown\n- No math breakdown available for this run."
+
+    lines = [
+        "### Math Breakdown",
+        f"- Layer: {math_payload.get('layer', 'n/a')}",
+    ]
+    if not bool(math_payload.get("supported", False)):
+        lines.append(f"- {math_payload.get('note', 'Detailed breakdown unsupported for this architecture.')}")
+        return "\n".join(lines)
+
+    lines.extend(
+        [
+            f"- Q mean norm: {float(math_payload.get('q_mean_norm', 0.0)):.6f}",
+            f"- K mean norm: {float(math_payload.get('k_mean_norm', 0.0)):.6f}",
+            f"- V mean norm: {float(math_payload.get('v_mean_norm', 0.0)):.6f}",
+            f"- Attention score mean: {float(math_payload.get('attention_score_mean', 0.0)):.6f}",
+            f"- Attention prob mean: {float(math_payload.get('attention_prob_mean', 0.0)):.6f}",
+            f"- Context mean abs: {float(math_payload.get('context_mean_abs', 0.0)):.6f}",
+            f"- FFN intermediate mean: {float(math_payload.get('ffn_intermediate_mean', 0.0)):.6f}",
+            f"- FFN output mean: {float(math_payload.get('ffn_output_mean', 0.0)):.6f}",
+            f"- Attention reconstruction MAE: {float(math_payload.get('attention_reconstruction_mae', 0.0)):.6f}",
+        ]
+    )
+    if mode == "full_policy":
+        lines.append("- Note: full-policy mode displays math breakdown from the first processed clause.")
+
+    return "\n".join(lines)
+
+
+def _visual_layers_trace_rows(analysis: Mapping[str, Any]) -> List[List[Any]]:
+    mode = str(analysis.get("mode", "single_clause"))
+    result = _as_dict(analysis.get("result"))
+    source = _as_list(result.get("step_trace"))
+    if mode == "full_policy":
+        clauses = _as_list(result.get("clauses"))
+        if clauses:
+            source = _as_list(_as_dict(clauses[0]).get("step_trace"))
+
+    rows: List[List[Any]] = []
+    for item in source:
+        entry = _as_dict(item)
+        rows.append([entry.get("step", ""), entry.get("detail", "")])
+    return rows
+
+
+def _visual_layers_clause_choices(analysis: Mapping[str, Any]) -> Tuple[List[Tuple[str, str]], str]:
+    mode = str(analysis.get("mode", "single_clause"))
+    if mode != "full_policy":
+        return [(
+            "Single Clause",
+            "single_clause",
+        )], "single_clause"
+
+    result = _as_dict(analysis.get("result"))
+    clauses = _as_list(result.get("clauses"))
+    choices: List[Tuple[str, str]] = [("Aggregate", "aggregate")]
+    for index, clause in enumerate(clauses, start=1):
+        text = str(_as_dict(clause).get("text", "")).strip().replace("\n", " ")
+        preview = text[:64] + ("..." if len(text) > 64 else "")
+        choices.append((f"Clause {index}: {preview}", f"clause_{index}"))
+
+    default_value = "clause_1" if len(choices) > 1 else "aggregate"
+    return choices, default_value
+
+
+def _visual_layers_extract_view(analysis: Mapping[str, Any], clause_view: str) -> Dict[str, Any]:
+    mode = str(analysis.get("mode", "single_clause"))
+    if mode != "full_policy":
+        return dict(analysis)
+
+    selected = str(clause_view or "").strip().lower()
+    result = _as_dict(analysis.get("result"))
+    clauses = _as_list(result.get("clauses"))
+
+    if selected == "aggregate":
+        aggregate_architecture = _as_dict(result.get("architecture"))
+        aggregate_payload = {
+            "layer_activation": _as_list(_as_dict(result.get("aggregate")).get("layer_activation")),
+            "attention": _as_list(_as_dict(result.get("aggregate")).get("attention")),
+            "math_breakdown": {},
+            "step_trace": [],
+            "architecture": aggregate_architecture,
+        }
+        return {
+            "mode": "single_clause",
+            "model": _as_dict(analysis.get("model")),
+            "result": aggregate_payload,
+            "source": {"mode": "aggregate"},
+        }
+
+    if selected.startswith("clause_"):
+        try:
+            index = int(selected.split("_", 1)[1]) - 1
+        except (TypeError, ValueError):
+            index = 0
+        if 0 <= index < len(clauses):
+            clause_payload = _as_dict(clauses[index])
+            return {
+                "mode": "single_clause",
+                "model": _as_dict(analysis.get("model")),
+                "result": clause_payload,
+                "source": {"mode": "clause", "index": index + 1},
+            }
+
+    return _visual_layers_extract_view(analysis, "aggregate")
+
+
+def _visual_layers_heatmap_image(view_analysis: Mapping[str, Any], heatmap_layer: float, heatmap_head: float) -> Optional[str]:
+    if render_attention_heatmap_png is None:
+        return None
+    try:
+        return render_attention_heatmap_png(
+            view_analysis,
+            layer=int(heatmap_layer),
+            head=int(heatmap_head),
+        )
+    except Exception:
+        return None
+
+
+def _visual_layers_view_outputs(
+    analysis: Mapping[str, Any],
+    clause_view: str,
+    heatmap_layer: float,
+    heatmap_head: float,
+) -> Tuple[str, List[List[Any]], List[List[Any]], str, List[List[Any]], Optional[str], Optional[str]]:
+    view_analysis = _visual_layers_extract_view(analysis, clause_view)
+    map_html = render_visual_layers_svg(view_analysis) if render_visual_layers_svg is not None else ""
+    activation_rows = _visual_layers_activation_rows(view_analysis)
+    attention_rows = _visual_layers_attention_rows(view_analysis)
+    math_markdown = _visual_layers_math_markdown(view_analysis)
+    trace_rows = _visual_layers_trace_rows(view_analysis)
+    map_download = export_visual_layers_map(view_analysis, "svg") if export_visual_layers_map is not None else None
+    heatmap_path = _visual_layers_heatmap_image(view_analysis, heatmap_layer, heatmap_head)
+    return map_html, activation_rows, attention_rows, math_markdown, trace_rows, map_download, heatmap_path
+
+
+def update_visual_layers_clause_view(
+    analysis: Mapping[str, Any],
+    clause_view: str,
+    heatmap_layer: float,
+    heatmap_head: float,
+    export_format: str,
+) -> Tuple[str, List[List[Any]], List[List[Any]], str, List[List[Any]], Optional[str], Optional[str]]:
+    if not analysis:
+        return "", [], [], "### Math Breakdown\n- Not available.", [], None, None
+
+    view_analysis = _visual_layers_extract_view(analysis, clause_view)
+    map_html = render_visual_layers_svg(view_analysis) if render_visual_layers_svg is not None else ""
+    activation_rows = _visual_layers_activation_rows(view_analysis)
+    attention_rows = _visual_layers_attention_rows(view_analysis)
+    math_markdown = _visual_layers_math_markdown(view_analysis)
+    trace_rows = _visual_layers_trace_rows(view_analysis)
+    map_download = export_visual_layers_map(view_analysis, export_format) if export_visual_layers_map is not None else None
+    heatmap_path = _visual_layers_heatmap_image(view_analysis, heatmap_layer, heatmap_head)
+    return map_html, activation_rows, attention_rows, math_markdown, trace_rows, map_download, heatmap_path
+
+
+def _visual_layers_error(message: str) -> Tuple[str, str, List[List[Any]], List[List[Any]], str, List[List[Any]], Dict[str, Any], Any, Optional[str], Optional[str], Optional[str], Dict[str, Any]]:
+    return (
+        f"### Visual Layers\n\n{message}",
+        "<div style='padding:12px;border:1px solid #d6d6d6;border-radius:10px;background:#fafaf8;'>No neural layer map generated.</div>",
+        [],
+        [],
+        "### Math Breakdown\n- Not available.",
+        [],
+        {},
+        gr.update(choices=[], value=None),
+        None,
+        None,
+        None,
+        {},
+    )
+
+
+def run_visual_layers(
+    mode: str,
+    clause_text: str,
+    policy_file: Any,
+    policy_text: str,
+    model_id_override: str,
+    model_revision_override: str,
+    max_length: float,
+    max_clauses: float,
+    selected_layers: Optional[List[str]],
+    selected_heads: Optional[List[str]],
+    top_tokens: float,
+    export_format: str,
+    heatmap_layer: float,
+    heatmap_head: float,
+) -> Tuple[str, str, List[List[Any]], List[List[Any]], str, List[List[Any]], Dict[str, Any], Any, Optional[str], Optional[str], Optional[str], Dict[str, Any]]:
+    if PHASE4_IMPORT_ERROR is not None:
+        return _visual_layers_error(f"Phase 4 modules could not be imported: {PHASE4_IMPORT_ERROR}")
+
+    if run_visual_layers_analysis is None or render_visual_layers_svg is None:
+        return _visual_layers_error("Visual Layers backend is unavailable in this runtime.")
+
+    normalized_mode = str(mode or "single_clause").strip().lower()
+    resolved_clause = str(clause_text or "").strip()
+    resolved_policy_text = str(policy_text or "").strip()
+
+    if normalized_mode == "full_policy":
+        policy_result = _resolve_upload_or_text(policy_file, policy_text, allow_pdf=True, label="policy")
+        if policy_result["error"]:
+            return _visual_layers_error(str(policy_result["error"]))
+        resolved_policy_text = str(policy_result["text"] or "").strip()
+        if not resolved_policy_text:
+            return _visual_layers_error("Full-policy mode requires policy text or file upload.")
+    else:
+        if not resolved_clause:
+            return _visual_layers_error("Single-clause mode requires text input.")
+
+    selected_layer_values = [str(value) for value in (selected_layers or [])]
+    selected_head_values = [str(value) for value in (selected_heads or [])]
+
+    try:
+        analysis = run_visual_layers_analysis(
+            mode=normalized_mode,
+            clause_text=resolved_clause,
+            policy_text=resolved_policy_text,
+            model_id=str(model_id_override or MODEL_ID).strip() or MODEL_ID,
+            model_revision=str(model_revision_override or MODEL_REVISION).strip() or MODEL_REVISION,
+            max_length=int(max_length),
+            max_clauses=int(max_clauses),
+            selected_layers=selected_layer_values,
+            selected_heads=selected_head_values,
+            top_tokens=int(top_tokens),
+        )
+
+        summary = build_visual_layers_markdown(analysis) if build_visual_layers_markdown is not None else "### Visual Layers"
+        map_html = render_visual_layers_svg(analysis)
+        activation_rows = _visual_layers_activation_rows(analysis)
+        attention_rows = _visual_layers_attention_rows(analysis)
+        math_markdown = _visual_layers_math_markdown(analysis)
+        trace_rows = _visual_layers_trace_rows(analysis)
+        json_path = write_visual_layers_json(analysis) if write_visual_layers_json is not None else None
+        choices, selected_choice = _visual_layers_clause_choices(analysis)
+        view_analysis = _visual_layers_extract_view(analysis, selected_choice)
+        map_html = render_visual_layers_svg(view_analysis)
+        activation_rows = _visual_layers_activation_rows(view_analysis)
+        attention_rows = _visual_layers_attention_rows(view_analysis)
+        math_markdown = _visual_layers_math_markdown(view_analysis)
+        trace_rows = _visual_layers_trace_rows(view_analysis)
+        map_download = export_visual_layers_map(view_analysis, export_format) if export_visual_layers_map is not None else None
+        heatmap_path = _visual_layers_heatmap_image(view_analysis, heatmap_layer, heatmap_head)
+    except Exception as exc:
+        return _visual_layers_error(f"Visual Layers analysis failed: {exc}")
+
+    return (
+        summary,
+        map_html,
+        activation_rows,
+        attention_rows,
+        math_markdown,
+        trace_rows,
+        analysis,
+        gr.update(choices=choices, value=selected_choice),
+        json_path,
+        map_download,
+        heatmap_path,
+        dict(analysis),
+    )
 
 
 def run_compliance_assessment(
@@ -1583,6 +1924,169 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
                 classify_text,
                 inputs=classifier_input,
                 outputs=[classifier_scores, classifier_json],
+                **_event_kwargs(),
+            )
+
+        with gr.Tab("Visual Layers"):
+            with gr.Row():
+                with gr.Column(scale=1):
+                    visual_mode = gr.Radio(
+                        label="Analysis mode",
+                        choices=[("Single Clause", "single_clause"), ("Full Policy", "full_policy")],
+                        value="single_clause",
+                    )
+                    visual_clause_text = gr.Textbox(
+                        label="Single clause input",
+                        lines=6,
+                        max_lines=12,
+                        placeholder="Paste one clause for layer-by-layer neural analysis.",
+                    )
+                    visual_policy_file = gr.File(label="Policy file (full policy mode)", file_types=[".txt", ".md", ".pdf"], type="filepath")
+                    visual_policy_text = gr.Textbox(
+                        label="Policy text (full policy mode)",
+                        lines=8,
+                        max_lines=16,
+                    )
+                    visual_model_id = gr.Textbox(label="Model ID", value=MODEL_ID)
+                    visual_model_revision = gr.Textbox(label="Model revision", value=MODEL_REVISION)
+                    visual_max_length = gr.Slider(label="Max token length", minimum=64, maximum=512, step=32, value=min(MAX_LENGTH, 512))
+                    visual_max_clauses = gr.Slider(label="Max clauses (full policy)", minimum=1, maximum=64, step=1, value=16)
+                    visual_layer_selector = gr.CheckboxGroup(
+                        label="Layers to trace",
+                        choices=[str(index) for index in range(12)],
+                        value=["0", "1", "2", "3"],
+                    )
+                    visual_head_selector = gr.CheckboxGroup(
+                        label="Attention heads",
+                        choices=[str(index) for index in range(12)],
+                        value=["0", "1", "2"],
+                    )
+                    visual_top_tokens = gr.Slider(label="Top attention tokens", minimum=1, maximum=24, step=1, value=8)
+                    visual_clause_selector = gr.Dropdown(label="Clause view", choices=[], value=None)
+                    with gr.Row():
+                        visual_heatmap_layer = gr.Slider(label="Heatmap layer", minimum=1, maximum=12, step=1, value=1)
+                        visual_heatmap_head = gr.Slider(label="Heatmap head", minimum=0, maximum=11, step=1, value=0)
+                    visual_export_format = gr.Dropdown(label="Map export format", choices=["svg", "png"], value="svg")
+                    visual_run = gr.Button("Run Visual Layers", variant="primary")
+                with gr.Column(scale=2):
+                    visual_summary = gr.Markdown(value="### Visual Layers Summary\n- Waiting for input")
+                    visual_map_html = gr.HTML(value="<div style='padding:12px;border:1px solid #d6d6d6;border-radius:10px;background:#fafaf8;'>Awaiting neural layer analysis input.</div>")
+                    visual_activation_table = gr.Dataframe(
+                        headers=["Layer", "Mean Norm", "Max Norm", "Mean Abs"],
+                        interactive=False,
+                    )
+                    visual_attention_table = gr.Dataframe(
+                        headers=["Layer", "Head", "Mean", "Max", "Entropy", "CLS Focus Tokens"],
+                        interactive=False,
+                    )
+                    with gr.Tabs():
+                        with gr.Tab("Math Breakdown"):
+                            visual_math = gr.Markdown()
+                        with gr.Tab("Step Trace"):
+                            visual_trace = gr.Dataframe(headers=["Step", "Detail"], interactive=False)
+                        with gr.Tab("Head Heatmap"):
+                            visual_heatmap_image = gr.Image(label="Attention heatmap", type="filepath")
+                    visual_analysis_state = gr.State({})
+                    visual_json = gr.JSON(label="Visual Layers payload")
+                    with gr.Row():
+                        visual_json_download = gr.File(label="Download Visual Layers JSON")
+                        visual_map_download = gr.File(label="Download map (SVG/PNG)")
+
+            visual_run.click(
+                run_visual_layers,
+                inputs=[
+                    visual_mode,
+                    visual_clause_text,
+                    visual_policy_file,
+                    visual_policy_text,
+                    visual_model_id,
+                    visual_model_revision,
+                    visual_max_length,
+                    visual_max_clauses,
+                    visual_layer_selector,
+                    visual_head_selector,
+                    visual_top_tokens,
+                    visual_export_format,
+                    visual_heatmap_layer,
+                    visual_heatmap_head,
+                ],
+                outputs=[
+                    visual_summary,
+                    visual_map_html,
+                    visual_activation_table,
+                    visual_attention_table,
+                    visual_math,
+                    visual_trace,
+                    visual_analysis_state,
+                    visual_clause_selector,
+                    visual_json_download,
+                    visual_map_download,
+                    visual_heatmap_image,
+                    visual_json,
+                ],
+                **_event_kwargs(),
+            )
+
+            visual_clause_selector.change(
+                update_visual_layers_clause_view,
+                inputs=[
+                    visual_analysis_state,
+                    visual_clause_selector,
+                    visual_heatmap_layer,
+                    visual_heatmap_head,
+                    visual_export_format,
+                ],
+                outputs=[
+                    visual_map_html,
+                    visual_activation_table,
+                    visual_attention_table,
+                    visual_math,
+                    visual_trace,
+                    visual_map_download,
+                    visual_heatmap_image,
+                ],
+                **_event_kwargs(),
+            )
+
+            visual_heatmap_layer.change(
+                update_visual_layers_clause_view,
+                inputs=[
+                    visual_analysis_state,
+                    visual_clause_selector,
+                    visual_heatmap_layer,
+                    visual_heatmap_head,
+                    visual_export_format,
+                ],
+                outputs=[
+                    visual_map_html,
+                    visual_activation_table,
+                    visual_attention_table,
+                    visual_math,
+                    visual_trace,
+                    visual_map_download,
+                    visual_heatmap_image,
+                ],
+                **_event_kwargs(),
+            )
+
+            visual_heatmap_head.change(
+                update_visual_layers_clause_view,
+                inputs=[
+                    visual_analysis_state,
+                    visual_clause_selector,
+                    visual_heatmap_layer,
+                    visual_heatmap_head,
+                    visual_export_format,
+                ],
+                outputs=[
+                    visual_map_html,
+                    visual_activation_table,
+                    visual_attention_table,
+                    visual_math,
+                    visual_trace,
+                    visual_map_download,
+                    visual_heatmap_image,
+                ],
                 **_event_kwargs(),
             )
 

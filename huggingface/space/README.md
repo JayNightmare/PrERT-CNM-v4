@@ -11,7 +11,7 @@ Default model: `__MODEL_ID__`.
 
 Set `MODEL_ID` to override the model repository at runtime.
 
-This Space provides policy-only compliance assessment, hosted synthetic policy/schema generation with downloadable outputs, stored model benchmark comparison, and a raw classifier view.
+This Space provides policy-only compliance assessment, hosted synthetic policy/schema generation with downloadable outputs, stored model benchmark comparison, a raw classifier view, and a Visual Layers neural introspection view.
 
 ## Compliance Demo Features
 
@@ -21,6 +21,20 @@ This Space provides policy-only compliance assessment, hosted synthetic policy/s
 - Evidence-backed rationale strings with explicit source and match score fields.
 
 The graph is a visualization of evidence-link formation and scoring flow. It is not a direct view of hidden neural activations.
+
+## Visual Layers
+
+- New top-level GUI tab: Visual Layers.
+- Supports PrivacyBERT layer introspection for both single-clause and full-policy modes.
+- Provides an interactive node/layer map (zoom and pan), activation summaries, attention-head summaries, math-breakdown metrics, and execution step trace.
+- Full-policy mode includes per-clause view selection so you can inspect one clause or aggregate summaries.
+- Includes an attention head heatmap panel for selected layer/head combinations.
+- Exports current map snapshot to SVG or PNG and exports full payload as JSON.
+
+Notes:
+
+- Visual Layers requires a BERT-compatible sequence-classification checkpoint for hidden states and attentions.
+- Full-policy mode processes clause batches and may be slower for long documents.
 
 ## Chroma Retrieval Configuration
 
@@ -40,3 +54,4 @@ If these values are not provided or connection fails, the app falls back to loca
 - `MODEL_REVISION`: model revision/tag/branch.
 - `MAX_LENGTH`: classifier max sequence length.
 - `PRERT_CONTROLS_PATH`: optional custom controls JSONL path for local retrieval.
+- `HF_TOKEN` or `HUGGINGFACEHUB_API_TOKEN`: optional token for private model access in Visual Layers.
