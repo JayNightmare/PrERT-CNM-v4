@@ -1,8 +1,8 @@
-# PrERT-CNM-v4
+# **Pr**ivacy B**ERT** utilising **C**ontextual **N**ueral **M**emory (PrERT-CNM)
 
 > This repository contains the working implementation for Phases 1 to 4 of the Privacy Evaluation and Risk Quantification Tool (PrERT) project. It covers regulation extraction, metrics and synthetic data generation, privacy-clause classification and Bayesian risk scoring, and Phase 4 validation artefacts. The current emphasis is on strengthening privacy-focused model quality, dataset suitability, and reproducibility for a defensible future publication attempt.
 
-## Total Time Spent on Project PrERT
+## Total Time Spent on Project PrERT-CNM
 
 |    Version     |                                                                                                                                                                                                                                       Coding Time Spent | Research Time Spent |
 | :------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ------------------: |
