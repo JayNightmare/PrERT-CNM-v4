@@ -27,6 +27,7 @@ def evaluate_classifier(
             "weighted_f1": 0.0,
             "per_class": {label: _empty_metrics() for label in labels},
             "confusion": _empty_confusion(labels),
+            "predictions": [],
             "probability_diagnostics": {
                 "renormalized_rows": 0,
                 "uniform_fallback_rows": 0,
@@ -35,8 +36,7 @@ def evaluate_classifier(
 
     predictions: List[Dict[str, Any]] = []
     confusion: Dict[str, Dict[str, int]] = {
-        actual: {predicted: 0 for predicted in labels}
-        for actual in labels
+        actual: {predicted: 0 for predicted in labels} for actual in labels
     }
 
     # C8: track how often the classifier emits a non-normalized probability
@@ -46,8 +46,10 @@ def evaluate_classifier(
 
     correct = 0
     for example in examples:
-        predicted_label = model.predict(example.text)
+        # Single forward pass per example: predict() would internally call
+        # predict_proba() again, doubling GPU inference calls for no reason.
         proba = model.predict_proba(example.text)
+        predicted_label = max(proba.items(), key=lambda item: item[1])[0]
         probabilities = {label: float(proba.get(label, 0.0)) for label in labels}
         total_probability = sum(probabilities.values())
         if total_probability > 0:
@@ -100,7 +102,11 @@ def evaluate_classifier(
 
         precision = tp / (tp + fp) if tp + fp > 0 else 0.0
         recall = tp / (tp + fn) if tp + fn > 0 else 0.0
-        f1 = (2 * precision * recall / (precision + recall)) if precision + recall > 0 else 0.0
+        f1 = (
+            (2 * precision * recall / (precision + recall))
+            if precision + recall > 0
+            else 0.0
+        )
 
         metrics = {
             "precision": round(precision, 6),
@@ -169,7 +175,4 @@ def _empty_metrics() -> Dict[str, Any]:
 
 
 def _empty_confusion(labels: Sequence[str]) -> Dict[str, Dict[str, int]]:
-    return {
-        actual: {predicted: 0 for predicted in labels}
-        for actual in labels
-    }
+    return {actual: {predicted: 0 for predicted in labels} for actual in labels}

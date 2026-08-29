@@ -6,7 +6,6 @@ from typing import Iterable, List
 
 from prert.extract.schema import ControlChunk, ControlRecord, stable_hash
 
-
 MAX_DOCUMENT_BYTES = 16 * 1024
 
 

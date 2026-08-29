@@ -103,7 +103,11 @@ def test_phase2_synthetic_policies_have_multiple_varied_claims(tmp_path: Path) -
     events = _read_jsonl(output_dir / "synthetic_events.jsonl")
 
     assert policies
-    assert {policy["compliance_band"] for policy in policies} == {"high", "medium", "low"}
+    assert {policy["compliance_band"] for policy in policies} == {
+        "high",
+        "medium",
+        "low",
+    }
 
     claim_statuses = set()
     for policy in policies:

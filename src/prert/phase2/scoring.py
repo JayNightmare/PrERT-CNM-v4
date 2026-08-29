@@ -8,7 +8,6 @@ from typing import Any, Dict, Iterable, List, Tuple
 from prert.phase2.metrics import compute_missing_penalty
 from prert.phase2.types import MetricSpec, SyntheticObservation
 
-
 LEVEL_WEIGHTS = {
     "user": 0.4,
     "system": 0.35,
@@ -36,7 +35,10 @@ def score_observations(
         # spec.missing_data_handling and scoring stay in lockstep.
         missing_penalty = compute_missing_penalty(obs.missing_fields)
         confidence_adjusted_score = _clamp(
-            normalized_score * (1.0 - missing_penalty) * obs.observed_confidence * spec.confidence_weight
+            normalized_score
+            * (1.0 - missing_penalty)
+            * obs.observed_confidence
+            * spec.confidence_weight
         )
         risk_score = _clamp(1.0 - confidence_adjusted_score)
 
@@ -66,7 +68,9 @@ def score_observations(
     return metric_rows, level_rows, scenario_rows
 
 
-def _build_level_rows(level_accumulator: Dict[Tuple[str, str], List[float]]) -> List[Dict[str, Any]]:
+def _build_level_rows(
+    level_accumulator: Dict[Tuple[str, str], List[float]],
+) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
 
     for (scenario, level), values in sorted(level_accumulator.items()):

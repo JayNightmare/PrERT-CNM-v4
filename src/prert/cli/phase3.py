@@ -70,7 +70,9 @@ def main() -> None:
 
 def _parse_args() -> argparse.Namespace:
     root = Path.cwd()
-    parser = argparse.ArgumentParser(description="Run Phase 3 baseline classifier pipeline")
+    parser = argparse.ArgumentParser(
+        description="Run Phase 3 baseline classifier pipeline"
+    )
     parser.add_argument(
         "--output-dir",
         type=Path,

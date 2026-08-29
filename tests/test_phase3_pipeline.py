@@ -8,18 +8,90 @@ from prert.phase3.pipeline import run_phase3_pipeline
 
 def _write_labeled_dataset(path: Path) -> None:
     rows = [
-        {"example_id": "e1", "text": "Users can opt out of targeted ads.", "label": "user", "policy_uid": "p1", "category": "User Choice/Control"},
-        {"example_id": "e2", "text": "Users may delete their profile information.", "label": "user", "policy_uid": "p1", "category": "User Access, Edit and Deletion"},
-        {"example_id": "e3", "text": "Encryption is used for data in transit.", "label": "system", "policy_uid": "p2", "category": "Data Security"},
-        {"example_id": "e4", "text": "We honor do not track preferences.", "label": "system", "policy_uid": "p2", "category": "Do Not Track"},
-        {"example_id": "e5", "text": "We collect account data to provide services.", "label": "organization", "policy_uid": "p3", "category": "First Party Collection/Use"},
-        {"example_id": "e6", "text": "We share limited data with payment providers.", "label": "organization", "policy_uid": "p3", "category": "Third Party Sharing/Collection"},
-        {"example_id": "e7", "text": "Users can update notification settings.", "label": "user", "policy_uid": "p4", "category": "User Choice/Control"},
-        {"example_id": "e8", "text": "Policy updates are posted on this page.", "label": "organization", "policy_uid": "p4", "category": "Policy Change"},
-        {"example_id": "e9", "text": "Security controls are reviewed quarterly.", "label": "system", "policy_uid": "p5", "category": "Data Security"},
-        {"example_id": "e10", "text": "Retention schedules are enforced across departments.", "label": "organization", "policy_uid": "p5", "category": "Data Retention"},
-        {"example_id": "e11", "text": "Users can request account deletion.", "label": "user", "policy_uid": "p6", "category": "User Access, Edit and Deletion"},
-        {"example_id": "e12", "text": "Do not track signals are processed by the platform.", "label": "system", "policy_uid": "p6", "category": "Do Not Track"},
+        {
+            "example_id": "e1",
+            "text": "Users can opt out of targeted ads.",
+            "label": "user",
+            "policy_uid": "p1",
+            "category": "User Choice/Control",
+        },
+        {
+            "example_id": "e2",
+            "text": "Users may delete their profile information.",
+            "label": "user",
+            "policy_uid": "p1",
+            "category": "User Access, Edit and Deletion",
+        },
+        {
+            "example_id": "e3",
+            "text": "Encryption is used for data in transit.",
+            "label": "system",
+            "policy_uid": "p2",
+            "category": "Data Security",
+        },
+        {
+            "example_id": "e4",
+            "text": "We honor do not track preferences.",
+            "label": "system",
+            "policy_uid": "p2",
+            "category": "Do Not Track",
+        },
+        {
+            "example_id": "e5",
+            "text": "We collect account data to provide services.",
+            "label": "organization",
+            "policy_uid": "p3",
+            "category": "First Party Collection/Use",
+        },
+        {
+            "example_id": "e6",
+            "text": "We share limited data with payment providers.",
+            "label": "organization",
+            "policy_uid": "p3",
+            "category": "Third Party Sharing/Collection",
+        },
+        {
+            "example_id": "e7",
+            "text": "Users can update notification settings.",
+            "label": "user",
+            "policy_uid": "p4",
+            "category": "User Choice/Control",
+        },
+        {
+            "example_id": "e8",
+            "text": "Policy updates are posted on this page.",
+            "label": "organization",
+            "policy_uid": "p4",
+            "category": "Policy Change",
+        },
+        {
+            "example_id": "e9",
+            "text": "Security controls are reviewed quarterly.",
+            "label": "system",
+            "policy_uid": "p5",
+            "category": "Data Security",
+        },
+        {
+            "example_id": "e10",
+            "text": "Retention schedules are enforced across departments.",
+            "label": "organization",
+            "policy_uid": "p5",
+            "category": "Data Retention",
+        },
+        {
+            "example_id": "e11",
+            "text": "Users can request account deletion.",
+            "label": "user",
+            "policy_uid": "p6",
+            "category": "User Access, Edit and Deletion",
+        },
+        {
+            "example_id": "e12",
+            "text": "Do not track signals are processed by the platform.",
+            "label": "system",
+            "policy_uid": "p6",
+            "category": "Do Not Track",
+        },
     ]
 
     with path.open("w", encoding="utf-8") as handle:
@@ -32,31 +104,105 @@ def _write_polisis_normalized_dataset(polisis_root: Path) -> None:
     normalized_dir.mkdir(parents=True, exist_ok=True)
 
     rows = [
-        {"text": "Users can opt out of targeted ads.", "category": "User Choice/Control", "policy_uid": "p1"},
-        {"text": "Users may delete their profile information.", "category": "User Access, Edit and Deletion", "policy_uid": "p1"},
-        {"text": "Encryption is used for data in transit.", "category": "Data Security", "policy_uid": "p2"},
-        {"text": "We honor do not track preferences.", "category": "Do Not Track", "policy_uid": "p2"},
-        {"text": "We collect account data to provide services.", "category": "First Party Collection/Use", "policy_uid": "p3"},
-        {"text": "We share limited data with payment providers.", "category": "Third Party Sharing/Collection", "policy_uid": "p3"},
-        {"text": "Users can update notification settings.", "category": "User Choice/Control", "policy_uid": "p4"},
-        {"text": "Policy updates are posted on this page.", "category": "Policy Change", "policy_uid": "p4"},
-        {"text": "Security controls are reviewed quarterly.", "category": "Data Security", "policy_uid": "p5"},
-        {"text": "Retention schedules are enforced across departments.", "category": "Data Retention", "policy_uid": "p5"},
-        {"text": "Users can request account deletion.", "category": "User Access, Edit and Deletion", "policy_uid": "p6"},
-        {"text": "Do not track signals are processed by the platform.", "category": "Do Not Track", "policy_uid": "p6"},
+        {
+            "text": "Users can opt out of targeted ads.",
+            "category": "User Choice/Control",
+            "policy_uid": "p1",
+        },
+        {
+            "text": "Users may delete their profile information.",
+            "category": "User Access, Edit and Deletion",
+            "policy_uid": "p1",
+        },
+        {
+            "text": "Encryption is used for data in transit.",
+            "category": "Data Security",
+            "policy_uid": "p2",
+        },
+        {
+            "text": "We honor do not track preferences.",
+            "category": "Do Not Track",
+            "policy_uid": "p2",
+        },
+        {
+            "text": "We collect account data to provide services.",
+            "category": "First Party Collection/Use",
+            "policy_uid": "p3",
+        },
+        {
+            "text": "We share limited data with payment providers.",
+            "category": "Third Party Sharing/Collection",
+            "policy_uid": "p3",
+        },
+        {
+            "text": "Users can update notification settings.",
+            "category": "User Choice/Control",
+            "policy_uid": "p4",
+        },
+        {
+            "text": "Policy updates are posted on this page.",
+            "category": "Policy Change",
+            "policy_uid": "p4",
+        },
+        {
+            "text": "Security controls are reviewed quarterly.",
+            "category": "Data Security",
+            "policy_uid": "p5",
+        },
+        {
+            "text": "Retention schedules are enforced across departments.",
+            "category": "Data Retention",
+            "policy_uid": "p5",
+        },
+        {
+            "text": "Users can request account deletion.",
+            "category": "User Access, Edit and Deletion",
+            "policy_uid": "p6",
+        },
+        {
+            "text": "Do not track signals are processed by the platform.",
+            "category": "Do Not Track",
+            "policy_uid": "p6",
+        },
     ]
 
-    with (normalized_dir / "polisis_normalized.jsonl").open("w", encoding="utf-8") as handle:
+    with (normalized_dir / "polisis_normalized.jsonl").open(
+        "w", encoding="utf-8"
+    ) as handle:
         for row in rows:
             handle.write(json.dumps(row) + "\n")
 
 
 def _write_auxiliary_labeled_dataset(path: Path) -> None:
     rows = [
-        {"example_id": "ax1", "text": "Advertisers collect mobile identifiers for analytics.", "label": "organization", "policy_uid": "p1", "category": "Third Party Sharing/Collection"},
-        {"example_id": "ax2", "text": "The app uses cookies and SDK tracking to authenticate sessions.", "label": "system", "policy_uid": "p2", "category": "Data Security"},
-        {"example_id": "ax3", "text": "Users can disable targeted notifications from settings.", "label": "user", "policy_uid": "p1", "category": "User Choice/Control"},
-        {"example_id": "ax4", "text": "We retain diagnostic logs for service governance.", "label": "organization", "policy_uid": "p2", "category": "Data Retention"},
+        {
+            "example_id": "ax1",
+            "text": "Advertisers collect mobile identifiers for analytics.",
+            "label": "organization",
+            "policy_uid": "p1",
+            "category": "Third Party Sharing/Collection",
+        },
+        {
+            "example_id": "ax2",
+            "text": "The app uses cookies and SDK tracking to authenticate sessions.",
+            "label": "system",
+            "policy_uid": "p2",
+            "category": "Data Security",
+        },
+        {
+            "example_id": "ax3",
+            "text": "Users can disable targeted notifications from settings.",
+            "label": "user",
+            "policy_uid": "p1",
+            "category": "User Choice/Control",
+        },
+        {
+            "example_id": "ax4",
+            "text": "We retain diagnostic logs for service governance.",
+            "label": "organization",
+            "policy_uid": "p2",
+            "category": "Data Retention",
+        },
     ]
 
     with path.open("w", encoding="utf-8") as handle:
@@ -130,7 +276,11 @@ def test_phase3_metrics_in_range(tmp_path: Path) -> None:
     assert overlap["train_test"] == 0
     assert overlap["validation_test"] == 0
 
-    prediction_row = json.loads((output_dir / "test_predictions.jsonl").read_text(encoding="utf-8").splitlines()[0])
+    prediction_row = json.loads(
+        (output_dir / "test_predictions.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()[0]
+    )
     probabilities = prediction_row["probabilities"]
     assert set(probabilities.keys()) == {"user", "system", "organization"}
     assert abs(sum(float(value) for value in probabilities.values()) - 1.0) < 1e-4
@@ -158,18 +308,29 @@ def test_phase3_manifest_includes_model_metadata(tmp_path: Path) -> None:
     assert manifest["metrics"]["calibration_test_macro_ece"] >= 0.0
     assert manifest["execution_metadata"]["run_id"]
     assert manifest["execution_metadata"]["executed_at"].endswith("Z")
-    assert manifest["output_files"]["bayesian_validation"] == "bayesian_risk_validation.json"
+    assert (
+        manifest["output_files"]["bayesian_validation"]
+        == "bayesian_risk_validation.json"
+    )
     assert manifest["output_files"]["bayesian_test"] == "bayesian_risk_test.json"
     assert manifest["output_files"]["calibration_test"] == "calibration_test.json"
-    assert manifest["output_files"]["threshold_sweep_test"] == "threshold_sweep_test.json"
+    assert (
+        manifest["output_files"]["threshold_sweep_test"] == "threshold_sweep_test.json"
+    )
     assert manifest["output_files"]["bootstrap_ci_test"] == "bootstrap_ci_test.json"
 
     history_rows = [
         json.loads(line)
-        for line in (output_dir.parent / "phase3_run_history.jsonl").read_text(encoding="utf-8").splitlines()
+        for line in (output_dir.parent / "phase3_run_history.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
         if line.strip()
     ]
-    matching_row = next(row for row in history_rows if row["run_id"] == manifest["execution_metadata"]["run_id"])
+    matching_row = next(
+        row
+        for row in history_rows
+        if row["run_id"] == manifest["execution_metadata"]["run_id"]
+    )
     assert matching_row["privacybert_model_name"] == "mukund/privbert"
 
 
@@ -229,7 +390,9 @@ def test_phase3_can_disable_bayesian_scoring(tmp_path: Path) -> None:
         enable_bayesian_scoring=False,
     )
 
-    metrics = json.loads((output_dir / "classifier_metrics.json").read_text(encoding="utf-8"))
+    metrics = json.loads(
+        (output_dir / "classifier_metrics.json").read_text(encoding="utf-8")
+    )
     assert metrics["bayesian"]["enabled"] is False
     assert metrics["bayesian"]["primary_score"] is None
     assert "measurement_targets" in metrics
@@ -263,31 +426,51 @@ def test_phase3_auxiliary_examples_are_training_only(tmp_path: Path) -> None:
         "labeled::labeled.jsonl",
         "auxiliary::auxiliary.jsonl",
     ]
-    assert dataset_manifest["splits"]["train"]["rows"] == primary_anchor["splits"]["train"]["rows"] + 4
-    assert dataset_manifest["splits"]["validation"]["rows"] == primary_anchor["splits"]["validation"]["rows"]
-    assert dataset_manifest["splits"]["test"]["rows"] == primary_anchor["splits"]["test"]["rows"]
+    assert (
+        dataset_manifest["splits"]["train"]["rows"]
+        == primary_anchor["splits"]["train"]["rows"] + 4
+    )
+    assert (
+        dataset_manifest["splits"]["validation"]["rows"]
+        == primary_anchor["splits"]["validation"]["rows"]
+    )
+    assert (
+        dataset_manifest["splits"]["test"]["rows"]
+        == primary_anchor["splits"]["test"]["rows"]
+    )
     assert dataset_manifest["policy_overlap"]["train_validation"] == 0
     assert dataset_manifest["policy_overlap"]["train_test"] == 0
     assert dataset_manifest["policy_overlap"]["validation_test"] == 0
 
     training_rows = [
         json.loads(line)
-        for line in (output_dir / "training_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+        for line in (output_dir / "training_dataset.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
         if line.strip()
     ]
     validation_rows = [
         json.loads(line)
-        for line in (output_dir / "validation_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+        for line in (output_dir / "validation_dataset.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
         if line.strip()
     ]
     test_rows = [
         json.loads(line)
-        for line in (output_dir / "test_dataset.jsonl").read_text(encoding="utf-8").splitlines()
+        for line in (output_dir / "test_dataset.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
         if line.strip()
     ]
 
-    auxiliary_training_rows = [row for row in training_rows if row["source"] == "auxiliary::auxiliary.jsonl"]
+    auxiliary_training_rows = [
+        row for row in training_rows if row["source"] == "auxiliary::auxiliary.jsonl"
+    ]
     assert len(auxiliary_training_rows) == 4
-    assert all(row["policy_uid"].startswith("auxiliary::auxiliary::") for row in auxiliary_training_rows)
+    assert all(
+        row["policy_uid"].startswith("auxiliary::auxiliary::")
+        for row in auxiliary_training_rows
+    )
     assert all(row["source"] == "labeled_jsonl" for row in validation_rows)
     assert all(row["source"] == "labeled_jsonl" for row in test_rows)

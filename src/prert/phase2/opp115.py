@@ -10,7 +10,6 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-
 INPUT_SET_TO_SUBDIR = {
     "annotations": "annotations",
     "consolidation-0.5": "consolidation/threshold-0.5-overlap-similarity",
@@ -80,11 +79,17 @@ def build_opp115_public_rows(
     country: str = "US",
 ) -> List[Dict[str, Any]]:
     annotations_dir = resolve_input_source_dir(opp115_root, input_set, source_dir)
-    policy_meta = _load_policy_metadata(opp115_root / "documentation" / "policies_opp115.csv")
-    site_meta = _load_site_metadata(opp115_root / "documentation" / "websites_opp115.csv")
+    policy_meta = _load_policy_metadata(
+        opp115_root / "documentation" / "policies_opp115.csv"
+    )
+    site_meta = _load_site_metadata(
+        opp115_root / "documentation" / "websites_opp115.csv"
+    )
     aggregates = _aggregate_annotations(annotations_dir)
 
-    policy_uids = set(policy_meta.keys()) | set(aggregates.keys()) | set(site_meta.keys())
+    policy_uids = (
+        set(policy_meta.keys()) | set(aggregates.keys()) | set(site_meta.keys())
+    )
     rows: List[Dict[str, Any]] = []
 
     for policy_uid in sorted(policy_uids, key=_policy_sort_key):
@@ -152,20 +157,26 @@ def write_opp115_public_mapping(
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def resolve_input_source_dir(opp115_root: Path, input_set: str, source_dir: Optional[Path]) -> Path:
+def resolve_input_source_dir(
+    opp115_root: Path, input_set: str, source_dir: Optional[Path]
+) -> Path:
     if source_dir is not None:
         return source_dir
 
     if input_set not in INPUT_SET_TO_SUBDIR:
         choices = ", ".join(sorted(INPUT_SET_TO_SUBDIR))
-        raise ValueError(f"Unsupported input_set '{input_set}'. Choose one of: {choices}")
+        raise ValueError(
+            f"Unsupported input_set '{input_set}'. Choose one of: {choices}"
+        )
 
     return opp115_root / INPUT_SET_TO_SUBDIR[input_set]
 
 
 def _aggregate_annotations(annotations_dir: Path) -> Dict[str, _PolicyAggregate]:
     if not annotations_dir.exists():
-        raise FileNotFoundError(f"Annotation source directory not found: {annotations_dir}")
+        raise FileNotFoundError(
+            f"Annotation source directory not found: {annotations_dir}"
+        )
 
     aggregates: Dict[str, _PolicyAggregate] = defaultdict(_PolicyAggregate)
 
@@ -290,7 +301,9 @@ def _infer_sector(sector_values: List[str]) -> Optional[str]:
 
     top_counts = Counter(top_levels)
     max_count = max(top_counts.values())
-    most_common = sorted(name for name, count in top_counts.items() if count == max_count)[0]
+    most_common = sorted(
+        name for name, count in top_counts.items() if count == max_count
+    )[0]
     return most_common
 
 
@@ -320,7 +333,9 @@ def _parse_date(raw: str) -> Optional[date]:
     return None
 
 
-def _compute_collection_lag_hours(collection_date: Optional[str], last_updated_date: Optional[str]) -> Optional[float]:
+def _compute_collection_lag_hours(
+    collection_date: Optional[str], last_updated_date: Optional[str]
+) -> Optional[float]:
     collected = _parse_date(collection_date or "")
     updated = _parse_date(last_updated_date or "")
     if collected is None or updated is None:

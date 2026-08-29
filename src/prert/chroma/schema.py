@@ -15,7 +15,9 @@ class ChromaSchemaBundle:
     sparse_key: str = "sparse_embedding"
 
 
-def build_ground_truth_schema(api_key_env_var: str = "CHROMA_API_KEY") -> ChromaSchemaBundle:
+def build_ground_truth_schema(
+    api_key_env_var: str = "CHROMA_API_KEY",
+) -> ChromaSchemaBundle:
     """Builds a schema bundle with Qwen dense and Splade sparse embedding support.
 
     Returns an empty bundle if the SDK classes are unavailable at runtime.

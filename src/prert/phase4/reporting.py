@@ -9,7 +9,9 @@ from typing import Any, Dict, Mapping
 from prert.phase3.io import write_json, write_jsonl
 
 
-def write_phase4_validation_outputs(output_dir: Path, payload: Mapping[str, Any]) -> Dict[str, str]:
+def write_phase4_validation_outputs(
+    output_dir: Path, payload: Mapping[str, Any]
+) -> Dict[str, str]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     json_path = output_dir / "phase4_validation_report.json"
@@ -81,7 +83,9 @@ def _render_markdown(payload: Mapping[str, Any]) -> str:
             ]
         )
 
-        baseline_name = str(_as_dict(comparison_summary.get("baseline")).get("name", ""))
+        baseline_name = str(
+            _as_dict(comparison_summary.get("baseline")).get("name", "")
+        )
         delta_lookup = {
             str(item.get("artifact_dir", "")): _as_dict(item.get("deltas"))
             for item in comparison_summary.get("comparisons", [])

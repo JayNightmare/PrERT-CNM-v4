@@ -66,12 +66,16 @@ def compute_bayesian_risk(
     _validate_priors_against_observations(selected_priors, predictions)
 
     # Aggregate posteriors using the model's predicted_label / confidence.
-    predicted_view = _aggregate_levels(predictions, selected_priors, top_k, key="predicted_label")
+    predicted_view = _aggregate_levels(
+        predictions, selected_priors, top_k, key="predicted_label"
+    )
 
     # C6: also produce a parallel "risk on actual labels" view so we can
     # detect divergence between the model's posterior and the ground truth
     # without re-running the whole pipeline.
-    actual_view = _aggregate_levels(predictions, selected_priors, top_k, key="actual_label")
+    actual_view = _aggregate_levels(
+        predictions, selected_priors, top_k, key="actual_label"
+    )
 
     predicted_view["actual_label_view"] = {
         "levels": actual_view["levels"],
@@ -113,7 +117,7 @@ def _aggregate_levels(
             confidence = _bounded_probability(row.get("confidence", 0.0))
         stats = level_stats[label]
         stats["alpha"] += confidence
-        stats["beta"] += (1.0 - confidence)
+        stats["beta"] += 1.0 - confidence
         stats["evidence_count"] += 1
         stats["contributors"].append(
             {
@@ -168,7 +172,15 @@ def _aggregate_levels(
     if overall_weight > 0:
         overall_mean = overall_weighted_sum / overall_weight
     else:
-        overall_mean = _mean([_beta_mean(by_level[level]["posterior"]["alpha"], by_level[level]["posterior"]["beta"]) for level in LEVELS])
+        overall_mean = _mean(
+            [
+                _beta_mean(
+                    by_level[level]["posterior"]["alpha"],
+                    by_level[level]["posterior"]["beta"],
+                )
+                for level in LEVELS
+            ]
+        )
 
     return {
         "method": "beta_posterior_evidence_aggregation",
@@ -265,13 +277,15 @@ def _beta_mean(alpha: float, beta: float) -> float:
     return alpha / denominator
 
 
-def _beta_interval(alpha: float, beta: float, z: float = 1.959964) -> tuple[float, float]:
+def _beta_interval(
+    alpha: float, beta: float, z: float = 1.959964
+) -> tuple[float, float]:
     denominator = alpha + beta
     if denominator <= 0:
         return 0.0, 1.0
 
     mean = _beta_mean(alpha, beta)
-    variance = (alpha * beta) / ((denominator ** 2) * (denominator + 1.0))
+    variance = (alpha * beta) / ((denominator**2) * (denominator + 1.0))
     std = math.sqrt(max(variance, 0.0))
 
     lower = max(0.0, mean - (z * std))

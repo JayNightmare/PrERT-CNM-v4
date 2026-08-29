@@ -219,3 +219,7 @@ docs/Proposal/*
 
 .agents/*
 space_outputs/*
+*.npz
+*.sqlite3
+*.bin
+*.pt

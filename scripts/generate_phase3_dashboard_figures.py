@@ -70,14 +70,25 @@ def _validate_metrics(metrics: Dict, labels: List[str], model_label: str) -> Non
     for split in ["validation", "test"]:
         if split not in metrics:
             raise ValueError(f"Missing split '{split}' for model {model_label}")
-        for key in ["accuracy", "macro_precision", "macro_recall", "macro_f1", "per_class", "confusion"]:
+        for key in [
+            "accuracy",
+            "macro_precision",
+            "macro_recall",
+            "macro_f1",
+            "per_class",
+            "confusion",
+        ]:
             if key not in metrics[split]:
                 raise ValueError(f"Missing key '{split}.{key}' for model {model_label}")
         for label in labels:
             if label not in metrics[split]["per_class"]:
-                raise ValueError(f"Missing per-class label '{label}' in split '{split}' for model {model_label}")
+                raise ValueError(
+                    f"Missing per-class label '{label}' in split '{split}' for model {model_label}"
+                )
             if label not in metrics[split]["confusion"]:
-                raise ValueError(f"Missing confusion row '{label}' in split '{split}' for model {model_label}")
+                raise ValueError(
+                    f"Missing confusion row '{label}' in split '{split}' for model {model_label}"
+                )
 
 
 def _plot_pie(values: Dict[str, int], title: str, out_path: Path) -> None:
@@ -172,13 +183,23 @@ def _plot_macro_metric_heatmap(models: List[Dict], title: str, out_path: Path) -
     image = plt.imshow(matrix, cmap="YlGnBu", aspect="auto", vmin=0.0, vmax=1.0)
     plt.colorbar(image, fraction=0.046, pad=0.04, label="Score")
     plt.title(title)
-    plt.xticks(range(len(columns)), [label for _, _, label in columns], rotation=20, ha="right")
+    plt.xticks(
+        range(len(columns)), [label for _, _, label in columns], rotation=20, ha="right"
+    )
     plt.yticks(range(len(models)), [model["label"] for model in models])
 
     for row_index, row in enumerate(matrix):
         for col_index, value in enumerate(row):
             color = "white" if value >= 0.78 else "black"
-            plt.text(col_index, row_index, f"{value * 100:.1f}%", ha="center", va="center", color=color, fontsize=8)
+            plt.text(
+                col_index,
+                row_index,
+                f"{value * 100:.1f}%",
+                ha="center",
+                va="center",
+                color=color,
+                fontsize=8,
+            )
 
     plt.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -186,14 +207,19 @@ def _plot_macro_metric_heatmap(models: List[Dict], title: str, out_path: Path) -
     plt.close()
 
 
-def _plot_per_class_f1_comparison(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+def _plot_per_class_f1_comparison(
+    models: List[Dict], labels: List[str], title: str, out_path: Path
+) -> None:
     x_positions = list(range(len(labels)))
     width = 0.18
     offsets = [(-1.5 + index) * width for index in range(len(models))]
 
     plt.figure(figsize=(9.8, 6.8))
     for index, model in enumerate(models):
-        values = [float(model["metrics"]["test"]["per_class"][label]["f1"]) for label in labels]
+        values = [
+            float(model["metrics"]["test"]["per_class"][label]["f1"])
+            for label in labels
+        ]
         bars = plt.bar(
             [x + offsets[index] for x in x_positions],
             values,
@@ -222,11 +248,16 @@ def _plot_per_class_f1_comparison(models: List[Dict], labels: List[str], title: 
     plt.close()
 
 
-def _plot_confusion_small_multiples(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+def _plot_confusion_small_multiples(
+    models: List[Dict], labels: List[str], title: str, out_path: Path
+) -> None:
     matrices = []
     for model in models:
         confusion = model["metrics"]["test"]["confusion"]
-        matrix = [[int(confusion[actual][predicted]) for predicted in labels] for actual in labels]
+        matrix = [
+            [int(confusion[actual][predicted]) for predicted in labels]
+            for actual in labels
+        ]
         matrices.append(matrix)
 
     global_max = max(max(max(row) for row in matrix) for matrix in matrices)
@@ -247,15 +278,21 @@ def _plot_confusion_small_multiples(models: List[Dict], labels: List[str], title
         for i, row in enumerate(matrix):
             for j, value in enumerate(row):
                 color = "white" if value >= threshold else "black"
-                axis.text(j, i, str(value), ha="center", va="center", color=color, fontsize=9)
+                axis.text(
+                    j, i, str(value), ha="center", va="center", color=color, fontsize=9
+                )
 
-    figure.colorbar(image, ax=axes.ravel().tolist(), fraction=0.025, pad=0.02, label="Count")
+    figure.colorbar(
+        image, ax=axes.ravel().tolist(), fraction=0.025, pad=0.02, label="Count"
+    )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(out_path, dpi=170)
     plt.close(figure)
 
 
-def _plot_delta_vs_nb_heatmap(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+def _plot_delta_vs_nb_heatmap(
+    models: List[Dict], labels: List[str], title: str, out_path: Path
+) -> None:
     baseline = next((model for model in models if model["key"] == "nb"), models[0])
     delta_columns = [
         ("test", "accuracy", "Test Accuracy"),
@@ -277,7 +314,9 @@ def _plot_delta_vs_nb_heatmap(models: List[Dict], labels: List[str], title: str,
             else:
                 split, metric, class_label, _ = column
                 value = float(model["metrics"][split][metric][class_label]["f1"])
-                baseline_value = float(baseline["metrics"][split][metric][class_label]["f1"])
+                baseline_value = float(
+                    baseline["metrics"][split][metric][class_label]["f1"]
+                )
             row.append(value - baseline_value)
         matrix.append(row)
         row_labels.append(model["label"])
@@ -290,13 +329,26 @@ def _plot_delta_vs_nb_heatmap(models: List[Dict], labels: List[str], title: str,
     image = plt.imshow(matrix, cmap="RdYlGn", norm=norm, aspect="auto")
     plt.colorbar(image, fraction=0.046, pad=0.04, label="Delta vs NB")
     plt.title(title)
-    plt.xticks(range(len(delta_columns)), [column[-1] for column in delta_columns], rotation=20, ha="right")
+    plt.xticks(
+        range(len(delta_columns)),
+        [column[-1] for column in delta_columns],
+        rotation=20,
+        ha="right",
+    )
     plt.yticks(range(len(row_labels)), row_labels)
 
     for row_index, row in enumerate(matrix):
         for col_index, value in enumerate(row):
             color = "white" if abs(value) >= (abs_max * 0.55) else "black"
-            plt.text(col_index, row_index, f"{value:+.3f}", ha="center", va="center", color=color, fontsize=8)
+            plt.text(
+                col_index,
+                row_index,
+                f"{value:+.3f}",
+                ha="center",
+                va="center",
+                color=color,
+                fontsize=8,
+            )
 
     plt.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -304,7 +356,9 @@ def _plot_delta_vs_nb_heatmap(models: List[Dict], labels: List[str], title: str,
     plt.close()
 
 
-def _plot_bayesian_intervals(models: List[Dict], level_order: List[str], title: str, out_path: Path) -> None:
+def _plot_bayesian_intervals(
+    models: List[Dict], level_order: List[str], title: str, out_path: Path
+) -> None:
     bayes_models = [model for model in models if model.get("bayesian_test") is not None]
     if not bayes_models:
         return
@@ -316,9 +370,17 @@ def _plot_bayesian_intervals(models: List[Dict], level_order: List[str], title: 
     plt.figure(figsize=(9.5, 6.8))
     for index, model in enumerate(bayes_models):
         bayesian_levels = model["bayesian_test"]["levels"]
-        means = [float(bayesian_levels[level]["posterior"]["mean"]) for level in level_order]
-        lowers = [float(bayesian_levels[level]["posterior"]["interval_95"]["lower"]) for level in level_order]
-        uppers = [float(bayesian_levels[level]["posterior"]["interval_95"]["upper"]) for level in level_order]
+        means = [
+            float(bayesian_levels[level]["posterior"]["mean"]) for level in level_order
+        ]
+        lowers = [
+            float(bayesian_levels[level]["posterior"]["interval_95"]["lower"])
+            for level in level_order
+        ]
+        uppers = [
+            float(bayesian_levels[level]["posterior"]["interval_95"]["upper"])
+            for level in level_order
+        ]
         lower_err = [mean - lower for mean, lower in zip(means, lowers)]
         upper_err = [upper - mean for mean, upper in zip(means, uppers)]
 
@@ -333,9 +395,16 @@ def _plot_bayesian_intervals(models: List[Dict], level_order: List[str], title: 
             label=model["label"],
         )
 
-    na_models = [model["label"] for model in models if model.get("bayesian_test") is None]
+    na_models = [
+        model["label"] for model in models if model.get("bayesian_test") is None
+    ]
     if na_models:
-        plt.figtext(0.02, 0.01, f"Bayesian unavailable (N/A): {', '.join(na_models)}", fontsize=9)
+        plt.figtext(
+            0.02,
+            0.01,
+            f"Bayesian unavailable (N/A): {', '.join(na_models)}",
+            fontsize=9,
+        )
 
     plt.ylim(0.6, 1.01)
     plt.ylabel("Posterior Mean")
@@ -348,7 +417,9 @@ def _plot_bayesian_intervals(models: List[Dict], level_order: List[str], title: 
     plt.close()
 
 
-def _resolve_calibration_payload(model: Dict, labels: List[str]) -> Optional[Dict[str, Any]]:
+def _resolve_calibration_payload(
+    model: Dict, labels: List[str]
+) -> Optional[Dict[str, Any]]:
     payload = model.get("calibration_test")
     if payload is not None:
         return payload
@@ -358,7 +429,9 @@ def _resolve_calibration_payload(model: Dict, labels: List[str]) -> Optional[Dic
     return compute_calibration_report(predictions, labels=labels, num_bins=10)
 
 
-def _resolve_threshold_payload(model: Dict, labels: List[str]) -> Optional[Dict[str, Any]]:
+def _resolve_threshold_payload(
+    model: Dict, labels: List[str]
+) -> Optional[Dict[str, Any]]:
     payload = model.get("threshold_test")
     if payload is not None:
         return payload
@@ -368,28 +441,49 @@ def _resolve_threshold_payload(model: Dict, labels: List[str]) -> Optional[Dict[
     return compute_threshold_sweep(predictions, labels=labels)
 
 
-def _resolve_bootstrap_payload(model: Dict, labels: List[str]) -> Optional[Dict[str, Any]]:
+def _resolve_bootstrap_payload(
+    model: Dict, labels: List[str]
+) -> Optional[Dict[str, Any]]:
     payload = model.get("bootstrap_test")
     if payload is not None:
         return payload
     predictions = model.get("predictions_test")
     if not predictions:
         return None
-    return compute_bootstrap_confidence_intervals(predictions, labels=labels, n_resamples=500, seed=42)
+    return compute_bootstrap_confidence_intervals(
+        predictions, labels=labels, n_resamples=500, seed=42
+    )
 
 
-def _plot_reliability_curves(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+def _plot_reliability_curves(
+    models: List[Dict], labels: List[str], title: str, out_path: Path
+) -> None:
     plt.figure(figsize=(9.8, 6.8))
     plotted = False
-    plt.plot([0.0, 1.0], [0.0, 1.0], linestyle="--", linewidth=1.2, color="gray", label="Perfect calibration")
+    plt.plot(
+        [0.0, 1.0],
+        [0.0, 1.0],
+        linestyle="--",
+        linewidth=1.2,
+        color="gray",
+        label="Perfect calibration",
+    )
 
     for model in models:
         payload = _resolve_calibration_payload(model, labels)
         if payload is None:
             continue
         bins = payload.get("overall", {}).get("bins", [])
-        x_values = [float(bin_row["avg_confidence"]) for bin_row in bins if int(bin_row.get("count", 0)) > 0]
-        y_values = [float(bin_row["accuracy"]) for bin_row in bins if int(bin_row.get("count", 0)) > 0]
+        x_values = [
+            float(bin_row["avg_confidence"])
+            for bin_row in bins
+            if int(bin_row.get("count", 0)) > 0
+        ]
+        y_values = [
+            float(bin_row["accuracy"])
+            for bin_row in bins
+            if int(bin_row.get("count", 0)) > 0
+        ]
         if not x_values:
             continue
         plotted = True
@@ -403,7 +497,14 @@ def _plot_reliability_curves(models: List[Dict], labels: List[str], title: str, 
         )
 
     if not plotted:
-        plt.text(0.5, 0.5, "Calibration data unavailable", ha="center", va="center", fontsize=12)
+        plt.text(
+            0.5,
+            0.5,
+            "Calibration data unavailable",
+            ha="center",
+            va="center",
+            fontsize=12,
+        )
 
     plt.xlim(0, 1)
     plt.ylim(0, 1)
@@ -417,7 +518,9 @@ def _plot_reliability_curves(models: List[Dict], labels: List[str], title: str, 
     plt.close()
 
 
-def _plot_ece_summary(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+def _plot_ece_summary(
+    models: List[Dict], labels: List[str], title: str, out_path: Path
+) -> None:
     model_labels: List[str] = []
     ece_values: List[float] = []
     macro_ece_values: List[float] = []
@@ -432,12 +535,24 @@ def _plot_ece_summary(models: List[Dict], labels: List[str], title: str, out_pat
 
     plt.figure(figsize=(9.8, 6.5))
     if not model_labels:
-        plt.text(0.5, 0.5, "ECE data unavailable", ha="center", va="center", fontsize=12)
+        plt.text(
+            0.5, 0.5, "ECE data unavailable", ha="center", va="center", fontsize=12
+        )
     else:
         x_positions = list(range(len(model_labels)))
         width = 0.35
-        bars_overall = plt.bar([x - (width / 2) for x in x_positions], ece_values, width, label="Overall ECE")
-        bars_macro = plt.bar([x + (width / 2) for x in x_positions], macro_ece_values, width, label="Macro ECE")
+        bars_overall = plt.bar(
+            [x - (width / 2) for x in x_positions],
+            ece_values,
+            width,
+            label="Overall ECE",
+        )
+        bars_macro = plt.bar(
+            [x + (width / 2) for x in x_positions],
+            macro_ece_values,
+            width,
+            label="Macro ECE",
+        )
 
         for bars in (bars_overall, bars_macro):
             for bar in bars:
@@ -463,14 +578,17 @@ def _plot_ece_summary(models: List[Dict], labels: List[str], title: str, out_pat
     plt.close()
 
 
-def _plot_threshold_sensitivity(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+def _plot_threshold_sensitivity(
+    models: List[Dict], labels: List[str], title: str, out_path: Path
+) -> None:
     payloads = {
-        model["key"]: _resolve_threshold_payload(model, labels)
-        for model in models
+        model["key"]: _resolve_threshold_payload(model, labels) for model in models
     }
     focus_labels = ["user", "system"]
 
-    figure, axes = plt.subplots(1, len(focus_labels), figsize=(12.0, 5.8), constrained_layout=True)
+    figure, axes = plt.subplots(
+        1, len(focus_labels), figsize=(12.0, 5.8), constrained_layout=True
+    )
     if len(focus_labels) == 1:
         axes = [axes]
 
@@ -487,7 +605,14 @@ def _plot_threshold_sensitivity(models: List[Dict], labels: List[str], title: st
             has_data = True
             recalls = [float(row.get("recall", 0.0)) for row in series]
             precisions = [float(row.get("precision", 0.0)) for row in series]
-            axis.plot(recalls, precisions, marker="o", linewidth=1.6, markersize=4, label=model["label"])
+            axis.plot(
+                recalls,
+                precisions,
+                marker="o",
+                linewidth=1.6,
+                markersize=4,
+                label=model["label"],
+            )
 
             best_row = max(series, key=lambda row: float(row.get("f1", 0.0)))
             axis.text(
@@ -504,7 +629,9 @@ def _plot_threshold_sensitivity(models: List[Dict], labels: List[str], title: st
         axis.set_ylabel("Precision")
         axis.grid(alpha=0.25)
         if not has_data:
-            axis.text(0.5, 0.5, "No threshold data", ha="center", va="center", fontsize=11)
+            axis.text(
+                0.5, 0.5, "No threshold data", ha="center", va="center", fontsize=11
+            )
 
     handles, labels_text = axes[0].get_legend_handles_labels()
     if handles:
@@ -516,7 +643,9 @@ def _plot_threshold_sensitivity(models: List[Dict], labels: List[str], title: st
     plt.close(figure)
 
 
-def _plot_bootstrap_confidence(models: List[Dict], labels: List[str], title: str, out_path: Path) -> None:
+def _plot_bootstrap_confidence(
+    models: List[Dict], labels: List[str], title: str, out_path: Path
+) -> None:
     figure, axes = plt.subplots(1, 2, figsize=(12.0, 5.8), constrained_layout=True)
     metric_keys = ["accuracy", "macro_f1"]
     metric_titles = ["Test Accuracy 95% CI", "Test Macro F1 95% CI"]
@@ -547,7 +676,13 @@ def _plot_bootstrap_confidence(models: List[Dict], labels: List[str], title: str
                 markersize=6,
                 linewidth=1.4,
             )
-            axis.text(index, min(1.0, upper + 0.01), f"[{lower:.3f}, {upper:.3f}]", ha="center", fontsize=8)
+            axis.text(
+                index,
+                min(1.0, upper + 0.01),
+                f"[{lower:.3f}, {upper:.3f}]",
+                ha="center",
+                fontsize=8,
+            )
 
         axis.set_title(metric_title)
         axis.set_ylim(0, 1.02)
@@ -567,7 +702,9 @@ def _load_run_history(path: Path) -> List[Dict[str, Any]]:
     return sorted(rows, key=lambda row: str(row.get("executed_at", "")))
 
 
-def _plot_run_trends(models: List[Dict], history_rows: List[Dict[str, Any]], title: str, out_path: Path) -> None:
+def _plot_run_trends(
+    models: List[Dict], history_rows: List[Dict[str, Any]], title: str, out_path: Path
+) -> None:
     figure, axes = plt.subplots(1, 2, figsize=(12.8, 6.0), constrained_layout=True)
     metric_keys = ["test_accuracy", "test_macro_f1"]
     metric_titles = ["Test Accuracy Trend", "Test Macro F1 Trend"]
@@ -576,18 +713,29 @@ def _plot_run_trends(models: List[Dict], history_rows: List[Dict[str, Any]], tit
         plotted = False
         for model in models:
             model_rows = [
-                row for row in history_rows
-                if str(row.get("artifact_dir", "")) == str(model.get("artifact_dir", ""))
+                row
+                for row in history_rows
+                if str(row.get("artifact_dir", ""))
+                == str(model.get("artifact_dir", ""))
             ]
             if not model_rows:
                 continue
 
             plotted = True
             x_positions = list(range(len(model_rows)))
-            y_values = [float(row.get("metrics", {}).get(metric_key, 0.0)) for row in model_rows]
+            y_values = [
+                float(row.get("metrics", {}).get(metric_key, 0.0)) for row in model_rows
+            ]
             x_labels = [str(row.get("executed_at", ""))[:10] for row in model_rows]
 
-            axis.plot(x_positions, y_values, marker="o", linewidth=1.7, markersize=5, label=model["label"])
+            axis.plot(
+                x_positions,
+                y_values,
+                marker="o",
+                linewidth=1.7,
+                markersize=5,
+                label=model["label"],
+            )
             axis.set_xticks(x_positions)
             axis.set_xticklabels(x_labels, rotation=30)
 
@@ -596,7 +744,9 @@ def _plot_run_trends(models: List[Dict], history_rows: List[Dict[str, Any]], tit
         axis.set_ylabel("Score")
         axis.grid(alpha=0.25)
         if not plotted:
-            axis.text(0.5, 0.5, "No run history yet", ha="center", va="center", fontsize=11)
+            axis.text(
+                0.5, 0.5, "No run history yet", ha="center", va="center", fontsize=11
+            )
 
     handles, labels_text = axes[0].get_legend_handles_labels()
     if handles:
@@ -619,16 +769,22 @@ def main() -> None:
         manifest_path = artifact_dir / "dataset_manifest.json"
         metrics_path = artifact_dir / "classifier_metrics.json"
         if not manifest_path.exists() or not metrics_path.exists():
-            print(f"Skipping {config['label']}: missing required artifacts in {artifact_dir}")
+            print(
+                f"Skipping {config['label']}: missing required artifacts in {artifact_dir}"
+            )
             continue
 
         manifest = _load_json(manifest_path)
         metrics = _load_json(metrics_path)
         bayesian_test = _load_json_if_exists(artifact_dir / "bayesian_risk_test.json")
         calibration_test = _load_json_if_exists(artifact_dir / "calibration_test.json")
-        threshold_test = _load_json_if_exists(artifact_dir / "threshold_sweep_test.json")
+        threshold_test = _load_json_if_exists(
+            artifact_dir / "threshold_sweep_test.json"
+        )
         bootstrap_test = _load_json_if_exists(artifact_dir / "bootstrap_ci_test.json")
-        predictions_test = _load_jsonl_if_exists(artifact_dir / "test_predictions.jsonl")
+        predictions_test = _load_jsonl_if_exists(
+            artifact_dir / "test_predictions.jsonl"
+        )
         models.append(
             {
                 "key": config["key"],
@@ -645,15 +801,24 @@ def main() -> None:
         )
 
     if not models:
-        print("No complete Phase 3 model artifacts found. Run the Phase 3 pipeline variants before generating dashboard figures.")
+        print(
+            "No complete Phase 3 model artifacts found. Run the Phase 3 pipeline variants before generating dashboard figures."
+        )
         return
 
     baseline_manifest = models[0]["manifest"]
-    labels = [str(label) for label in baseline_manifest.get("labels", ["user", "system", "organization"])]
+    labels = [
+        str(label)
+        for label in baseline_manifest.get("labels", ["user", "system", "organization"])
+    ]
 
     for model in models:
-        if int(model["manifest"].get("total_rows", -1)) != int(baseline_manifest.get("total_rows", -1)):
-            raise ValueError("All model variants must use comparable input data for dashboard charts")
+        if int(model["manifest"].get("total_rows", -1)) != int(
+            baseline_manifest.get("total_rows", -1)
+        ):
+            raise ValueError(
+                "All model variants must use comparable input data for dashboard charts"
+            )
         _validate_metrics(model["metrics"], labels, model["label"])
 
     class_distribution = {

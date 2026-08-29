@@ -9,7 +9,6 @@ from prert.phase4.compliance_assessor import (
     REGULATION_CONTROLS,
 )
 
-
 COMPREHENSIVE_POLICY = """
 We provide transparent notice and request explicit consent before collecting any personal data.
 Users can opt out of optional data uses at any time through the privacy settings.
@@ -150,7 +149,9 @@ def test_cited_clauses_contain_original_text() -> None:
     for claim in result["claims"]:
         for verdict in claim["regulation_verdicts"]:
             for cited in verdict["cited_clauses"]:
-                assert "encryption" in cited.lower() or "access control" in cited.lower()
+                assert (
+                    "encryption" in cited.lower() or "access control" in cited.lower()
+                )
 
 
 def test_regulation_controls_cover_all_check_specs() -> None:
@@ -158,14 +159,16 @@ def test_regulation_controls_cover_all_check_specs() -> None:
     from prert.phase4.compliance_assessor import POLICY_CHECK_SPECS
 
     for spec in POLICY_CHECK_SPECS:
-        assert spec.check_id in REGULATION_CONTROLS, (
-            f"Missing REGULATION_CONTROLS entry for check_id: {spec.check_id}"
-        )
+        assert (
+            spec.check_id in REGULATION_CONTROLS
+        ), f"Missing REGULATION_CONTROLS entry for check_id: {spec.check_id}"
         controls = REGULATION_CONTROLS[spec.check_id]
         regulations_covered = {c.regulation for c in controls}
         assert "GDPR" in regulations_covered, f"GDPR missing for {spec.check_id}"
         assert "NIST" in regulations_covered, f"NIST missing for {spec.check_id}"
-        assert "ISO_27701" in regulations_covered, f"ISO_27701 missing for {spec.check_id}"
+        assert (
+            "ISO_27701" in regulations_covered
+        ), f"ISO_27701 missing for {spec.check_id}"
 
 
 def test_assess_policy_compliance_stream_emits_complete_with_result() -> None:

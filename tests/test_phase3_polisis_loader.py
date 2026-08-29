@@ -2,7 +2,10 @@ import csv
 import json
 from pathlib import Path
 
-from prert.phase3.dataset import build_polisis_clause_examples, map_polisis_category_to_level
+from prert.phase3.dataset import (
+    build_polisis_clause_examples,
+    map_polisis_category_to_level,
+)
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -85,4 +88,7 @@ def test_build_polisis_clause_examples_reads_jsonl_and_csv(tmp_path: Path) -> No
     assert all(row.source == "polisis_normalized" for row in rows)
     assert all(row.example_id.startswith("polisis::") for row in rows)
     assert "pol-3" not in {row.policy_uid for row in rows}
-    assert {row.metadata.get("input_file") for row in rows} == {"polisis.jsonl", "polisis_rows.csv"}
+    assert {row.metadata.get("input_file") for row in rows} == {
+        "polisis.jsonl",
+        "polisis_rows.csv",
+    }

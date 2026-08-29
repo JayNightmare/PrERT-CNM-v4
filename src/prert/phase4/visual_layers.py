@@ -18,7 +18,6 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from prert.phase4.compliance_assessor import split_policy_clauses
 
-
 DEFAULT_MAX_CLAUSES = 16
 DEFAULT_TOP_TOKENS = 8
 BERT_LAYER_COUNT = 12
@@ -46,10 +45,9 @@ def _normalize_revision(revision: str) -> str:
 
 def _load_kwargs(revision: str) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {"revision": revision}
-    token = (
-        importlib.import_module("os").getenv("HF_TOKEN")
-        or importlib.import_module("os").getenv("HUGGINGFACEHUB_API_TOKEN")
-    )
+    token = importlib.import_module("os").getenv("HF_TOKEN") or importlib.import_module(
+        "os"
+    ).getenv("HUGGINGFACEHUB_API_TOKEN")
     if token:
         kwargs["token"] = token
     return kwargs
@@ -86,7 +84,9 @@ def _get_model_bundle(model_id: str, revision: str) -> _ModelBundle:
     transformers_module = importlib.import_module("transformers")
 
     load_kwargs = _load_kwargs(normalized_revision)
-    tokenizer = transformers_module.AutoTokenizer.from_pretrained(normalized_model_id, **load_kwargs)
+    tokenizer = transformers_module.AutoTokenizer.from_pretrained(
+        normalized_model_id, **load_kwargs
+    )
     eager_load_kwargs = dict(load_kwargs)
     eager_load_kwargs["attn_implementation"] = "eager"
     try:
@@ -113,7 +113,9 @@ def _get_model_bundle(model_id: str, revision: str) -> _ModelBundle:
     )
 
 
-def _coerce_indices(selected: Optional[Sequence[Any]], maximum: int, default_count: int) -> List[int]:
+def _coerce_indices(
+    selected: Optional[Sequence[Any]], maximum: int, default_count: int
+) -> List[int]:
     if not selected:
         return list(range(min(default_count, maximum)))
 
@@ -159,10 +161,24 @@ def _sequence_length_from_mask(mask: Any) -> int:
             return int(len(mask))
 
 
-def _build_architecture_map(layer_scores: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+def _build_architecture_map(
+    layer_scores: Sequence[Mapping[str, Any]],
+) -> Dict[str, Any]:
     nodes: List[Dict[str, Any]] = [
-        {"id": "input", "label": "Input Tokens", "group": "io", "level": 0, "trigger": 1.0},
-        {"id": "embedding", "label": "Embeddings", "group": "embedding", "level": 1, "trigger": 1.0},
+        {
+            "id": "input",
+            "label": "Input Tokens",
+            "group": "io",
+            "level": 0,
+            "trigger": 1.0,
+        },
+        {
+            "id": "embedding",
+            "label": "Embeddings",
+            "group": "embedding",
+            "level": 1,
+            "trigger": 1.0,
+        },
     ]
     edges: List[Dict[str, Any]] = [
         {"src": "input", "dst": "embedding", "weight": 1.0},
@@ -185,9 +201,27 @@ def _build_architecture_map(layer_scores: Sequence[Mapping[str, Any]]) -> Dict[s
 
     nodes.extend(
         [
-            {"id": "pooler", "label": "Pooler", "group": "head", "level": len(layer_scores) + 2, "trigger": 1.0},
-            {"id": "classifier", "label": "Classifier", "group": "head", "level": len(layer_scores) + 3, "trigger": 1.0},
-            {"id": "softmax", "label": "Softmax", "group": "head", "level": len(layer_scores) + 4, "trigger": 1.0},
+            {
+                "id": "pooler",
+                "label": "Pooler",
+                "group": "head",
+                "level": len(layer_scores) + 2,
+                "trigger": 1.0,
+            },
+            {
+                "id": "classifier",
+                "label": "Classifier",
+                "group": "head",
+                "level": len(layer_scores) + 3,
+                "trigger": 1.0,
+            },
+            {
+                "id": "softmax",
+                "label": "Softmax",
+                "group": "head",
+                "level": len(layer_scores) + 4,
+                "trigger": 1.0,
+            },
         ]
     )
 
@@ -207,7 +241,9 @@ def _build_architecture_map(layer_scores: Sequence[Mapping[str, Any]]) -> Dict[s
     }
 
 
-def _summarize_layer_activations(torch_module: Any, hidden_states: Sequence[Any], token_count: int) -> List[Dict[str, Any]]:
+def _summarize_layer_activations(
+    torch_module: Any, hidden_states: Sequence[Any], token_count: int
+) -> List[Dict[str, Any]]:
     summaries: List[Dict[str, Any]] = []
     usable = list(hidden_states[1:])
     for index, tensor in enumerate(usable, start=1):
@@ -258,7 +294,9 @@ def _summarize_attention(
                     "token": str(tokens[int(idx)]),
                     "score": float(val),
                 }
-                for val, idx in zip(values.detach().cpu().tolist(), indices.detach().cpu().tolist())
+                for val, idx in zip(
+                    values.detach().cpu().tolist(), indices.detach().cpu().tolist()
+                )
             ]
 
             summaries.append(
@@ -269,7 +307,10 @@ def _summarize_attention(
                     "max": float(head_matrix.max().item()),
                     "entropy": _attention_entropy(cls_row.detach().cpu().tolist()),
                     "cls_focus": top_focus,
-                    "tokens": [str(token) for token in tokens[: min(token_count, HEATMAP_MAX_TOKENS)]],
+                    "tokens": [
+                        str(token)
+                        for token in tokens[: min(token_count, HEATMAP_MAX_TOKENS)]
+                    ],
                     "matrix": head_matrix[
                         : min(token_count, HEATMAP_MAX_TOKENS),
                         : min(token_count, HEATMAP_MAX_TOKENS),
@@ -321,7 +362,13 @@ def _math_breakdown(
     value_projection = attention_self.value(hidden_in)
 
     num_heads = int(getattr(attention_self, "num_attention_heads", BERT_HEAD_COUNT))
-    head_dim = int(getattr(attention_self, "attention_head_size", int(query_projection.shape[-1] / max(num_heads, 1))))
+    head_dim = int(
+        getattr(
+            attention_self,
+            "attention_head_size",
+            int(query_projection.shape[-1] / max(num_heads, 1)),
+        )
+    )
 
     q = query_projection.view(token_count, num_heads, head_dim).transpose(0, 1)
     k = key_projection.view(token_count, num_heads, head_dim).transpose(0, 1)
@@ -335,15 +382,23 @@ def _math_breakdown(
     ffn_intermediate = intermediate(hidden_in)
     ffn_output = output_dense(ffn_intermediate)
 
-    observed_attention = attentions[selected_layer_index][0, :, :token_count, :token_count]
+    observed_attention = attentions[selected_layer_index][
+        0, :, :token_count, :token_count
+    ]
     divergence = float((probs - observed_attention).abs().mean().item())
 
     details = {
         "layer": selected_layer_index + 1,
         "supported": True,
-        "q_mean_norm": float(torch_module.linalg.vector_norm(query_projection, dim=-1).mean().item()),
-        "k_mean_norm": float(torch_module.linalg.vector_norm(key_projection, dim=-1).mean().item()),
-        "v_mean_norm": float(torch_module.linalg.vector_norm(value_projection, dim=-1).mean().item()),
+        "q_mean_norm": float(
+            torch_module.linalg.vector_norm(query_projection, dim=-1).mean().item()
+        ),
+        "k_mean_norm": float(
+            torch_module.linalg.vector_norm(key_projection, dim=-1).mean().item()
+        ),
+        "v_mean_norm": float(
+            torch_module.linalg.vector_norm(value_projection, dim=-1).mean().item()
+        ),
         "attention_score_mean": float(scores.mean().item()),
         "attention_prob_mean": float(probs.mean().item()),
         "context_mean_abs": float(context.abs().mean().item()),
@@ -424,7 +479,9 @@ def _analyze_clause(
     hidden_states = outputs.hidden_states
     attentions = outputs.attentions
     if hidden_states is None or attentions is None:
-        raise RuntimeError("Model did not return hidden_states and attentions. Use a BERT-compatible checkpoint.")
+        raise RuntimeError(
+            "Model did not return hidden_states and attentions. Use a BERT-compatible checkpoint."
+        )
 
     token_count = _sequence_length_from_mask(encoded["attention_mask"][0])
     input_ids = encoded["input_ids"][0, :token_count]
@@ -437,7 +494,11 @@ def _analyze_clause(
     labels = []
     id2label = getattr(bundle.model.config, "id2label", None)
     for index in range(len(probabilities)):
-        label = str(id2label.get(index, str(index))) if isinstance(id2label, dict) else str(index)
+        label = (
+            str(id2label.get(index, str(index)))
+            if isinstance(id2label, dict)
+            else str(index)
+        )
         labels.append(label)
 
     predictions = [
@@ -449,7 +510,9 @@ def _analyze_clause(
     ]
     predictions.sort(key=lambda item: float(item.get("score", 0.0)), reverse=True)
 
-    layer_activation = _summarize_layer_activations(bundle.torch, hidden_states, token_count)
+    layer_activation = _summarize_layer_activations(
+        bundle.torch, hidden_states, token_count
+    )
     architecture = _build_architecture_map(layer_activation)
     attention = _summarize_attention(
         bundle.torch,
@@ -460,7 +523,13 @@ def _analyze_clause(
         selected_heads,
         top_tokens,
     )
-    math = _math_breakdown(bundle, hidden_states, attentions, token_count, selected_layers[0] if selected_layers else 0)
+    math = _math_breakdown(
+        bundle,
+        hidden_states,
+        attentions,
+        token_count,
+        selected_layers[0] if selected_layers else 0,
+    )
     trace = _step_trace(text, token_count, predictions, selected_layers)
 
     return {
@@ -487,13 +556,18 @@ def _aggregate_policy_results(results: Sequence[Mapping[str, Any]]) -> Dict[str,
         }
 
     clause_count = len(results)
-    avg_tokens = sum(int(item.get("token_count", 0)) for item in results) / max(clause_count, 1)
+    avg_tokens = sum(int(item.get("token_count", 0)) for item in results) / max(
+        clause_count, 1
+    )
 
     layer_table: Dict[int, Dict[str, float]] = {}
     for item in results:
         for layer in item.get("layer_activation", []):
             layer_idx = int(layer.get("layer", 0))
-            bucket = layer_table.setdefault(layer_idx, {"mean_norm": 0.0, "max_norm": 0.0, "mean_abs": 0.0, "count": 0.0})
+            bucket = layer_table.setdefault(
+                layer_idx,
+                {"mean_norm": 0.0, "max_norm": 0.0, "mean_abs": 0.0, "count": 0.0},
+            )
             bucket["mean_norm"] += float(layer.get("mean_norm", 0.0))
             bucket["max_norm"] += float(layer.get("max_norm", 0.0))
             bucket["mean_abs"] += float(layer.get("mean_abs", 0.0))
@@ -517,7 +591,9 @@ def _aggregate_policy_results(results: Sequence[Mapping[str, Any]]) -> Dict[str,
     for item in results:
         for row in item.get("attention", []):
             key = (int(row.get("layer", 0)), int(row.get("head", 0)))
-            bucket = attention_table.setdefault(key, {"mean": 0.0, "max": 0.0, "entropy": 0.0, "count": 0.0})
+            bucket = attention_table.setdefault(
+                key, {"mean": 0.0, "max": 0.0, "entropy": 0.0, "count": 0.0}
+            )
             bucket["mean"] += float(row.get("mean", 0.0))
             bucket["max"] += float(row.get("max", 0.0))
             bucket["entropy"] += float(row.get("entropy", 0.0))
@@ -569,14 +645,20 @@ def run_visual_layers_analysis(
     if normalized_mode not in {"single_clause", "full_policy"}:
         raise ValueError("Mode must be either 'single_clause' or 'full_policy'.")
 
-    selected_layer_indices = _coerce_indices(selected_layers, BERT_LAYER_COUNT, default_count=4)
-    selected_head_indices = _coerce_indices(selected_heads, BERT_HEAD_COUNT, default_count=3)
+    selected_layer_indices = _coerce_indices(
+        selected_layers, BERT_LAYER_COUNT, default_count=4
+    )
+    selected_head_indices = _coerce_indices(
+        selected_heads, BERT_HEAD_COUNT, default_count=3
+    )
 
-    requested_max_length = max(32, min(int(max_length), 512))
+    requested_max_length = max(32, min(int(max_length), 4096))
     requested_max_clauses = max(1, min(int(max_clauses), 64))
     requested_top_tokens = max(1, min(int(top_tokens), 24))
 
-    bundle = _get_model_bundle(_normalize_model_id(model_id), _normalize_revision(model_revision))
+    bundle = _get_model_bundle(
+        _normalize_model_id(model_id), _normalize_revision(model_revision)
+    )
 
     if normalized_mode == "single_clause":
         clause = str(clause_text or "").strip()
@@ -640,9 +722,17 @@ def render_visual_layers_svg(analysis: Mapping[str, Any]) -> str:
     result = analysis.get("result")
     architecture = {}
     if mode == "full_policy":
-        architecture = dict((result or {}).get("architecture", {})) if isinstance(result, dict) else {}
+        architecture = (
+            dict((result or {}).get("architecture", {}))
+            if isinstance(result, dict)
+            else {}
+        )
     else:
-        architecture = dict((result or {}).get("architecture", {})) if isinstance(result, dict) else {}
+        architecture = (
+            dict((result or {}).get("architecture", {}))
+            if isinstance(result, dict)
+            else {}
+        )
 
     nodes = architecture.get("nodes", []) if isinstance(architecture, dict) else []
     edges = architecture.get("edges", []) if isinstance(architecture, dict) else []
@@ -707,10 +797,16 @@ def render_visual_layers_svg(analysis: Mapping[str, Any]) -> str:
         trigger = float(node.get("trigger", 0.0))
         radius = 10.0 if group != "transformer" else 8.0 + min(max(trigger, 0.0), 16.0)
         label = str(node.get("label", node_id))
-        safe_label = label.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        svg.append(f"<circle cx='{x}' cy='{y}' r='{radius:.2f}' fill='{color}' fill-opacity='0.88'><title>{safe_label} | trigger={trigger:.3f}</title></circle>")
+        safe_label = (
+            label.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        )
+        svg.append(
+            f"<circle cx='{x}' cy='{y}' r='{radius:.2f}' fill='{color}' fill-opacity='0.88'><title>{safe_label} | trigger={trigger:.3f}</title></circle>"
+        )
         svg.append(f"<text class='lbl' x='{x - 24}' y='{y + 28}'>{label}</text>")
-        svg.append(f"<text class='sub' x='{x - 22}' y='{y + 42}'>trigger={trigger:.3f}</text>")
+        svg.append(
+            f"<text class='sub' x='{x - 22}' y='{y + 42}'>trigger={trigger:.3f}</text>"
+        )
 
     svg.append("</g>")
     svg.append("</svg>")
@@ -768,14 +864,18 @@ def render_attention_heatmap_png(
     match = {}
     for item in attention_rows:
         row = _as_dict(item)
-        if int(row.get("layer", -1)) == int(layer) and int(row.get("head", -1)) == int(head):
+        if int(row.get("layer", -1)) == int(layer) and int(row.get("head", -1)) == int(
+            head
+        ):
             match = row
             break
 
     matrix = _as_list(match.get("matrix")) if match else []
     tokens = [str(token) for token in _as_list(match.get("tokens"))] if match else []
     if not matrix:
-        raise ValueError("No heatmap matrix available for selected layer/head in the current view.")
+        raise ValueError(
+            "No heatmap matrix available for selected layer/head in the current view."
+        )
 
     matplotlib_module = importlib.import_module("matplotlib")
     matplotlib_module.use("Agg")
@@ -783,7 +883,10 @@ def render_attention_heatmap_png(
 
     output_dir = Path(tempfile.gettempdir()) / "prert-phase4-visual-layers"
     output_dir.mkdir(parents=True, exist_ok=True)
-    path = output_dir / f"attention_heatmap_l{int(layer)}_h{int(head)}_{uuid.uuid4().hex}.png"
+    path = (
+        output_dir
+        / f"attention_heatmap_l{int(layer)}_h{int(head)}_{uuid.uuid4().hex}.png"
+    )
 
     fig, ax = pyplot.subplots(figsize=(7.2, 6.4), dpi=160)
     image = ax.imshow(matrix, cmap="viridis", interpolation="nearest", aspect="auto")
@@ -815,7 +918,9 @@ def _as_list(value: Any) -> List[Any]:
     return value if isinstance(value, list) else []
 
 
-def _render_png_from_architecture(analysis: Mapping[str, Any], target_path: Path) -> None:
+def _render_png_from_architecture(
+    analysis: Mapping[str, Any], target_path: Path
+) -> None:
     matplotlib_module = importlib.import_module("matplotlib")
     matplotlib_module.use("Agg")
     pyplot = importlib.import_module("matplotlib.pyplot")
@@ -824,9 +929,17 @@ def _render_png_from_architecture(analysis: Mapping[str, Any], target_path: Path
     result = analysis.get("result")
     architecture = {}
     if mode == "full_policy":
-        architecture = dict((result or {}).get("architecture", {})) if isinstance(result, dict) else {}
+        architecture = (
+            dict((result or {}).get("architecture", {}))
+            if isinstance(result, dict)
+            else {}
+        )
     else:
-        architecture = dict((result or {}).get("architecture", {})) if isinstance(result, dict) else {}
+        architecture = (
+            dict((result or {}).get("architecture", {}))
+            if isinstance(result, dict)
+            else {}
+        )
 
     nodes = architecture.get("nodes", []) if isinstance(architecture, dict) else []
     edges = architecture.get("edges", []) if isinstance(architecture, dict) else []
@@ -860,9 +973,18 @@ def _render_png_from_architecture(analysis: Mapping[str, Any], target_path: Path
             continue
         x, y = positions[node_id]
         trigger = float(node.get("trigger", 0.0))
-        size = 160 if str(node.get("group", "")) != "transformer" else 80 + (trigger * 22)
+        size = (
+            160 if str(node.get("group", "")) != "transformer" else 80 + (trigger * 22)
+        )
         ax.scatter([x], [y], s=size, color="#2563eb", alpha=0.85)
-        ax.text(x, y - 0.14, str(node.get("label", node_id)), ha="center", va="top", fontsize=8)
+        ax.text(
+            x,
+            y - 0.14,
+            str(node.get("label", node_id)),
+            ha="center",
+            va="top",
+            fontsize=8,
+        )
 
     ax.set_xlim(-0.6, float(max_level) + 0.8)
     ax.set_ylim(-0.4, 0.45)
@@ -901,20 +1023,28 @@ def build_visual_layers_markdown(analysis: Mapping[str, Any]) -> str:
 
     if mode == "single_clause":
         result = analysis.get("result", {})
-        token_count = int(result.get("token_count", 0)) if isinstance(result, dict) else 0
+        token_count = (
+            int(result.get("token_count", 0)) if isinstance(result, dict) else 0
+        )
         predictions = result.get("predictions", []) if isinstance(result, dict) else []
         lines.append(f"- Tokens analyzed: {token_count}")
         if predictions:
             top = predictions[0]
-            lines.append(f"- Top label: {top.get('label', 'n/a')} ({float(top.get('score', 0.0)):.4f})")
+            lines.append(
+                f"- Top label: {top.get('label', 'n/a')} ({float(top.get('score', 0.0)):.4f})"
+            )
     else:
         result = analysis.get("result", {})
         aggregate = result.get("aggregate", {}) if isinstance(result, dict) else {}
         lines.append(f"- Clauses analyzed: {int(aggregate.get('clauses', 0))}")
-        lines.append(f"- Avg tokens per clause: {float(aggregate.get('avg_token_count', 0.0)):.2f}")
+        lines.append(
+            f"- Avg tokens per clause: {float(aggregate.get('avg_token_count', 0.0)):.2f}"
+        )
         distribution = aggregate.get("label_distribution", {})
         if isinstance(distribution, dict) and distribution:
-            joined = ", ".join(f"{key}:{value}" for key, value in sorted(distribution.items()))
+            joined = ", ".join(
+                f"{key}:{value}" for key, value in sorted(distribution.items())
+            )
             lines.append(f"- Dominant label distribution: {joined}")
 
     return "\n".join(lines)
@@ -924,5 +1054,7 @@ def write_visual_layers_json(analysis: Mapping[str, Any]) -> str:
     output_dir = Path(tempfile.gettempdir()) / "prert-phase4-visual-layers"
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / f"visual_layers_{uuid.uuid4().hex}.json"
-    path.write_text(json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(
+        json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     return str(path)

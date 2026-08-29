@@ -59,7 +59,9 @@ POLISIS_CATEGORY_TO_LEVEL = {
 }
 
 
-def load_labeled_examples(path: Path, source: str = "labeled_jsonl") -> List[ClauseExample]:
+def load_labeled_examples(
+    path: Path, source: str = "labeled_jsonl"
+) -> List[ClauseExample]:
     rows = read_jsonl(path)
     examples: List[ClauseExample] = []
     dropped_empty = 0
@@ -70,7 +72,10 @@ def load_labeled_examples(path: Path, source: str = "labeled_jsonl") -> List[Cla
         label = str(row.get("label", "")).strip().lower()
         policy_uid = str(row.get("policy_uid", "manual")).strip() or "manual"
         category = str(row.get("category", "manual")).strip() or "manual"
-        example_id = str(row.get("example_id", f"manual::{index:06d}")).strip() or f"manual::{index:06d}"
+        example_id = (
+            str(row.get("example_id", f"manual::{index:06d}")).strip()
+            or f"manual::{index:06d}"
+        )
 
         if not text:
             dropped_empty += 1
@@ -82,7 +87,8 @@ def load_labeled_examples(path: Path, source: str = "labeled_jsonl") -> List[Cla
         metadata = {
             key: value
             for key, value in row.items()
-            if key not in {"example_id", "text", "label", "source", "policy_uid", "category"}
+            if key
+            not in {"example_id", "text", "label", "source", "policy_uid", "category"}
         }
 
         examples.append(
@@ -116,7 +122,9 @@ def build_opp115_clause_examples(
 ) -> List[ClauseExample]:
     annotations_dir = resolve_input_source_dir(opp115_root, input_set, source_dir)
     if not annotations_dir.exists():
-        raise FileNotFoundError(f"Annotation source directory not found: {annotations_dir}")
+        raise FileNotFoundError(
+            f"Annotation source directory not found: {annotations_dir}"
+        )
 
     examples: List[ClauseExample] = []
     source_name = f"opp115_{input_set}"
@@ -135,7 +143,11 @@ def build_opp115_clause_examples(
                     continue
 
                 annotation_id = row[0].strip()
-                policy_uid = (row[3].strip() if len(row) > 3 else "") or file_policy_uid or "unknown"
+                policy_uid = (
+                    (row[3].strip() if len(row) > 3 else "")
+                    or file_policy_uid
+                    or "unknown"
+                )
                 segment_raw = row[4].strip() if len(row) > 4 else ""
                 segment_id = _safe_int(segment_raw)
 
@@ -320,8 +332,7 @@ def build_dataset_manifest(
     input_set: str,
 ) -> Dict[str, Any]:
     split_summaries = {
-        split: _split_summary(split, rows).as_dict()
-        for split, rows in splits.items()
+        split: _split_summary(split, rows).as_dict() for split, rows in splits.items()
     }
 
     overlap_report = _policy_overlap_report(splits)
@@ -344,24 +355,32 @@ def build_dataset_manifest(
     }
 
 
-def resolve_input_source_dir(opp115_root: Path, input_set: str, source_dir: Optional[Path]) -> Path:
+def resolve_input_source_dir(
+    opp115_root: Path, input_set: str, source_dir: Optional[Path]
+) -> Path:
     if source_dir is not None:
         return source_dir
 
     if input_set not in INPUT_SET_TO_SUBDIR:
         choices = ", ".join(sorted(INPUT_SET_TO_SUBDIR))
-        raise ValueError(f"Unsupported input_set '{input_set}'. Choose one of: {choices}")
+        raise ValueError(
+            f"Unsupported input_set '{input_set}'. Choose one of: {choices}"
+        )
 
     return opp115_root / INPUT_SET_TO_SUBDIR[input_set]
 
 
-def resolve_polisis_source_dir(polisis_root: Path, input_set: str, source_dir: Optional[Path]) -> Path:
+def resolve_polisis_source_dir(
+    polisis_root: Path, input_set: str, source_dir: Optional[Path]
+) -> Path:
     if source_dir is not None:
         return source_dir
 
     if input_set not in POLISIS_INPUT_SET_TO_SUBDIR:
         choices = ", ".join(sorted(POLISIS_INPUT_SET_TO_SUBDIR))
-        raise ValueError(f"Unsupported polisis input_set '{input_set}'. Choose one of: {choices}")
+        raise ValueError(
+            f"Unsupported polisis input_set '{input_set}'. Choose one of: {choices}"
+        )
 
     subdir = POLISIS_INPUT_SET_TO_SUBDIR[input_set]
     if subdir in {"", "."}:
@@ -402,8 +421,25 @@ def map_polisis_category_to_level(category: str) -> Optional[str]:
     if normalized in POLISIS_CATEGORY_TO_LEVEL:
         return POLISIS_CATEGORY_TO_LEVEL[normalized]
 
-    user_tokens = ("user", "consent", "choice", "access", "deletion", "rights", "opt out", "opt-out")
-    system_tokens = ("security", "tracking", "track", "cookie", "authentication", "encryption", "safeguard")
+    user_tokens = (
+        "user",
+        "consent",
+        "choice",
+        "access",
+        "deletion",
+        "rights",
+        "opt out",
+        "opt-out",
+    )
+    system_tokens = (
+        "security",
+        "tracking",
+        "track",
+        "cookie",
+        "authentication",
+        "encryption",
+        "safeguard",
+    )
     organization_tokens = (
         "collection",
         "sharing",
@@ -444,13 +480,18 @@ def _build_polisis_example(
     if label not in LABELS:
         return None
 
-    policy_uid = str(row.get("policy_uid", row.get("policy_id", ""))).strip() or (default_policy_uid or "unknown")
-    example_id = str(row.get("example_id", "")).strip() or f"polisis::{policy_uid}::{index:06d}"
+    policy_uid = str(row.get("policy_uid", row.get("policy_id", ""))).strip() or (
+        default_policy_uid or "unknown"
+    )
+    example_id = (
+        str(row.get("example_id", "")).strip() or f"polisis::{policy_uid}::{index:06d}"
+    )
 
     metadata = {
         key: value
         for key, value in row.items()
-        if key not in {
+        if key
+        not in {
             "example_id",
             "text",
             "clause_text",
@@ -524,20 +565,25 @@ def _extract_policy_uid_from_filename(csv_path: Path) -> Optional[str]:
     return stem.strip() or None
 
 
-def _collect_split_examples(by_policy: Dict[str, List[ClauseExample]], policy_ids: Set[str]) -> List[ClauseExample]:
+def _collect_split_examples(
+    by_policy: Dict[str, List[ClauseExample]], policy_ids: Set[str]
+) -> List[ClauseExample]:
     rows: List[ClauseExample] = []
     for policy_uid in sorted(policy_ids):
         rows.extend(by_policy.get(policy_uid, []))
     return rows
 
 
-def _policy_overlap_report(splits: Mapping[str, Sequence[ClauseExample]]) -> Dict[str, int]:
+def _policy_overlap_report(
+    splits: Mapping[str, Sequence[ClauseExample]],
+) -> Dict[str, int]:
     split_ids: Dict[str, Set[str]] = {
-        split: {row.policy_uid for row in rows}
-        for split, rows in splits.items()
+        split: {row.policy_uid for row in rows} for split, rows in splits.items()
     }
     return {
-        "train_validation": len(split_ids["train"].intersection(split_ids["validation"])),
+        "train_validation": len(
+            split_ids["train"].intersection(split_ids["validation"])
+        ),
         "train_test": len(split_ids["train"].intersection(split_ids["test"])),
         "validation_test": len(split_ids["validation"].intersection(split_ids["test"])),
     }
@@ -576,7 +622,9 @@ def _ensure_label_coverage(
                 continue
 
             moved_rows = by_policy[candidate_policy]
-            splits["train"] = [row for row in splits["train"] if row.policy_uid != candidate_policy]
+            splits["train"] = [
+                row for row in splits["train"] if row.policy_uid != candidate_policy
+            ]
             splits[split_name].extend(moved_rows)
             train_policies.remove(candidate_policy)
 

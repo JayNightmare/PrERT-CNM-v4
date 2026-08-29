@@ -18,7 +18,6 @@ from huggingface_hub import HfApi
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
-
 SPACE_ROOT = Path(__file__).resolve().parent
 DEFAULT_MODEL_ID = "__MODEL_ID__"
 MODEL_ID = os.getenv("MODEL_ID", DEFAULT_MODEL_ID)
@@ -26,7 +25,9 @@ MODEL_REVISION = os.getenv("MODEL_REVISION", "main")
 MAX_LENGTH = int(os.getenv("MAX_LENGTH", "512"))
 GENERATED_OUTPUT_ROOT = Path(tempfile.gettempdir()) / "prert-cnm-space"
 BENCHMARKS_PATH = SPACE_ROOT / "benchmarks.json"
-BENCHMARK_PRIMARY_MODEL_ID = os.getenv("BENCHMARK_PRIMARY_MODEL_ID", "JayNightmare/PrERT-CNM-v4-privacybert")
+BENCHMARK_PRIMARY_MODEL_ID = os.getenv(
+    "BENCHMARK_PRIMARY_MODEL_ID", "JayNightmare/PrERT-CNM-v4-privacybert"
+)
 
 
 def _discover_project_root() -> Path:
@@ -189,7 +190,9 @@ def _visual_layers_math_markdown(analysis: Mapping[str, Any]) -> str:
         f"- Layer: {math_payload.get('layer', 'n/a')}",
     ]
     if not bool(math_payload.get("supported", False)):
-        lines.append(f"- {math_payload.get('note', 'Detailed breakdown unsupported for this architecture.')}")
+        lines.append(
+            f"- {math_payload.get('note', 'Detailed breakdown unsupported for this architecture.')}"
+        )
         return "\n".join(lines)
 
     lines.extend(
@@ -206,7 +209,9 @@ def _visual_layers_math_markdown(analysis: Mapping[str, Any]) -> str:
         ]
     )
     if mode == "full_policy":
-        lines.append("- Note: full-policy mode displays math breakdown from the first processed clause.")
+        lines.append(
+            "- Note: full-policy mode displays math breakdown from the first processed clause."
+        )
 
     return "\n".join(lines)
 
@@ -227,13 +232,17 @@ def _visual_layers_trace_rows(analysis: Mapping[str, Any]) -> List[List[Any]]:
     return rows
 
 
-def _visual_layers_clause_choices(analysis: Mapping[str, Any]) -> Tuple[List[Tuple[str, str]], str]:
+def _visual_layers_clause_choices(
+    analysis: Mapping[str, Any],
+) -> Tuple[List[Tuple[str, str]], str]:
     mode = str(analysis.get("mode", "single_clause"))
     if mode != "full_policy":
-        return [(
-            "Single Clause",
-            "single_clause",
-        )], "single_clause"
+        return [
+            (
+                "Single Clause",
+                "single_clause",
+            )
+        ], "single_clause"
 
     result = _as_dict(analysis.get("result"))
     clauses = _as_list(result.get("clauses"))
@@ -247,7 +256,9 @@ def _visual_layers_clause_choices(analysis: Mapping[str, Any]) -> Tuple[List[Tup
     return choices, default_value
 
 
-def _visual_layers_extract_view(analysis: Mapping[str, Any], clause_view: str) -> Dict[str, Any]:
+def _visual_layers_extract_view(
+    analysis: Mapping[str, Any], clause_view: str
+) -> Dict[str, Any]:
     mode = str(analysis.get("mode", "single_clause"))
     if mode != "full_policy":
         return dict(analysis)
@@ -259,7 +270,9 @@ def _visual_layers_extract_view(analysis: Mapping[str, Any], clause_view: str) -
     if selected == "aggregate":
         aggregate_architecture = _as_dict(result.get("architecture"))
         aggregate_payload = {
-            "layer_activation": _as_list(_as_dict(result.get("aggregate")).get("layer_activation")),
+            "layer_activation": _as_list(
+                _as_dict(result.get("aggregate")).get("layer_activation")
+            ),
             "attention": _as_list(_as_dict(result.get("aggregate")).get("attention")),
             "math_breakdown": {},
             "step_trace": [],
@@ -289,7 +302,9 @@ def _visual_layers_extract_view(analysis: Mapping[str, Any], clause_view: str) -
     return _visual_layers_extract_view(analysis, "aggregate")
 
 
-def _visual_layers_heatmap_image(view_analysis: Mapping[str, Any], heatmap_layer: float, heatmap_head: float) -> Optional[str]:
+def _visual_layers_heatmap_image(
+    view_analysis: Mapping[str, Any], heatmap_layer: float, heatmap_head: float
+) -> Optional[str]:
     if render_attention_heatmap_png is None:
         return None
     try:
@@ -307,16 +322,42 @@ def _visual_layers_view_outputs(
     clause_view: str,
     heatmap_layer: float,
     heatmap_head: float,
-) -> Tuple[str, List[List[Any]], List[List[Any]], str, List[List[Any]], Optional[str], Optional[str]]:
+) -> Tuple[
+    str,
+    List[List[Any]],
+    List[List[Any]],
+    str,
+    List[List[Any]],
+    Optional[str],
+    Optional[str],
+]:
     view_analysis = _visual_layers_extract_view(analysis, clause_view)
-    map_html = render_visual_layers_svg(view_analysis) if render_visual_layers_svg is not None else ""
+    map_html = (
+        render_visual_layers_svg(view_analysis)
+        if render_visual_layers_svg is not None
+        else ""
+    )
     activation_rows = _visual_layers_activation_rows(view_analysis)
     attention_rows = _visual_layers_attention_rows(view_analysis)
     math_markdown = _visual_layers_math_markdown(view_analysis)
     trace_rows = _visual_layers_trace_rows(view_analysis)
-    map_download = export_visual_layers_map(view_analysis, "svg") if export_visual_layers_map is not None else None
-    heatmap_path = _visual_layers_heatmap_image(view_analysis, heatmap_layer, heatmap_head)
-    return map_html, activation_rows, attention_rows, math_markdown, trace_rows, map_download, heatmap_path
+    map_download = (
+        export_visual_layers_map(view_analysis, "svg")
+        if export_visual_layers_map is not None
+        else None
+    )
+    heatmap_path = _visual_layers_heatmap_image(
+        view_analysis, heatmap_layer, heatmap_head
+    )
+    return (
+        map_html,
+        activation_rows,
+        attention_rows,
+        math_markdown,
+        trace_rows,
+        map_download,
+        heatmap_path,
+    )
 
 
 def update_visual_layers_clause_view(
@@ -325,22 +366,63 @@ def update_visual_layers_clause_view(
     heatmap_layer: float,
     heatmap_head: float,
     export_format: str,
-) -> Tuple[str, List[List[Any]], List[List[Any]], str, List[List[Any]], Optional[str], Optional[str]]:
+) -> Tuple[
+    str,
+    List[List[Any]],
+    List[List[Any]],
+    str,
+    List[List[Any]],
+    Optional[str],
+    Optional[str],
+]:
     if not analysis:
         return "", [], [], "### Math Breakdown\n- Not available.", [], None, None
 
     view_analysis = _visual_layers_extract_view(analysis, clause_view)
-    map_html = render_visual_layers_svg(view_analysis) if render_visual_layers_svg is not None else ""
+    map_html = (
+        render_visual_layers_svg(view_analysis)
+        if render_visual_layers_svg is not None
+        else ""
+    )
     activation_rows = _visual_layers_activation_rows(view_analysis)
     attention_rows = _visual_layers_attention_rows(view_analysis)
     math_markdown = _visual_layers_math_markdown(view_analysis)
     trace_rows = _visual_layers_trace_rows(view_analysis)
-    map_download = export_visual_layers_map(view_analysis, export_format) if export_visual_layers_map is not None else None
-    heatmap_path = _visual_layers_heatmap_image(view_analysis, heatmap_layer, heatmap_head)
-    return map_html, activation_rows, attention_rows, math_markdown, trace_rows, map_download, heatmap_path
+    map_download = (
+        export_visual_layers_map(view_analysis, export_format)
+        if export_visual_layers_map is not None
+        else None
+    )
+    heatmap_path = _visual_layers_heatmap_image(
+        view_analysis, heatmap_layer, heatmap_head
+    )
+    return (
+        map_html,
+        activation_rows,
+        attention_rows,
+        math_markdown,
+        trace_rows,
+        map_download,
+        heatmap_path,
+    )
 
 
-def _visual_layers_error(message: str) -> Tuple[str, str, List[List[Any]], List[List[Any]], str, List[List[Any]], Dict[str, Any], Any, Optional[str], Optional[str], Optional[str], Dict[str, Any]]:
+def _visual_layers_error(
+    message: str,
+) -> Tuple[
+    str,
+    str,
+    List[List[Any]],
+    List[List[Any]],
+    str,
+    List[List[Any]],
+    Dict[str, Any],
+    Any,
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    Dict[str, Any],
+]:
     return (
         f"### Visual Layers\n\n{message}",
         "<div style='padding:12px;border:1px solid #d6d6d6;border-radius:10px;background:#fafaf8;'>No neural layer map generated.</div>",
@@ -372,24 +454,45 @@ def run_visual_layers(
     export_format: str,
     heatmap_layer: float,
     heatmap_head: float,
-) -> Tuple[str, str, List[List[Any]], List[List[Any]], str, List[List[Any]], Dict[str, Any], Any, Optional[str], Optional[str], Optional[str], Dict[str, Any]]:
+) -> Tuple[
+    str,
+    str,
+    List[List[Any]],
+    List[List[Any]],
+    str,
+    List[List[Any]],
+    Dict[str, Any],
+    Any,
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    Dict[str, Any],
+]:
     if PHASE4_IMPORT_ERROR is not None:
-        return _visual_layers_error(f"Phase 4 modules could not be imported: {PHASE4_IMPORT_ERROR}")
+        return _visual_layers_error(
+            f"Phase 4 modules could not be imported: {PHASE4_IMPORT_ERROR}"
+        )
 
     if run_visual_layers_analysis is None or render_visual_layers_svg is None:
-        return _visual_layers_error("Visual Layers backend is unavailable in this runtime.")
+        return _visual_layers_error(
+            "Visual Layers backend is unavailable in this runtime."
+        )
 
     normalized_mode = str(mode or "single_clause").strip().lower()
     resolved_clause = str(clause_text or "").strip()
     resolved_policy_text = str(policy_text or "").strip()
 
     if normalized_mode == "full_policy":
-        policy_result = _resolve_upload_or_text(policy_file, policy_text, allow_pdf=True, label="policy")
+        policy_result = _resolve_upload_or_text(
+            policy_file, policy_text, allow_pdf=True, label="policy"
+        )
         if policy_result["error"]:
             return _visual_layers_error(str(policy_result["error"]))
         resolved_policy_text = str(policy_result["text"] or "").strip()
         if not resolved_policy_text:
-            return _visual_layers_error("Full-policy mode requires policy text or file upload.")
+            return _visual_layers_error(
+                "Full-policy mode requires policy text or file upload."
+            )
     else:
         if not resolved_clause:
             return _visual_layers_error("Single-clause mode requires text input.")
@@ -403,7 +506,8 @@ def run_visual_layers(
             clause_text=resolved_clause,
             policy_text=resolved_policy_text,
             model_id=str(model_id_override or MODEL_ID).strip() or MODEL_ID,
-            model_revision=str(model_revision_override or MODEL_REVISION).strip() or MODEL_REVISION,
+            model_revision=str(model_revision_override or MODEL_REVISION).strip()
+            or MODEL_REVISION,
             max_length=int(max_length),
             max_clauses=int(max_clauses),
             selected_layers=selected_layer_values,
@@ -411,13 +515,21 @@ def run_visual_layers(
             top_tokens=int(top_tokens),
         )
 
-        summary = build_visual_layers_markdown(analysis) if build_visual_layers_markdown is not None else "### Visual Layers"
+        summary = (
+            build_visual_layers_markdown(analysis)
+            if build_visual_layers_markdown is not None
+            else "### Visual Layers"
+        )
         map_html = render_visual_layers_svg(analysis)
         activation_rows = _visual_layers_activation_rows(analysis)
         attention_rows = _visual_layers_attention_rows(analysis)
         math_markdown = _visual_layers_math_markdown(analysis)
         trace_rows = _visual_layers_trace_rows(analysis)
-        json_path = write_visual_layers_json(analysis) if write_visual_layers_json is not None else None
+        json_path = (
+            write_visual_layers_json(analysis)
+            if write_visual_layers_json is not None
+            else None
+        )
         choices, selected_choice = _visual_layers_clause_choices(analysis)
         view_analysis = _visual_layers_extract_view(analysis, selected_choice)
         map_html = render_visual_layers_svg(view_analysis)
@@ -425,8 +537,14 @@ def run_visual_layers(
         attention_rows = _visual_layers_attention_rows(view_analysis)
         math_markdown = _visual_layers_math_markdown(view_analysis)
         trace_rows = _visual_layers_trace_rows(view_analysis)
-        map_download = export_visual_layers_map(view_analysis, export_format) if export_visual_layers_map is not None else None
-        heatmap_path = _visual_layers_heatmap_image(view_analysis, heatmap_layer, heatmap_head)
+        map_download = (
+            export_visual_layers_map(view_analysis, export_format)
+            if export_visual_layers_map is not None
+            else None
+        )
+        heatmap_path = _visual_layers_heatmap_image(
+            view_analysis, heatmap_layer, heatmap_head
+        )
     except Exception as exc:
         return _visual_layers_error(f"Visual Layers analysis failed: {exc}")
 
@@ -450,12 +568,29 @@ def run_compliance_assessment(
     policy_file: Any,
     policy_text: str,
     selected_regulations: Optional[List[str]],
-) -> Iterator[Tuple[str, List[List[Any]], List[List[Any]], List[List[Any]], str, Dict[str, Any], Optional[str], str, str, List[List[Any]]]]:
+) -> Iterator[
+    Tuple[
+        str,
+        List[List[Any]],
+        List[List[Any]],
+        List[List[Any]],
+        str,
+        Dict[str, Any],
+        Optional[str],
+        str,
+        str,
+        List[List[Any]],
+    ]
+]:
     if PHASE4_IMPORT_ERROR is not None:
-        yield _compliance_error(f"Phase 4 modules could not be imported: {PHASE4_IMPORT_ERROR}")
+        yield _compliance_error(
+            f"Phase 4 modules could not be imported: {PHASE4_IMPORT_ERROR}"
+        )
         return
 
-    policy_result = _resolve_upload_or_text(policy_file, policy_text, allow_pdf=True, label="policy")
+    policy_result = _resolve_upload_or_text(
+        policy_file, policy_text, allow_pdf=True, label="policy"
+    )
     if policy_result["error"]:
         yield _compliance_error(str(policy_result["error"]))
         return
@@ -466,7 +601,9 @@ def run_compliance_assessment(
         return
 
     if assess_policy_compliance_stream is None:
-        yield _compliance_error("Streaming compliance assessor is unavailable in this runtime.")
+        yield _compliance_error(
+            "Streaming compliance assessor is unavailable in this runtime."
+        )
         return
 
     graph_state: Dict[str, Any] = {"nodes": {}, "edges": []}
@@ -483,7 +620,9 @@ def run_compliance_assessment(
             selected_regulations=selected_regulations,
         ):
             event_name = str(event.get("event", ""))
-            latest_stage = str(event.get("stage", latest_stage)).replace("_", " ").title()
+            latest_stage = (
+                str(event.get("stage", latest_stage)).replace("_", " ").title()
+            )
             _append_event_row(event_rows, event_name, latest_stage, event)
             _update_graph_state(graph_state, event)
             _update_framework_stats(framework_stats, event)
@@ -500,7 +639,9 @@ def run_compliance_assessment(
                 "### Findings And Evidence\n- Analysis in progress...",
                 {},
                 None,
-                _format_live_stage(latest_stage, event_rows, framework_stats, started_at),
+                _format_live_stage(
+                    latest_stage, event_rows, framework_stats, started_at
+                ),
                 _render_live_graph_html(graph_state),
                 event_rows[-60:],
             )
@@ -533,9 +674,33 @@ def run_synthetic_generation(
     high_count: float,
     seed: float,
     progress: gr.Progress = gr.Progress(),
-) -> Tuple[str, List[List[Any]], Any, str, str, Dict[str, Any], Dict[str, Any], Optional[str], Optional[str], Optional[str], List[Dict[str, Any]]]:
+) -> Tuple[
+    str,
+    List[List[Any]],
+    Any,
+    str,
+    str,
+    Dict[str, Any],
+    Dict[str, Any],
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    List[Dict[str, Any]],
+]:
     if PHASE4_IMPORT_ERROR is not None:
-        return f"### Unable to Generate\n\nPhase 4 modules could not be imported: {PHASE4_IMPORT_ERROR}", [], gr.update(choices=[], value=None), "", "", {}, {}, None, None, None, []
+        return (
+            f"### Unable to Generate\n\nPhase 4 modules could not be imported: {PHASE4_IMPORT_ERROR}",
+            [],
+            gr.update(choices=[], value=None),
+            "",
+            "",
+            {},
+            {},
+            None,
+            None,
+            None,
+            [],
+        )
 
     output_dir = _new_synthetic_output_dir()
     total_requested = int(low_count) + int(medium_count) + int(high_count)
@@ -564,7 +729,19 @@ def run_synthetic_generation(
             progress_callback=progress_callback,
         )
     except Exception as exc:  # pragma: no cover - defensive runtime guard
-        return f"### Synthetic Generation Failed\n\n{exc}", [], gr.update(choices=[], value=None), "", "", {}, {}, None, None, None, []
+        return (
+            f"### Synthetic Generation Failed\n\n{exc}",
+            [],
+            gr.update(choices=[], value=None),
+            "",
+            "",
+            {},
+            {},
+            None,
+            None,
+            None,
+            [],
+        )
 
     output_files = _as_dict(manifest.get("output_files"))
     dataset_path = Path(str(output_files.get("dataset", "")))
@@ -572,9 +749,15 @@ def run_synthetic_generation(
     rows = _read_jsonl_file(dataset_path)
     choices = _synthetic_sample_choices(rows)
     selected_choice = choices[0] if choices else None
-    policy_text, schema_text, selected_row = select_synthetic_sample(selected_choice, rows)
-    fixture_dir = Path(str(_as_dict(manifest.get("upload_fixtures")).get("output_dir", "")))
-    fixture_zip_path = _zip_directory(fixture_dir, output_dir / "synthetic_upload_fixtures.zip")
+    policy_text, schema_text, selected_row = select_synthetic_sample(
+        selected_choice, rows
+    )
+    fixture_dir = Path(
+        str(_as_dict(manifest.get("upload_fixtures")).get("output_dir", ""))
+    )
+    fixture_zip_path = _zip_directory(
+        fixture_dir, output_dir / "synthetic_upload_fixtures.zip"
+    )
     summary = _format_synthetic_summary(manifest)
     return (
         summary,
@@ -591,12 +774,20 @@ def run_synthetic_generation(
     )
 
 
-def show_model_benchmarks() -> Tuple[str, List[List[Any]], List[List[Any]], Dict[str, Any], Optional[str]]:
+def show_model_benchmarks() -> (
+    Tuple[str, List[List[Any]], List[List[Any]], Dict[str, Any], Optional[str]]
+):
     registry = _load_benchmark_registry()
     rows = _benchmark_static_rows(registry)
     per_class_rows = _benchmark_static_model_specs(registry)
     report_path = _write_temp_json("benchmark_registry", registry)
-    return _format_benchmark_summary(registry), rows, per_class_rows, registry, report_path
+    return (
+        _format_benchmark_summary(registry),
+        rows,
+        per_class_rows,
+        registry,
+        report_path,
+    )
 
 
 def run_live_privacybert_benchmark(
@@ -643,7 +834,10 @@ def run_live_privacybert_benchmark(
     total = len(model_specs)
     results: List[Dict[str, Any]] = []
     for idx, spec in enumerate(model_specs, start=1):
-        progress(0.1 + (0.85 * idx / max(total, 1)), desc=f"Running {idx}/{total}: {spec['model_id']}")
+        progress(
+            0.1 + (0.85 * idx / max(total, 1)),
+            desc=f"Running {idx}/{total}: {spec['model_id']}",
+        )
         results.append(_evaluate_model_on_benchmark(spec=spec, rows=benchmark_rows))
 
     payload = {
@@ -700,7 +894,9 @@ def _discover_similar_privacybert_models(limit: int) -> List[Dict[str, Any]]:
         if model_id == primary_model_id:
             discovered[0] = {
                 "model_id": primary_model_id,
-                "pipeline_tag": str(getattr(info, "pipeline_tag", "") or "text-classification"),
+                "pipeline_tag": str(
+                    getattr(info, "pipeline_tag", "") or "text-classification"
+                ),
                 "downloads": int(getattr(info, "downloads", 0) or 0),
                 "likes": int(getattr(info, "likes", 0) or 0),
                 "last_modified": str(getattr(info, "last_modified", "") or ""),
@@ -737,7 +933,9 @@ def _resolve_primary_benchmark_model_id() -> str:
     return BENCHMARK_PRIMARY_MODEL_ID
 
 
-def _generate_benchmark_samples(samples_per_band: int, seed: int) -> List[Dict[str, Any]]:
+def _generate_benchmark_samples(
+    samples_per_band: int, seed: int
+) -> List[Dict[str, Any]]:
     output_dir = _new_synthetic_output_dir()
     try:
         manifest = generate_synthetic_policy_schema_dataset(  # type: ignore[misc]
@@ -769,7 +967,9 @@ def _generate_benchmark_samples(samples_per_band: int, seed: int) -> List[Dict[s
     return samples
 
 
-def _evaluate_model_on_benchmark(spec: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+def _evaluate_model_on_benchmark(
+    spec: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]
+) -> Dict[str, Any]:
     model_id = str(spec.get("model_id", ""))
     total = len(rows)
     if not model_id or total == 0:
@@ -790,7 +990,9 @@ def _evaluate_model_on_benchmark(spec: Mapping[str, Any], rows: Sequence[Mapping
 
     try:
         tokenizer = AutoTokenizer.from_pretrained(model_id, **load_kwargs)
-        model = AutoModelForSequenceClassification.from_pretrained(model_id, **load_kwargs)
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_id, **load_kwargs
+        )
         device = 0 if torch.cuda.is_available() else -1
         clf = pipeline(
             "text-classification",
@@ -830,7 +1032,9 @@ def _evaluate_model_on_benchmark(spec: Mapping[str, Any], rows: Sequence[Mapping
         predictions = predictions if isinstance(predictions, list) else []
         if not predictions:
             continue
-        sorted_scores = sorted(predictions, key=lambda item: float(item.get("score", 0.0)), reverse=True)
+        sorted_scores = sorted(
+            predictions, key=lambda item: float(item.get("score", 0.0)), reverse=True
+        )
         top = _as_dict(sorted_scores[0])
         confidence = float(top.get("score", 0.0))
         confidence_sum += confidence
@@ -880,15 +1084,29 @@ def _normalize_compliance_label(label: str) -> Optional[str]:
         return None
     if "medium" in text or "partial" in text:
         return "medium"
-    if "low" in text or "non compliant" in text or "noncompliant" in text or "violation" in text or "risk" in text:
+    if (
+        "low" in text
+        or "non compliant" in text
+        or "noncompliant" in text
+        or "violation" in text
+        or "risk" in text
+    ):
         return "low"
-    if "high" in text or ("compliant" in text and "non" not in text) or "positive" in text:
+    if (
+        "high" in text
+        or ("compliant" in text and "non" not in text)
+        or "positive" in text
+    ):
         return "high"
     return None
 
 
 def _to_binary_compliance(label: str) -> Optional[str]:
-    normalized = _normalize_compliance_label(label) if label not in {"low", "medium", "high"} else label
+    normalized = (
+        _normalize_compliance_label(label)
+        if label not in {"low", "medium", "high"}
+        else label
+    )
     if normalized is None:
         return None
     return "non_compliant" if normalized == "low" else "compliant"
@@ -903,9 +1121,21 @@ def _format_live_benchmark_summary(payload: Mapping[str, Any]) -> str:
     if not results:
         return "### Live Benchmark\n\nNo models completed successfully."
 
-    top_conf = sorted(results, key=lambda item: float(item.get("average_confidence") or -1.0), reverse=True)[0]
+    top_conf = sorted(
+        results,
+        key=lambda item: float(item.get("average_confidence") or -1.0),
+        reverse=True,
+    )[0]
     with_tri = [row for row in results if row.get("tri_label_accuracy") is not None]
-    top_acc = sorted(with_tri, key=lambda item: float(item.get("tri_label_accuracy") or -1.0), reverse=True)[0] if with_tri else None
+    top_acc = (
+        sorted(
+            with_tri,
+            key=lambda item: float(item.get("tri_label_accuracy") or -1.0),
+            reverse=True,
+        )[0]
+        if with_tri
+        else None
+    )
 
     lines = [
         "### Live PrivacyBERT Benchmark",
@@ -915,7 +1145,10 @@ def _format_live_benchmark_summary(payload: Mapping[str, Any]) -> str:
         f"- Best average confidence: **{top_conf.get('model_id', '')}** ({_format_optional_float(top_conf.get('average_confidence'))})",
     ]
     primary_model_id = _resolve_primary_benchmark_model_id()
-    primary_result = next((row for row in results if str(row.get("model_id", "")) == primary_model_id), None)
+    primary_result = next(
+        (row for row in results if str(row.get("model_id", "")) == primary_model_id),
+        None,
+    )
     if primary_result is not None:
         lines.append(
             f"- Primary model ({primary_model_id}) average confidence: {_format_optional_float(primary_result.get('average_confidence'))}"
@@ -927,7 +1160,9 @@ def _format_live_benchmark_summary(payload: Mapping[str, Any]) -> str:
         lines.append(
             f"- Best tri-label accuracy: **{top_acc.get('model_id', '')}** ({_format_optional_float(top_acc.get('tri_label_accuracy'))})"
         )
-    lines.append("- Note: accuracy is computed only when model label names can be normalized to compliance bands.")
+    lines.append(
+        "- Note: accuracy is computed only when model label names can be normalized to compliance bands."
+    )
     return "\n".join(lines)
 
 
@@ -1023,7 +1258,10 @@ def _benchmark_static_model_specs(registry: Mapping[str, Any]) -> List[List[Any]
         )
     return rows
 
-def select_synthetic_sample(choice: Any, rows: List[Dict[str, Any]]) -> Tuple[str, str, Dict[str, Any]]:
+
+def select_synthetic_sample(
+    choice: Any, rows: List[Dict[str, Any]]
+) -> Tuple[str, str, Dict[str, Any]]:
     if not rows:
         return "", "", {}
 
@@ -1035,30 +1273,49 @@ def select_synthetic_sample(choice: Any, rows: List[Dict[str, Any]]) -> Tuple[st
                 selected = row
                 break
 
-    return str(selected.get("policy_text", "")), str(selected.get("schema_text", "")), dict(selected)
+    return (
+        str(selected.get("policy_text", "")),
+        str(selected.get("schema_text", "")),
+        dict(selected),
+    )
 
 
-def scan_artifacts(root_dir_text: str, search_query: str, max_files: float) -> Tuple[str, List[List[Any]]]:
+def scan_artifacts(
+    root_dir_text: str, search_query: str, max_files: float
+) -> Tuple[str, List[List[Any]]]:
     root_dir = Path(str(root_dir_text or "artifacts")).expanduser()
     if not root_dir.exists() or not root_dir.is_dir():
-        return f"### Artifacts Not Found\n\n`{root_dir}` is not a readable directory.", []
+        return (
+            f"### Artifacts Not Found\n\n`{root_dir}` is not a readable directory.",
+            [],
+        )
 
     query = str(search_query or "").strip().lower()
     rows: List[List[Any]] = []
     for path in sorted(root_dir.rglob("*"), key=lambda item: str(item).lower()):
-        if not path.is_file() or any(part.startswith(".") for part in path.relative_to(root_dir).parts):
+        if not path.is_file() or any(
+            part.startswith(".") for part in path.relative_to(root_dir).parts
+        ):
             continue
         relative = path.relative_to(root_dir).as_posix()
         if query and query not in relative.lower():
             continue
-        rows.append([relative, path.suffix.lower() or "n/a", _format_byte_size(path.stat().st_size)])
+        rows.append(
+            [
+                relative,
+                path.suffix.lower() or "n/a",
+                _format_byte_size(path.stat().st_size),
+            ]
+        )
         if len(rows) >= int(max_files):
             break
 
     return f"### Artifact Files\n\nFound {len(rows)} file(s) under `{root_dir}`.", rows
 
 
-def preview_artifact(root_dir_text: str, file_path_text: str, max_chars: float) -> Tuple[str, str, Optional[str]]:
+def preview_artifact(
+    root_dir_text: str, file_path_text: str, max_chars: float
+) -> Tuple[str, str, Optional[str]]:
     root_dir = Path(str(root_dir_text or "artifacts")).expanduser()
     requested_path = Path(str(file_path_text or "").strip()).expanduser()
     if not str(requested_path):
@@ -1070,10 +1327,24 @@ def preview_artifact(root_dir_text: str, file_path_text: str, max_chars: float) 
 
     suffix = path.suffix.lower()
     try:
-        if suffix in {".json", ".jsonl", ".md", ".txt", ".sql", ".yaml", ".yml", ".csv", ".log"}:
+        if suffix in {
+            ".json",
+            ".jsonl",
+            ".md",
+            ".txt",
+            ".sql",
+            ".yaml",
+            ".yml",
+            ".csv",
+            ".log",
+        }:
             content = path.read_text(encoding="utf-8", errors="replace")
         else:
-            return _format_file_metadata(path, root_dir), "Binary preview is not available.", str(path)
+            return (
+                _format_file_metadata(path, root_dir),
+                "Binary preview is not available.",
+                str(path),
+            )
     except OSError as exc:
         return f"### Preview Failed\n\n{exc}", "", None
 
@@ -1084,15 +1355,48 @@ def preview_artifact(root_dir_text: str, file_path_text: str, max_chars: float) 
     return _format_file_metadata(path, root_dir), preview, str(path)
 
 
-def _compliance_error(message: str) -> Tuple[str, List[List[Any]], List[List[Any]], List[List[Any]], str, Dict[str, Any], Optional[str], str, str, List[List[Any]]]:
+def _compliance_error(
+    message: str,
+) -> Tuple[
+    str,
+    List[List[Any]],
+    List[List[Any]],
+    List[List[Any]],
+    str,
+    Dict[str, Any],
+    Optional[str],
+    str,
+    str,
+    List[List[Any]],
+]:
     stage = "### Stage Progress\n- Status: Failed"
     graph = _render_live_graph_html({"nodes": {}, "edges": []})
-    return f"### Unable to Assess\n\n{message}", [], [], [], "", {}, None, stage, graph, []
+    return (
+        f"### Unable to Assess\n\n{message}",
+        [],
+        [],
+        [],
+        "",
+        {},
+        None,
+        stage,
+        graph,
+        [],
+    )
 
 
-def _append_event_row(event_rows: List[List[Any]], event_name: str, stage: str, event: Mapping[str, Any]) -> None:
+def _append_event_row(
+    event_rows: List[List[Any]], event_name: str, stage: str, event: Mapping[str, Any]
+) -> None:
     detail_bits: List[str] = []
-    for key in ("check_id", "regulation", "control_id", "predicted_label", "compliant", "evidence_source"):
+    for key in (
+        "check_id",
+        "regulation",
+        "control_id",
+        "predicted_label",
+        "compliant",
+        "evidence_source",
+    ):
         if key in event:
             detail_bits.append(f"{key}={event.get(key)}")
     event_rows.append([stage, event_name, "; ".join(detail_bits)])
@@ -1106,7 +1410,10 @@ def _update_graph_state(graph_state: Dict[str, Any], event: Mapping[str, Any]) -
     if event_name == "clause_start":
         claim_index = int(event.get("claim_index", 0))
         claim_node = f"claim_{claim_index}"
-        nodes.setdefault(claim_node, {"id": claim_node, "label": f"Claim {claim_index + 1}", "type": "claim"})
+        nodes.setdefault(
+            claim_node,
+            {"id": claim_node, "label": f"Claim {claim_index + 1}", "type": "claim"},
+        )
 
     if event_name == "verdict_complete":
         claim_index = int(event.get("claim_index", 0))
@@ -1116,9 +1423,17 @@ def _update_graph_state(graph_state: Dict[str, Any], event: Mapping[str, Any]) -
         control_node = f"{regulation}:{control_id}"
         regulation_node = f"reg_{regulation}"
 
-        nodes.setdefault(claim_node, {"id": claim_node, "label": f"Claim {claim_index + 1}", "type": "claim"})
-        nodes.setdefault(control_node, {"id": control_node, "label": control_id, "type": "control"})
-        nodes.setdefault(regulation_node, {"id": regulation_node, "label": regulation, "type": "regulation"})
+        nodes.setdefault(
+            claim_node,
+            {"id": claim_node, "label": f"Claim {claim_index + 1}", "type": "claim"},
+        )
+        nodes.setdefault(
+            control_node, {"id": control_node, "label": control_id, "type": "control"}
+        )
+        nodes.setdefault(
+            regulation_node,
+            {"id": regulation_node, "label": regulation, "type": "regulation"},
+        )
 
         compliant = bool(event.get("compliant", False))
         edges.append({"src": claim_node, "dst": control_node, "ok": compliant})
@@ -1128,14 +1443,18 @@ def _update_graph_state(graph_state: Dict[str, Any], event: Mapping[str, Any]) -
     graph_state["edges"] = edges[-220:]
 
 
-def _update_framework_stats(framework_stats: Dict[str, Dict[str, float]], event: Mapping[str, Any]) -> None:
+def _update_framework_stats(
+    framework_stats: Dict[str, Dict[str, float]], event: Mapping[str, Any]
+) -> None:
     if str(event.get("event", "")) != "verdict_complete":
         return
     regulation = str(event.get("regulation", "")).strip()
     if not regulation:
         return
     now = time.perf_counter()
-    stats = framework_stats.setdefault(regulation, {"pass": 0.0, "fail": 0.0, "first": now, "last": now})
+    stats = framework_stats.setdefault(
+        regulation, {"pass": 0.0, "fail": 0.0, "first": now, "last": now}
+    )
     if bool(event.get("compliant", False)):
         stats["pass"] += 1.0
     else:
@@ -1150,7 +1469,9 @@ def _format_live_stage(
     started_at: float,
 ) -> str:
     total_events = len(event_rows)
-    verdict_events = sum(1 for row in event_rows if len(row) > 1 and str(row[1]) == "verdict_complete")
+    verdict_events = sum(
+        1 for row in event_rows if len(row) > 1 and str(row[1]) == "verdict_complete"
+    )
     elapsed = max(0.0, time.perf_counter() - started_at)
     lines = [
         "### Stage Progress",
@@ -1165,13 +1486,17 @@ def _format_live_stage(
         for regulation, stats in sorted(framework_stats.items()):
             pass_count = int(float(stats.get("pass", 0.0)))
             fail_count = int(float(stats.get("fail", 0.0)))
-            span = max(0.0, float(stats.get("last", 0.0)) - float(stats.get("first", 0.0)))
-            lines.append(f"  - {regulation}: pass={pass_count}, fail={fail_count}, active_window={span:.2f}s")
+            span = max(
+                0.0, float(stats.get("last", 0.0)) - float(stats.get("first", 0.0))
+            )
+            lines.append(
+                f"  - {regulation}: pass={pass_count}, fail={fail_count}, active_window={span:.2f}s"
+            )
 
-    lines.append("- Visualization note: this graph shows evidence-link formation, not hidden neural activations.")
-    return "\n".join(
-        lines
+    lines.append(
+        "- Visualization note: this graph shows evidence-link formation, not hidden neural activations."
     )
+    return "\n".join(lines)
 
 
 def _render_live_graph_html(graph_state: Mapping[str, Any]) -> str:
@@ -1180,8 +1505,12 @@ def _render_live_graph_html(graph_state: Mapping[str, Any]) -> str:
     node_list = list(nodes.values())
 
     claim_nodes = [node for node in node_list if _as_dict(node).get("type") == "claim"]
-    control_nodes = [node for node in node_list if _as_dict(node).get("type") == "control"]
-    reg_nodes = [node for node in node_list if _as_dict(node).get("type") == "regulation"]
+    control_nodes = [
+        node for node in node_list if _as_dict(node).get("type") == "control"
+    ]
+    reg_nodes = [
+        node for node in node_list if _as_dict(node).get("type") == "regulation"
+    ]
 
     if not node_list:
         return "<div style='padding:12px;border:1px solid #d6d6d6;border-radius:10px;background:#fafaf8;'>Awaiting events to form the evidence graph.</div>"
@@ -1218,7 +1547,9 @@ def _render_live_graph_html(graph_state: Mapping[str, Any]) -> str:
         x1, y1 = positions[src]
         x2, y2 = positions[dst]
         color = "#2f9e44" if edge_map.get("ok") else "#c92a2a"
-        svg_lines.append(f"<line x1='{x1}' y1='{y1}' x2='{x2}' y2='{y2}' stroke='{color}' stroke-opacity='0.45' stroke-width='1.6' />")
+        svg_lines.append(
+            f"<line x1='{x1}' y1='{y1}' x2='{x2}' y2='{y2}' stroke='{color}' stroke-opacity='0.45' stroke-width='1.6' />"
+        )
 
     for node in node_list:
         node_map = _as_dict(node)
@@ -1227,7 +1558,11 @@ def _render_live_graph_html(graph_state: Mapping[str, Any]) -> str:
             continue
         x, y = positions[node_id]
         node_type = str(node_map.get("type", ""))
-        color = "#0ca678" if node_type == "claim" else "#1971c2" if node_type == "control" else "#f08c00"
+        color = (
+            "#0ca678"
+            if node_type == "claim"
+            else "#1971c2" if node_type == "control" else "#f08c00"
+        )
         label = str(node_map.get("label", node_id))[:30]
         svg_lines.append(f"<circle cx='{x}' cy='{y}' r='8' fill='{color}' />")
         svg_lines.append(f"<text class='lbl' x='{x + 12}' y='{y + 4}'>{label}</text>")
@@ -1236,15 +1571,27 @@ def _render_live_graph_html(graph_state: Mapping[str, Any]) -> str:
     return "".join(svg_lines)
 
 
-def _resolve_upload_or_text(uploaded_file: Any, text_value: str, allow_pdf: bool, label: str) -> Dict[str, Any]:
+def _resolve_upload_or_text(
+    uploaded_file: Any, text_value: str, allow_pdf: bool, label: str
+) -> Dict[str, Any]:
     if text_value and text_value.strip():
-        return {"text": text_value, "error": None, "file_name": "pasted text", "size_bytes": len(text_value.encode("utf-8"))}
+        return {
+            "text": text_value,
+            "error": None,
+            "file_name": "pasted text",
+            "size_bytes": len(text_value.encode("utf-8")),
+        }
     if not _has_uploaded_file(uploaded_file):
         return {"text": "", "error": None, "file_name": "", "size_bytes": 0}
 
     path = _uploaded_file_path(uploaded_file)
     if path is None or not path.exists():
-        return {"text": "", "error": f"The uploaded {label} file could not be read.", "file_name": "", "size_bytes": 0}
+        return {
+            "text": "",
+            "error": f"The uploaded {label} file could not be read.",
+            "file_name": "",
+            "size_bytes": 0,
+        }
 
     file_name = _uploaded_file_name(uploaded_file) or path.name
     suffix = Path(file_name).suffix.lower() or path.suffix.lower()
@@ -1252,21 +1599,51 @@ def _resolve_upload_or_text(uploaded_file: Any, text_value: str, allow_pdf: bool
 
     if suffix == ".pdf":
         if not allow_pdf:
-            return {"text": "", "error": f"PDF uploads are not supported for {label} files.", "file_name": file_name, "size_bytes": len(file_bytes)}
+            return {
+                "text": "",
+                "error": f"PDF uploads are not supported for {label} files.",
+                "file_name": file_name,
+                "size_bytes": len(file_bytes),
+            }
         try:
             pypdf_module = importlib.import_module("pypdf")
             reader = pypdf_module.PdfReader(str(path))
             text = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
         except Exception as exc:  # pragma: no cover - runtime upload guard
-            return {"text": "", "error": f"PDF parsing failed: {exc}", "file_name": file_name, "size_bytes": len(file_bytes)}
+            return {
+                "text": "",
+                "error": f"PDF parsing failed: {exc}",
+                "file_name": file_name,
+                "size_bytes": len(file_bytes),
+            }
         if not text:
-            return {"text": "", "error": "PDF has no extractable text.", "file_name": file_name, "size_bytes": len(file_bytes)}
-        return {"text": text, "error": None, "file_name": file_name, "size_bytes": len(file_bytes)}
+            return {
+                "text": "",
+                "error": "PDF has no extractable text.",
+                "file_name": file_name,
+                "size_bytes": len(file_bytes),
+            }
+        return {
+            "text": text,
+            "error": None,
+            "file_name": file_name,
+            "size_bytes": len(file_bytes),
+        }
 
     decoded = _decode_text_bytes(file_bytes)
     if decoded is None:
-        return {"text": "", "error": f"Unable to decode {label} file using utf-8, utf-16, or latin-1.", "file_name": file_name, "size_bytes": len(file_bytes)}
-    return {"text": decoded, "error": None, "file_name": file_name, "size_bytes": len(file_bytes)}
+        return {
+            "text": "",
+            "error": f"Unable to decode {label} file using utf-8, utf-16, or latin-1.",
+            "file_name": file_name,
+            "size_bytes": len(file_bytes),
+        }
+    return {
+        "text": decoded,
+        "error": None,
+        "file_name": file_name,
+        "size_bytes": len(file_bytes),
+    }
 
 
 def _has_uploaded_file(uploaded_file: Any) -> bool:
@@ -1281,14 +1658,18 @@ def _uploaded_file_path(uploaded_file: Any) -> Optional[Path]:
     if isinstance(uploaded_file, dict):
         path_text = uploaded_file.get("path") or uploaded_file.get("name")
         return Path(path_text) if path_text else None
-    path_text = getattr(uploaded_file, "path", None) or getattr(uploaded_file, "name", None)
+    path_text = getattr(uploaded_file, "path", None) or getattr(
+        uploaded_file, "name", None
+    )
     return Path(path_text) if path_text else None
 
 
 def _uploaded_file_name(uploaded_file: Any) -> str:
     if isinstance(uploaded_file, dict):
         return str(uploaded_file.get("orig_name") or uploaded_file.get("name") or "")
-    return str(getattr(uploaded_file, "orig_name", None) or getattr(uploaded_file, "name", ""))
+    return str(
+        getattr(uploaded_file, "orig_name", None) or getattr(uploaded_file, "name", "")
+    )
 
 
 def _decode_text_bytes(data: bytes) -> Optional[str]:
@@ -1317,6 +1698,7 @@ def _new_synthetic_output_dir() -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
+
 def _read_jsonl_file(path: Path) -> List[Dict[str, Any]]:
     if not path.exists():
         return []
@@ -1330,14 +1712,18 @@ def _read_jsonl_file(path: Path) -> List[Dict[str, Any]]:
                 rows.append(value)
     return rows
 
+
 def _synthetic_sample_choices(rows: List[Mapping[str, Any]]) -> List[str]:
     choices: List[str] = []
     for row in rows:
         sample_id = str(row.get("sample_id", "sample"))
         band = str(row.get("compliance_band", "unknown"))
-        score = _format_optional_float(_as_dict(row.get("assessment")).get("overall_score"))
+        score = _format_optional_float(
+            _as_dict(row.get("assessment")).get("overall_score")
+        )
         choices.append(f"{sample_id} | {band} | score {score}")
     return choices
+
 
 def _zip_directory(source_dir: Path, target_path: Path) -> Optional[str]:
     if not source_dir.exists() or not source_dir.is_dir():
@@ -1365,7 +1751,9 @@ def _format_compliance_summary(result: Mapping[str, Any]) -> str:
     bayesian_risk = _as_dict(result.get("bayesian_risk"))
     if bayesian_risk:
         overall = _as_dict(bayesian_risk.get("overall"))
-        lines.append(f"- Bayesian risk score: {_format_optional_float(overall.get('primary_score'))}")
+        lines.append(
+            f"- Bayesian risk score: {_format_optional_float(overall.get('primary_score'))}"
+        )
     return "\n".join(lines)
 
 
@@ -1374,13 +1762,15 @@ def _regulation_rows(result: Mapping[str, Any]) -> List[List[Any]]:
     summary = _as_dict(result.get("regulation_summary"))
     for regulation, values in sorted(summary.items()):
         value_map = _as_dict(values)
-        rows.append([
-            str(regulation).replace("_", " "),
-            f"{float(value_map.get('compliance_pct', 0.0)):.1f}%",
-            value_map.get("pass_count", 0),
-            value_map.get("fail_count", 0),
-            value_map.get("total_controls", 0),
-        ])
+        rows.append(
+            [
+                str(regulation).replace("_", " "),
+                f"{float(value_map.get('compliance_pct', 0.0)):.1f}%",
+                value_map.get("pass_count", 0),
+                value_map.get("fail_count", 0),
+                value_map.get("total_controls", 0),
+            ]
+        )
     return rows
 
 
@@ -1388,12 +1778,17 @@ def _policy_check_rows(result: Mapping[str, Any]) -> List[List[Any]]:
     rows: List[List[Any]] = []
     for item in _as_list(result.get("policy_checks")):
         check = _as_dict(item)
-        rows.append([
-            check.get("title", ""),
-            f"{float(check.get('score', 0.0)):.2f}/{float(check.get('max_score', 0.0)):.2f}",
-            "Yes" if check.get("passed") else "No",
-            ", ".join(str(keyword) for keyword in _as_list(check.get("matched_keywords"))[:6]),
-        ])
+        rows.append(
+            [
+                check.get("title", ""),
+                f"{float(check.get('score', 0.0)):.2f}/{float(check.get('max_score', 0.0)):.2f}",
+                "Yes" if check.get("passed") else "No",
+                ", ".join(
+                    str(keyword)
+                    for keyword in _as_list(check.get("matched_keywords"))[:6]
+                ),
+            ]
+        )
     return rows
 
 
@@ -1405,14 +1800,16 @@ def _claim_rows(result: Mapping[str, Any]) -> List[List[Any]]:
         verdicts = _as_list(claim_map.get("regulation_verdicts"))
         for verdict in verdicts:
             verdict_map = _as_dict(verdict)
-            rows.append([
-                f"#{int(claim_map.get('claim_index', 0)) + 1}",
-                claim_map.get("check_title", ""),
-                str(verdict_map.get("regulation", "")).replace("_", " "),
-                verdict_map.get("control_id", ""),
-                "Pass" if verdict_map.get("compliant") else "Fail",
-                verdict_map.get("reason", ""),
-            ])
+            rows.append(
+                [
+                    f"#{int(claim_map.get('claim_index', 0)) + 1}",
+                    claim_map.get("check_title", ""),
+                    str(verdict_map.get("regulation", "")).replace("_", " "),
+                    verdict_map.get("control_id", ""),
+                    "Pass" if verdict_map.get("compliant") else "Fail",
+                    verdict_map.get("reason", ""),
+                ]
+            )
             if len(rows) >= 120:
                 return rows
 
@@ -1436,7 +1833,9 @@ def _detail_markdown(result: Mapping[str, Any]) -> str:
     if failed_checks:
         lines.append("\nPriority policy gaps:")
         for check in failed_checks[:8]:
-            lines.append(f"- {check.get('title', '')}: {float(check.get('score', 0.0)):.2f}/{float(check.get('max_score', 0.0)):.2f}")
+            lines.append(
+                f"- {check.get('title', '')}: {float(check.get('score', 0.0)):.2f}/{float(check.get('max_score', 0.0)):.2f}"
+            )
 
     failing_verdicts: List[str] = []
     for claim in _as_list(result.get("claims")):
@@ -1459,7 +1858,9 @@ def _detail_markdown(result: Mapping[str, Any]) -> str:
     model_signal = _as_dict(result.get("model_signal"))
     if model_signal:
         lines.append("\nModel signal:")
-        lines.append(f"- Score: {float(model_signal.get('score', 0.0)):.2f}/{float(model_signal.get('max_score', 5.0)):.2f}")
+        lines.append(
+            f"- Score: {float(model_signal.get('score', 0.0)):.2f}/{float(model_signal.get('max_score', 5.0)):.2f}"
+        )
         for detail in _as_list(model_signal.get("details"))[:5]:
             lines.append(f"- {detail}")
 
@@ -1470,13 +1871,15 @@ def _detail_markdown(result: Mapping[str, Any]) -> str:
 
 def _format_synthetic_summary(manifest: Mapping[str, Any]) -> str:
     output_files = _as_dict(manifest.get("output_files"))
-    return "\n".join([
-        "### Synthetic Dataset Generated",
-        f"- Dataset: `{output_files.get('dataset', '')}`",
-        f"- Manifest: `{output_files.get('manifest', '')}`",
-        f"- Dictionary: `{output_files.get('dictionary', '')}`",
-        f"- Seed: {manifest.get('seed', '')}",
-    ])
+    return "\n".join(
+        [
+            "### Synthetic Dataset Generated",
+            f"- Dataset: `{output_files.get('dataset', '')}`",
+            f"- Manifest: `{output_files.get('manifest', '')}`",
+            f"- Dictionary: `{output_files.get('dictionary', '')}`",
+            f"- Seed: {manifest.get('seed', '')}",
+        ]
+    )
 
 
 def _synthetic_rows(manifest: Mapping[str, Any]) -> List[List[Any]]:
@@ -1484,14 +1887,16 @@ def _synthetic_rows(manifest: Mapping[str, Any]) -> List[List[Any]]:
     score_summary = _as_dict(manifest.get("score_summary"))
     for band in ("low", "medium", "high"):
         band_summary = _as_dict(score_summary.get(band))
-        rows.append([
-            band,
-            band_summary.get("count"),
-            band_summary.get("in_target_band"),
-            band_summary.get("minimum"),
-            band_summary.get("mean"),
-            band_summary.get("maximum"),
-        ])
+        rows.append(
+            [
+                band,
+                band_summary.get("count"),
+                band_summary.get("in_target_band"),
+                band_summary.get("minimum"),
+                band_summary.get("mean"),
+                band_summary.get("maximum"),
+            ]
+        )
     return rows
 
 
@@ -1499,7 +1904,11 @@ def _format_benchmark_summary(registry: Mapping[str, Any]) -> str:
     rows = _as_list(registry.get("models"))
     ranked = _rank_benchmark_models(rows)
     best = _as_dict(ranked[0]) if ranked else {}
-    unavailable = [row for row in rows if str(_as_dict(row).get("status", "available")) != "available"]
+    unavailable = [
+        row
+        for row in rows
+        if str(_as_dict(row).get("status", "available")) != "available"
+    ]
     notes = _as_list(registry.get("notes"))
     lines = [
         "### Model Benchmark Comparison",
@@ -1518,9 +1927,12 @@ def _format_benchmark_summary(registry: Mapping[str, Any]) -> str:
         lines.append(f"- {note}")
     return "\n".join(lines)
 
+
 def _benchmark_leaderboard_rows(registry: Mapping[str, Any]) -> List[List[Any]]:
     rows: List[List[Any]] = []
-    for rank, model in enumerate(_rank_benchmark_models(_as_list(registry.get("models"))), start=1):
+    for rank, model in enumerate(
+        _rank_benchmark_models(_as_list(registry.get("models"))), start=1
+    ):
         model_map = _as_dict(model)
         metrics = _as_dict(model_map.get("metrics"))
         rows.append(
@@ -1539,6 +1951,7 @@ def _benchmark_leaderboard_rows(registry: Mapping[str, Any]) -> List[List[Any]]:
             ]
         )
     return rows
+
 
 def _benchmark_per_class_rows(registry: Mapping[str, Any]) -> List[List[Any]]:
     rows: List[List[Any]] = []
@@ -1559,6 +1972,7 @@ def _benchmark_per_class_rows(registry: Mapping[str, Any]) -> List[List[Any]]:
             )
     return rows
 
+
 def _rank_benchmark_models(models: List[Any]) -> List[Dict[str, Any]]:
     return sorted(
         [_as_dict(model) for model in models],
@@ -1570,15 +1984,21 @@ def _rank_benchmark_models(models: List[Any]) -> List[Dict[str, Any]]:
         reverse=True,
     )
 
+
 def _model_has_primary_metrics(model: Mapping[str, Any]) -> bool:
     metrics = _as_dict(model.get("metrics"))
-    return metrics.get("test_macro_f1") is not None and metrics.get("test_accuracy") is not None
+    return (
+        metrics.get("test_macro_f1") is not None
+        and metrics.get("test_accuracy") is not None
+    )
+
 
 def _metric_float(model: Mapping[str, Any], name: str) -> float:
     try:
         return float(_as_dict(model.get("metrics")).get(name))
     except (TypeError, ValueError):
         return -1.0
+
 
 def _load_benchmark_registry() -> Dict[str, Any]:
     if not BENCHMARKS_PATH.exists():
@@ -1590,7 +2010,11 @@ def _load_benchmark_registry() -> Dict[str, Any]:
         }
     with BENCHMARKS_PATH.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
-    return payload if isinstance(payload, dict) else {"models": [], "notes": ["Invalid benchmark registry format."]}
+    return (
+        payload
+        if isinstance(payload, dict)
+        else {"models": [], "notes": ["Invalid benchmark registry format."]}
+    )
 
 
 def _format_file_metadata(path: Path, root_dir: Path) -> str:
@@ -1598,12 +2022,14 @@ def _format_file_metadata(path: Path, root_dir: Path) -> str:
         relative = path.relative_to(root_dir).as_posix()
     except ValueError:
         relative = path.name
-    return "\n".join([
-        "### Artifact Preview",
-        f"- File: `{relative}`",
-        f"- Size: {_format_byte_size(path.stat().st_size)}",
-        f"- Type: `{path.suffix.lower() or 'n/a'}`",
-    ])
+    return "\n".join(
+        [
+            "### Artifact Preview",
+            f"- File: `{relative}`",
+            f"- Size: {_format_byte_size(path.stat().st_size)}",
+            f"- Type: `{path.suffix.lower() or 'n/a'}`",
+        ]
+    )
 
 
 def _format_byte_size(size_bytes: int) -> str:
@@ -1688,7 +2114,9 @@ def _available_regulation_choices() -> List[str]:
     if list_available_regulations is None:
         return ["GDPR", "NIST", "ISO_27701"]
     try:
-        choices = [str(item) for item in list_available_regulations() if str(item).strip()]
+        choices = [
+            str(item) for item in list_available_regulations() if str(item).strip()
+        ]
     except Exception:
         return ["GDPR", "NIST", "ISO_27701"]
     if not choices:
@@ -1711,7 +2139,11 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
         with gr.Tab("Compliance Assessment"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    policy_file = gr.File(label="Privacy policy", file_types=[".txt", ".md", ".pdf"], type="filepath")
+                    policy_file = gr.File(
+                        label="Privacy policy",
+                        file_types=[".txt", ".md", ".pdf"],
+                        type="filepath",
+                    )
                     policy_text = gr.Textbox(label="Policy text", lines=8, max_lines=18)
                     regulation_selector = gr.CheckboxGroup(
                         label="Frameworks to evaluate",
@@ -1721,8 +2153,12 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
                     assess_button = gr.Button("Analyze Compliance", variant="primary")
                 with gr.Column(scale=2):
                     compliance_summary = gr.Markdown()
-                    live_stage_markdown = gr.Markdown(value="### Stage Progress\n- Waiting for input")
-                    live_graph_html = gr.HTML(value="<div style='padding:12px;border:1px solid #d6d6d6;border-radius:10px;background:#fafaf8;'>Awaiting events to form the evidence graph.</div>")
+                    live_stage_markdown = gr.Markdown(
+                        value="### Stage Progress\n- Waiting for input"
+                    )
+                    live_graph_html = gr.HTML(
+                        value="<div style='padding:12px;border:1px solid #d6d6d6;border-radius:10px;background:#fafaf8;'>Awaiting events to form the evidence graph.</div>"
+                    )
                     live_event_table = gr.Dataframe(
                         headers=["Stage", "Event", "Details"],
                         interactive=False,
@@ -1730,7 +2166,13 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
                     with gr.Tabs():
                         with gr.Tab("Regulations"):
                             regulation_table = gr.Dataframe(
-                                headers=["Regulation", "Compliance", "Pass", "Fail", "Controls"],
+                                headers=[
+                                    "Regulation",
+                                    "Compliance",
+                                    "Pass",
+                                    "Fail",
+                                    "Controls",
+                                ],
                                 interactive=False,
                             )
                         with gr.Tab("Policy Checks"):
@@ -1740,7 +2182,14 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
                             )
                         with gr.Tab("Claims"):
                             claim_table = gr.Dataframe(
-                                headers=["Claim", "Check", "Regulation", "Control", "Status", "Reason"],
+                                headers=[
+                                    "Claim",
+                                    "Check",
+                                    "Regulation",
+                                    "Control",
+                                    "Status",
+                                    "Reason",
+                                ],
                                 interactive=False,
                             )
                     details_markdown = gr.Markdown()
@@ -1768,11 +2217,21 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
         with gr.Tab("Synthetic Data"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    low_count = gr.Number(label="Low compliance samples", value=6, precision=0)
-                    medium_count = gr.Number(label="Medium compliance samples", value=6, precision=0)
-                    high_count = gr.Number(label="High compliance samples", value=6, precision=0)
-                    synthetic_seed = gr.Number(label="Random seed", value=42, precision=0)
-                    generate_button = gr.Button("Generate Synthetic Data", variant="primary")
+                    low_count = gr.Number(
+                        label="Low compliance samples", value=6, precision=0
+                    )
+                    medium_count = gr.Number(
+                        label="Medium compliance samples", value=6, precision=0
+                    )
+                    high_count = gr.Number(
+                        label="High compliance samples", value=6, precision=0
+                    )
+                    synthetic_seed = gr.Number(
+                        label="Random seed", value=42, precision=0
+                    )
+                    generate_button = gr.Button(
+                        "Generate Synthetic Data", variant="primary"
+                    )
                 with gr.Column(scale=2):
                     synthetic_summary = gr.Markdown()
                     synthetic_table = gr.Dataframe(
@@ -1780,16 +2239,26 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
                         interactive=False,
                     )
                     synthetic_sample_rows = gr.State([])
-                    synthetic_sample_choice = gr.Dropdown(label="Generated sample", choices=[])
+                    synthetic_sample_choice = gr.Dropdown(
+                        label="Generated sample", choices=[]
+                    )
                     with gr.Row():
-                        synthetic_policy_text = gr.Textbox(label="Policy text", lines=14, max_lines=24)
-                        synthetic_schema_text = gr.Textbox(label="SQL schema", lines=14, max_lines=24)
+                        synthetic_policy_text = gr.Textbox(
+                            label="Policy text", lines=14, max_lines=24
+                        )
+                        synthetic_schema_text = gr.Textbox(
+                            label="SQL schema", lines=14, max_lines=24
+                        )
                     synthetic_sample_json = gr.JSON(label="Selected sample")
                     synthetic_json = gr.JSON(label="Synthetic manifest")
                     with gr.Row():
-                        synthetic_dataset_download = gr.File(label="Download dataset JSONL")
+                        synthetic_dataset_download = gr.File(
+                            label="Download dataset JSONL"
+                        )
                         synthetic_download = gr.File(label="Download manifest JSON")
-                        synthetic_fixture_download = gr.File(label="Download upload fixtures ZIP")
+                        synthetic_fixture_download = gr.File(
+                            label="Download upload fixtures ZIP"
+                        )
 
             generate_button.click(
                 run_synthetic_generation,
@@ -1817,26 +2286,64 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
             synthetic_sample_choice.change(
                 select_synthetic_sample,
                 inputs=[synthetic_sample_choice, synthetic_sample_rows],
-                outputs=[synthetic_policy_text, synthetic_schema_text, synthetic_sample_json],
+                outputs=[
+                    synthetic_policy_text,
+                    synthetic_schema_text,
+                    synthetic_sample_json,
+                ],
                 **_event_kwargs(),
             )
 
         with gr.Tab("Benchmark Validation"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    benchmark_button = gr.Button("Refresh Registry View", variant="secondary")
+                    benchmark_button = gr.Button(
+                        "Refresh Registry View", variant="secondary"
+                    )
                     run_benchmark_button = gr.Button("Run Benchmark", variant="primary")
-                    benchmark_model_limit = gr.Slider(label="Models to evaluate", minimum=2, maximum=8, value=4, step=1)
-                    benchmark_samples_per_band = gr.Slider(label="Samples per compliance band", minimum=3, maximum=24, value=8, step=1)
-                    benchmark_seed = gr.Number(label="Benchmark seed", value=42, precision=0)
+                    benchmark_model_limit = gr.Slider(
+                        label="Models to evaluate",
+                        minimum=2,
+                        maximum=8,
+                        value=4,
+                        step=1,
+                    )
+                    benchmark_samples_per_band = gr.Slider(
+                        label="Samples per compliance band",
+                        minimum=3,
+                        maximum=24,
+                        value=8,
+                        step=1,
+                    )
+                    benchmark_seed = gr.Number(
+                        label="Benchmark seed", value=42, precision=0
+                    )
                 with gr.Column(scale=2):
                     benchmark_summary = gr.Markdown()
                     benchmark_leaderboard = gr.Dataframe(
-                        headers=["Rank", "Model", "Status", "Avg Confidence", "Tri-label Accuracy", "Binary Accuracy", "Tri Samples", "Binary Samples", "Downloads", "Likes", "Error"],
+                        headers=[
+                            "Rank",
+                            "Model",
+                            "Status",
+                            "Avg Confidence",
+                            "Tri-label Accuracy",
+                            "Binary Accuracy",
+                            "Tri Samples",
+                            "Binary Samples",
+                            "Downloads",
+                            "Likes",
+                            "Error",
+                        ],
                         interactive=False,
                     )
                     benchmark_per_class = gr.Dataframe(
-                        headers=["Model", "Pipeline", "Downloads", "Likes", "Last Modified"],
+                        headers=[
+                            "Model",
+                            "Pipeline",
+                            "Downloads",
+                            "Likes",
+                            "Last Modified",
+                        ],
                         interactive=False,
                     )
                     benchmark_json = gr.JSON(label="Benchmark report")
@@ -1845,37 +2352,69 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
             benchmark_button.click(
                 show_model_benchmarks,
                 inputs=[],
-                outputs=[benchmark_summary, benchmark_leaderboard, benchmark_per_class, benchmark_json, benchmark_download],
+                outputs=[
+                    benchmark_summary,
+                    benchmark_leaderboard,
+                    benchmark_per_class,
+                    benchmark_json,
+                    benchmark_download,
+                ],
                 **_event_kwargs(),
             )
             run_benchmark_button.click(
                 run_live_privacybert_benchmark,
-                inputs=[benchmark_model_limit, benchmark_samples_per_band, benchmark_seed],
-                outputs=[benchmark_summary, benchmark_leaderboard, benchmark_per_class, benchmark_json, benchmark_download],
+                inputs=[
+                    benchmark_model_limit,
+                    benchmark_samples_per_band,
+                    benchmark_seed,
+                ],
+                outputs=[
+                    benchmark_summary,
+                    benchmark_leaderboard,
+                    benchmark_per_class,
+                    benchmark_json,
+                    benchmark_download,
+                ],
                 **_event_kwargs(),
             )
             demo.load(
                 show_model_benchmarks,
                 inputs=[],
-                outputs=[benchmark_summary, benchmark_leaderboard, benchmark_per_class, benchmark_json, benchmark_download],
+                outputs=[
+                    benchmark_summary,
+                    benchmark_leaderboard,
+                    benchmark_per_class,
+                    benchmark_json,
+                    benchmark_download,
+                ],
                 **_event_kwargs(),
             )
 
         with gr.Tab("Data Explorer"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    explorer_root = gr.Textbox(label="Artifacts root directory", value="artifacts")
+                    explorer_root = gr.Textbox(
+                        label="Artifacts root directory", value="artifacts"
+                    )
                     explorer_query = gr.Textbox(label="Filter")
-                    explorer_limit = gr.Number(label="Max files", value=500, precision=0)
+                    explorer_limit = gr.Number(
+                        label="Max files", value=500, precision=0
+                    )
                     scan_button = gr.Button("Scan Artifacts", variant="primary")
                     preview_path = gr.Textbox(label="Preview file path")
-                    preview_limit = gr.Number(label="Preview characters", value=12000, precision=0)
+                    preview_limit = gr.Number(
+                        label="Preview characters", value=12000, precision=0
+                    )
                     preview_button = gr.Button("Preview File")
                 with gr.Column(scale=2):
                     explorer_summary = gr.Markdown()
-                    explorer_table = gr.Dataframe(headers=["Path", "Type", "Size"], interactive=False)
+                    explorer_table = gr.Dataframe(
+                        headers=["Path", "Type", "Size"], interactive=False
+                    )
                     preview_summary = gr.Markdown()
-                    preview_text = gr.Textbox(label="Preview", lines=18, max_lines=32, interactive=False)
+                    preview_text = gr.Textbox(
+                        label="Preview", lines=18, max_lines=32, interactive=False
+                    )
                     preview_download = gr.File(label="Download selected file")
 
             scan_button.click(
@@ -1903,7 +2442,10 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
             classifier_json = gr.JSON(label="Raw scores")
             with gr.Row():
                 classify_button = gr.Button("Classify", variant="primary")
-                gr.ClearButton([classifier_input, classifier_scores, classifier_json], value="Clear")
+                gr.ClearButton(
+                    [classifier_input, classifier_scores, classifier_json],
+                    value="Clear",
+                )
 
             gr.Examples(
                 examples=[
@@ -1932,7 +2474,10 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
                 with gr.Column(scale=1):
                     visual_mode = gr.Radio(
                         label="Analysis mode",
-                        choices=[("Single Clause", "single_clause"), ("Full Policy", "full_policy")],
+                        choices=[
+                            ("Single Clause", "single_clause"),
+                            ("Full Policy", "full_policy"),
+                        ],
                         value="single_clause",
                     )
                     visual_clause_text = gr.Textbox(
@@ -1941,16 +2486,34 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
                         max_lines=12,
                         placeholder="Paste one clause for layer-by-layer neural analysis.",
                     )
-                    visual_policy_file = gr.File(label="Policy file (full policy mode)", file_types=[".txt", ".md", ".pdf"], type="filepath")
+                    visual_policy_file = gr.File(
+                        label="Policy file (full policy mode)",
+                        file_types=[".txt", ".md", ".pdf"],
+                        type="filepath",
+                    )
                     visual_policy_text = gr.Textbox(
                         label="Policy text (full policy mode)",
                         lines=8,
                         max_lines=16,
                     )
                     visual_model_id = gr.Textbox(label="Model ID", value=MODEL_ID)
-                    visual_model_revision = gr.Textbox(label="Model revision", value=MODEL_REVISION)
-                    visual_max_length = gr.Slider(label="Max token length", minimum=64, maximum=512, step=32, value=min(MAX_LENGTH, 512))
-                    visual_max_clauses = gr.Slider(label="Max clauses (full policy)", minimum=1, maximum=64, step=1, value=16)
+                    visual_model_revision = gr.Textbox(
+                        label="Model revision", value=MODEL_REVISION
+                    )
+                    visual_max_length = gr.Slider(
+                        label="Max token length",
+                        minimum=64,
+                        maximum=512,
+                        step=32,
+                        value=min(MAX_LENGTH, 512),
+                    )
+                    visual_max_clauses = gr.Slider(
+                        label="Max clauses (full policy)",
+                        minimum=1,
+                        maximum=64,
+                        step=1,
+                        value=16,
+                    )
                     visual_layer_selector = gr.CheckboxGroup(
                         label="Layers to trace",
                         choices=[str(index) for index in range(12)],
@@ -1961,35 +2524,70 @@ with gr.Blocks(**_blocks_kwargs()) as demo:
                         choices=[str(index) for index in range(12)],
                         value=["0", "1", "2"],
                     )
-                    visual_top_tokens = gr.Slider(label="Top attention tokens", minimum=1, maximum=24, step=1, value=8)
-                    visual_clause_selector = gr.Dropdown(label="Clause view", choices=[], value=None)
+                    visual_top_tokens = gr.Slider(
+                        label="Top attention tokens",
+                        minimum=1,
+                        maximum=24,
+                        step=1,
+                        value=8,
+                    )
+                    visual_clause_selector = gr.Dropdown(
+                        label="Clause view", choices=[], value=None
+                    )
                     with gr.Row():
-                        visual_heatmap_layer = gr.Slider(label="Heatmap layer", minimum=1, maximum=12, step=1, value=1)
-                        visual_heatmap_head = gr.Slider(label="Heatmap head", minimum=0, maximum=11, step=1, value=0)
-                    visual_export_format = gr.Dropdown(label="Map export format", choices=["svg", "png"], value="svg")
+                        visual_heatmap_layer = gr.Slider(
+                            label="Heatmap layer",
+                            minimum=1,
+                            maximum=12,
+                            step=1,
+                            value=1,
+                        )
+                        visual_heatmap_head = gr.Slider(
+                            label="Heatmap head", minimum=0, maximum=11, step=1, value=0
+                        )
+                    visual_export_format = gr.Dropdown(
+                        label="Map export format", choices=["svg", "png"], value="svg"
+                    )
                     visual_run = gr.Button("Run Visual Layers", variant="primary")
                 with gr.Column(scale=2):
-                    visual_summary = gr.Markdown(value="### Visual Layers Summary\n- Waiting for input")
-                    visual_map_html = gr.HTML(value="<div style='padding:12px;border:1px solid #d6d6d6;border-radius:10px;background:#fafaf8;'>Awaiting neural layer analysis input.</div>")
+                    visual_summary = gr.Markdown(
+                        value="### Visual Layers Summary\n- Waiting for input"
+                    )
+                    visual_map_html = gr.HTML(
+                        value="<div style='padding:12px;border:1px solid #d6d6d6;border-radius:10px;background:#fafaf8;'>Awaiting neural layer analysis input.</div>"
+                    )
                     visual_activation_table = gr.Dataframe(
                         headers=["Layer", "Mean Norm", "Max Norm", "Mean Abs"],
                         interactive=False,
                     )
                     visual_attention_table = gr.Dataframe(
-                        headers=["Layer", "Head", "Mean", "Max", "Entropy", "CLS Focus Tokens"],
+                        headers=[
+                            "Layer",
+                            "Head",
+                            "Mean",
+                            "Max",
+                            "Entropy",
+                            "CLS Focus Tokens",
+                        ],
                         interactive=False,
                     )
                     with gr.Tabs():
                         with gr.Tab("Math Breakdown"):
                             visual_math = gr.Markdown()
                         with gr.Tab("Step Trace"):
-                            visual_trace = gr.Dataframe(headers=["Step", "Detail"], interactive=False)
+                            visual_trace = gr.Dataframe(
+                                headers=["Step", "Detail"], interactive=False
+                            )
                         with gr.Tab("Head Heatmap"):
-                            visual_heatmap_image = gr.Image(label="Attention heatmap", type="filepath")
+                            visual_heatmap_image = gr.Image(
+                                label="Attention heatmap", type="filepath"
+                            )
                     visual_analysis_state = gr.State({})
                     visual_json = gr.JSON(label="Visual Layers payload")
                     with gr.Row():
-                        visual_json_download = gr.File(label="Download Visual Layers JSON")
+                        visual_json_download = gr.File(
+                            label="Download Visual Layers JSON"
+                        )
                         visual_map_download = gr.File(label="Download map (SVG/PNG)")
 
             visual_run.click(

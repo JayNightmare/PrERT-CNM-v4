@@ -54,15 +54,30 @@ def _parse_args() -> argparse.Namespace:
         default=root / "artifacts/phase-4/synthetic-compliance",
         help="Output directory for synthetic dataset artifacts.",
     )
-    parser.add_argument("--low-count", type=int, default=6, help="Number of low-compliance samples to generate.")
+    parser.add_argument(
+        "--low-count",
+        type=int,
+        default=6,
+        help="Number of low-compliance samples to generate.",
+    )
     parser.add_argument(
         "--medium-count",
         type=int,
         default=6,
         help="Number of medium-compliance samples to generate.",
     )
-    parser.add_argument("--high-count", type=int, default=6, help="Number of high-compliance samples to generate.")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for deterministic synthetic generation.")
+    parser.add_argument(
+        "--high-count",
+        type=int,
+        default=6,
+        help="Number of high-compliance samples to generate.",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for deterministic synthetic generation.",
+    )
     parser.add_argument(
         "--include-model-signal",
         action="store_true",

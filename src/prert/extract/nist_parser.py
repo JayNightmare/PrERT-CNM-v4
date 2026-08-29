@@ -9,7 +9,6 @@ from typing import List
 from .docx_reader import read_docx_text
 from .schema import ControlRecord, make_normalized_id, normalize_whitespace, stable_hash
 
-
 SUBCATEGORY_RE = re.compile(r"^\s*([A-Z]{2}\.[A-Z]{2}-P\d+)\s*:\s*(.+)$")
 
 
@@ -18,7 +17,9 @@ def parse_nist_controls(path: Path) -> List[ControlRecord]:
     return parse_nist_controls_from_text(text, source_path=str(path))
 
 
-def parse_nist_controls_from_text(text: str, source_path: str = "NIST-1.1") -> List[ControlRecord]:
+def parse_nist_controls_from_text(
+    text: str, source_path: str = "NIST-1.1"
+) -> List[ControlRecord]:
     lines = [line.rstrip("\n") for line in text.splitlines()]
     records: List[ControlRecord] = []
 

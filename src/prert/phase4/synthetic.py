@@ -11,7 +11,6 @@ from typing import Any, Callable, Dict, List, Mapping, Optional
 from prert.phase3.io import write_json, write_jsonl
 from prert.phase4.compliance_assessor import assess_policy_schema_compliance
 
-
 BAND_ORDER = ("low", "medium", "high")
 
 DEFAULT_COUNTS_BY_BAND: Dict[str, int] = {
@@ -363,7 +362,11 @@ def generate_synthetic_policy_schema_dataset(
     total_requested = sum(resolved_counts[band] for band in BAND_ORDER)
 
     rows: List[Dict[str, Any]] = []
-    model_path_for_assessment = model_path if include_model_signal else Path("__phase4_synthetic_model_signal_disabled__.json")
+    model_path_for_assessment = (
+        model_path
+        if include_model_signal
+        else Path("__phase4_synthetic_model_signal_disabled__.json")
+    )
 
     _emit_progress(
         progress_callback,
@@ -390,8 +393,12 @@ def generate_synthetic_policy_schema_dataset(
         for band_index in range(count):
             running_index += 1
             sample_id = f"synth-{running_index:05d}"
-            policy_text, policy_claims = _render_policy_text(band=band, rnd=rnd, sample_id=sample_id)
-            schema_text, schema_tables = _render_schema_text(band=band, rnd=rnd, suffix=f"{running_index:05d}")
+            policy_text, policy_claims = _render_policy_text(
+                band=band, rnd=rnd, sample_id=sample_id
+            )
+            schema_text, schema_tables = _render_schema_text(
+                band=band, rnd=rnd, suffix=f"{running_index:05d}"
+            )
 
             _emit_progress(
                 progress_callback,
@@ -520,12 +527,16 @@ def _emit_progress(
         return
 
 
-def _resolve_counts_by_band(counts_by_band: Optional[Mapping[str, int]]) -> Dict[str, int]:
+def _resolve_counts_by_band(
+    counts_by_band: Optional[Mapping[str, int]],
+) -> Dict[str, int]:
     resolved = dict(DEFAULT_COUNTS_BY_BAND)
     if counts_by_band is not None:
         for band, value in counts_by_band.items():
             if band not in resolved:
-                raise ValueError(f"Unsupported compliance band '{band}'. Choose from: {', '.join(BAND_ORDER)}")
+                raise ValueError(
+                    f"Unsupported compliance band '{band}'. Choose from: {', '.join(BAND_ORDER)}"
+                )
             numeric = int(value)
             if numeric < 0:
                 raise ValueError(f"Count for band '{band}' must be non-negative")
@@ -533,7 +544,9 @@ def _resolve_counts_by_band(counts_by_band: Optional[Mapping[str, int]]) -> Dict
     return resolved
 
 
-def _render_policy_text(band: str, rnd: Random, sample_id: str) -> tuple[str, List[Dict[str, Any]]]:
+def _render_policy_text(
+    band: str, rnd: Random, sample_id: str
+) -> tuple[str, List[Dict[str, Any]]]:
     profile = POLICY_DOCUMENT_PROFILES.get(band)
     if profile is None:
         raise ValueError(f"Unsupported compliance band: {band}")
@@ -541,8 +554,7 @@ def _render_policy_text(band: str, rnd: Random, sample_id: str) -> tuple[str, Li
     organization = str(profile["organization"])
     sector = str(profile["sector"])
     section_entries = [
-        (str(title), list(claims))
-        for title, claims in profile["sections"]
+        (str(title), list(claims)) for title, claims in profile["sections"]
     ]
 
     policy_claims: List[Dict[str, Any]] = []
@@ -652,11 +664,16 @@ def _compute_score_summary(rows: List[Mapping[str, Any]]) -> Dict[str, Any]:
     return result
 
 
-def _write_upload_fixtures(output_dir: Path, rows: List[Mapping[str, Any]]) -> Dict[str, Any]:
+def _write_upload_fixtures(
+    output_dir: Path, rows: List[Mapping[str, Any]]
+) -> Dict[str, Any]:
     fixture_dir = output_dir / "upload-fixtures"
     fixture_dir.mkdir(parents=True, exist_ok=True)
 
-    for stale_file in [*fixture_dir.glob("synth-*-policy.md"), *fixture_dir.glob("synth-*-schema.sql")]:
+    for stale_file in [
+        *fixture_dir.glob("synth-*-policy.md"),
+        *fixture_dir.glob("synth-*-schema.sql"),
+    ]:
         stale_file.unlink()
 
     files_written = 0

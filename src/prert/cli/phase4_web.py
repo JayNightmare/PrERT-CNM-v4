@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 from typing import Any, Dict
 
-
 DEFAULT_PORT = 7860
 PUBLIC_HOST = "0.0.0.0"
 
@@ -35,8 +34,12 @@ def main() -> None:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Launch Phase 4 Gradio compliance web GUI")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Port for the web app.")
+    parser = argparse.ArgumentParser(
+        description="Launch Phase 4 Gradio compliance web GUI"
+    )
+    parser.add_argument(
+        "--port", type=int, default=DEFAULT_PORT, help="Port for the web app."
+    )
     parser.add_argument(
         "--host",
         help="Host/address for the web app. Use 0.0.0.0 to accept remote connections from a reachable host.",

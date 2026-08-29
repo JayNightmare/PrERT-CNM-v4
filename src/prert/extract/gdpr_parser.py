@@ -9,7 +9,6 @@ from typing import List, Tuple
 from .docx_reader import read_docx_text
 from .schema import ControlRecord, make_normalized_id, normalize_whitespace, stable_hash
 
-
 ARTICLE_HEADER_RE = re.compile(r"^Article\s+(\d+)\s*$")
 CHAPTER_HEADER_RE = re.compile(r"^CHAPTER\s+([IVXLC]+)\s*$")
 SUBCLAUSE_RE = re.compile(r"^\s*(\d+)\.\s+(.*)$")
@@ -20,7 +19,9 @@ def parse_gdpr_controls(path: Path) -> List[ControlRecord]:
     return parse_gdpr_controls_from_text(text, source_path=str(path))
 
 
-def parse_gdpr_controls_from_text(text: str, source_path: str = "GDPR-2016_679") -> List[ControlRecord]:
+def parse_gdpr_controls_from_text(
+    text: str, source_path: str = "GDPR-2016_679"
+) -> List[ControlRecord]:
     lines = [line.rstrip("\n") for line in text.splitlines()]
 
     records: List[ControlRecord] = []

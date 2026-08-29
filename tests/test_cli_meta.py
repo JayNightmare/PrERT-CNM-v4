@@ -39,7 +39,9 @@ def test_prert_dispatch_forwards_arguments(monkeypatch) -> None:
 def test_prert_run_loads_dotenv_before_dispatch(monkeypatch) -> None:
     calls: list[Path | None] = []
 
-    monkeypatch.setattr(cli_main, "load_dotenv_if_available", lambda env_path: calls.append(env_path))
+    monkeypatch.setattr(
+        cli_main, "load_dotenv_if_available", lambda env_path: calls.append(env_path)
+    )
     monkeypatch.setattr(cli_main, "_dispatch_to_entrypoint", lambda _command, _args: 0)
 
     code = cli_main.run(["phase3"])
@@ -104,7 +106,9 @@ def test_prert_interactive_execute_dispatches(monkeypatch) -> None:
 
     monkeypatch.setattr(cli_main, "_dispatch_to_entrypoint", _stub_dispatch)
 
-    code = cli_main.run(["interactive", "--goal", "phase1", "--select", "1", "--execute"])
+    code = cli_main.run(
+        ["interactive", "--goal", "phase1", "--select", "1", "--execute"]
+    )
     assert code == 0
     assert captured["command"] == "extract"
     assert captured["args"] == ["--chunk", "--output-dir", "artifacts/phase-1"]
@@ -169,7 +173,9 @@ def test_phase4_web_custom_host_preserves_explicit_address(monkeypatch) -> None:
 def test_phase3_main_loads_dotenv_before_pipeline(monkeypatch) -> None:
     calls: list[Path | None] = []
 
-    monkeypatch.setattr(cli_phase3, "load_dotenv_if_available", lambda env_path: calls.append(env_path))
+    monkeypatch.setattr(
+        cli_phase3, "load_dotenv_if_available", lambda env_path: calls.append(env_path)
+    )
     monkeypatch.setattr(
         cli_phase3,
         "run_phase3_pipeline",
@@ -194,8 +200,14 @@ def test_phase3_main_loads_dotenv_before_pipeline(monkeypatch) -> None:
 def test_phase3_freeze_main_loads_dotenv_before_pipeline(monkeypatch) -> None:
     calls: list[Path | None] = []
 
-    monkeypatch.setattr(cli_phase3_freeze, "load_dotenv_if_available", lambda env_path: calls.append(env_path))
-    monkeypatch.setattr(cli_phase3_freeze, "run_phase3_pipeline", lambda **_kwargs: {"phase": "phase-3"})
+    monkeypatch.setattr(
+        cli_phase3_freeze,
+        "load_dotenv_if_available",
+        lambda env_path: calls.append(env_path),
+    )
+    monkeypatch.setattr(
+        cli_phase3_freeze, "run_phase3_pipeline", lambda **_kwargs: {"phase": "phase-3"}
+    )
     monkeypatch.setattr(
         cli_phase3_freeze,
         "evaluate_phase3_acceptance",
@@ -220,6 +232,43 @@ def test_app350_cli_defaults_to_workspace_paths(monkeypatch, tmp_path) -> None:
     args = cli_app350._parse_args()
 
     assert args.input_path == tmp_path / "data/raw/APP-350_v1.1.zip"
-    assert args.output_jsonl == tmp_path / "data/processed/app350_phase3_auxiliary.jsonl"
-    assert args.output_manifest == tmp_path / "data/processed/app350_phase3_auxiliary_manifest.json"
+    assert (
+        args.output_jsonl == tmp_path / "data/processed/app350_phase3_auxiliary.jsonl"
+    )
+    assert (
+        args.output_manifest
+        == tmp_path / "data/processed/app350_phase3_auxiliary_manifest.json"
+    )
     assert args.include_synthetic is False
+
+
+def test_prert_dispatch_cnmv2(monkeypatch) -> None:
+    from prert.cli import cnmv2 as cli_cnmv2
+
+    called: list[bool] = []
+    monkeypatch.setattr(
+        cli_cnmv2, "_cmd_build_chroma", lambda _args: called.append(True) or 0
+    )
+
+    code = cli_main.run(
+        [
+            "cnmv2",
+            "build-chroma",
+            "--controls-path",
+            "controls.jsonl",
+            "--output-dir",
+            "out",
+        ]
+    )
+    assert code == 0
+    assert called == [True]
+
+
+def test_prert_version_command(capsys) -> None:
+    from prert import __version__
+
+    for flag in ("--version", "-v", "version"):
+        code = cli_main.run([flag])
+        assert code == 0
+        captured = capsys.readouterr().out
+        assert f"PrERT version: {__version__}" in captured

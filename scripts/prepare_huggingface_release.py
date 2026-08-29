@@ -5,10 +5,11 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL_ID = "JayNightmare/PrERT-CNM-v4-privacybert"
-DEFAULT_CHECKPOINT = ROOT / "artifacts/phase-3-privacybert/classifier_checkpoint/privacybert"
+DEFAULT_CHECKPOINT = (
+    ROOT / "artifacts/phase-3-privacybert/classifier_checkpoint/privacybert"
+)
 MODEL_TEMPLATE_DIR = ROOT / "huggingface/model-card"
 SPACE_TEMPLATE_DIR = ROOT / "huggingface/space"
 PACKAGE_SOURCE_DIR = ROOT / "src/prert"
@@ -37,13 +38,21 @@ MODEL_FILE_NAMES = {
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Prepare Hugging Face model and Space upload folders.")
+    parser = argparse.ArgumentParser(
+        description="Prepare Hugging Face model and Space upload folders."
+    )
     parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT)
-    parser.add_argument("--model-output", type=Path, default=ROOT / "dist/huggingface/model")
-    parser.add_argument("--space-output", type=Path, default=ROOT / "dist/huggingface/space")
+    parser.add_argument(
+        "--model-output", type=Path, default=ROOT / "dist/huggingface/model"
+    )
+    parser.add_argument(
+        "--space-output", type=Path, default=ROOT / "dist/huggingface/space"
+    )
     parser.add_argument("--model-id", default=DEFAULT_MODEL_ID)
     parser.add_argument("--space-title", default="PrERT-CNM Compliance Studio")
-    parser.add_argument("--clean", action="store_true", help="Remove output folders before writing.")
+    parser.add_argument(
+        "--clean", action="store_true", help="Remove output folders before writing."
+    )
     return parser.parse_args()
 
 
@@ -73,12 +82,18 @@ def copy_named_files(source_dir, target_dir, allowed_names):
 def labels_from_metadata(config, metadata):
     id_to_label = config.get("id2label") or metadata.get("id2label")
     if isinstance(id_to_label, dict):
-        labels = [label for _, label in sorted(id_to_label.items(), key=lambda item: int(item[0]))]
+        labels = [
+            label
+            for _, label in sorted(id_to_label.items(), key=lambda item: int(item[0]))
+        ]
         return "\n".join(f"- `{label}`" for label in labels)
 
     label_to_id = config.get("label2id") or metadata.get("label2id")
     if isinstance(label_to_id, dict):
-        labels = [label for label, _ in sorted(label_to_id.items(), key=lambda item: int(item[1]))]
+        labels = [
+            label
+            for label, _ in sorted(label_to_id.items(), key=lambda item: int(item[1]))
+        ]
         return "\n".join(f"- `{label}`" for label in labels)
 
     labels = metadata.get("labels") or metadata.get("class_names")
@@ -140,16 +155,31 @@ def validation_warnings(checkpoint, copied_files):
     warnings = []
     if not checkpoint.exists():
         warnings.append(f"Checkpoint folder does not exist: {checkpoint}")
-    if not {"model.safetensors", "pytorch_model.bin", "tf_model.h5", "flax_model.msgpack"}.intersection(copied_files):
-        warnings.append("No model weight file was copied. Expected one of model.safetensors, pytorch_model.bin, tf_model.h5, or flax_model.msgpack.")
+    if not {
+        "model.safetensors",
+        "pytorch_model.bin",
+        "tf_model.h5",
+        "flax_model.msgpack",
+    }.intersection(copied_files):
+        warnings.append(
+            "No model weight file was copied. Expected one of model.safetensors, pytorch_model.bin, tf_model.h5, or flax_model.msgpack."
+        )
     if "config.json" not in copied_files:
-        warnings.append("config.json was not copied. Transformers needs it to load the model.")
-    if not {"tokenizer.json", "vocab.txt", "vocab.json", "spiece.model"}.intersection(copied_files):
-        warnings.append("No tokenizer vocabulary file was copied. Confirm the tokenizer files are present in the checkpoint folder.")
+        warnings.append(
+            "config.json was not copied. Transformers needs it to load the model."
+        )
+    if not {"tokenizer.json", "vocab.txt", "vocab.json", "spiece.model"}.intersection(
+        copied_files
+    ):
+        warnings.append(
+            "No tokenizer vocabulary file was copied. Confirm the tokenizer files are present in the checkpoint folder."
+        )
     return warnings
 
 
-def write_manifest(model_output, space_output, checkpoint, model_id, copied_files, warnings):
+def write_manifest(
+    model_output, space_output, checkpoint, model_id, copied_files, warnings
+):
     manifest = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "model_id": model_id,
@@ -159,7 +189,9 @@ def write_manifest(model_output, space_output, checkpoint, model_id, copied_file
         "copied_model_files": copied_files,
         "warnings": warnings,
     }
-    (model_output / "release_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    (model_output / "release_manifest.json").write_text(
+        json.dumps(manifest, indent=2), encoding="utf-8"
+    )
 
 
 def main():
@@ -171,13 +203,19 @@ def main():
     ensure_clean_dir(model_output, clean=args.clean)
     ensure_clean_dir(space_output, clean=args.clean)
 
-    copied_files = copy_named_files(checkpoint, model_output, MODEL_FILE_NAMES) if checkpoint.exists() else []
+    copied_files = (
+        copy_named_files(checkpoint, model_output, MODEL_FILE_NAMES)
+        if checkpoint.exists()
+        else []
+    )
     copy_model_card_assets(model_output)
     render_model_card(checkpoint, model_output, args.model_id)
     prepare_space(space_output, args.model_id, args.space_title)
 
     warnings = validation_warnings(checkpoint, copied_files)
-    write_manifest(model_output, space_output, checkpoint, args.model_id, copied_files, warnings)
+    write_manifest(
+        model_output, space_output, checkpoint, args.model_id, copied_files, warnings
+    )
 
     print(f"Model upload folder: {model_output}")
     print(f"Space upload folder: {space_output}")

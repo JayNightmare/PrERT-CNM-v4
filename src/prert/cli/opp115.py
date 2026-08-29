@@ -30,7 +30,9 @@ def main() -> None:
 
 def _parse_args() -> argparse.Namespace:
     root = Path.cwd()
-    parser = argparse.ArgumentParser(description="Preprocess OPP-115 into Phase 2 public mapping input")
+    parser = argparse.ArgumentParser(
+        description="Preprocess OPP-115 into Phase 2 public mapping input"
+    )
     parser.add_argument(
         "--opp115-root",
         type=Path,

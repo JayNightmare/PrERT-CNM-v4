@@ -9,7 +9,6 @@ from typing import Dict, Iterable, List
 
 import httpx
 
-
 BASE_REGULATION_FILES = {
     "gdpr": "chunks_gdpr.jsonl",
     "nistpf": "chunks_nistpf.jsonl",
@@ -25,7 +24,11 @@ def main() -> None:
     settings = ChromaSettings.from_env(args.env_file)
     schema_bundle = build_ground_truth_schema()
     client = ChromaCloudClient(settings)
-    resetter = _CollectionResetter(settings) if args.replace_existing and not args.dry_run else None
+    resetter = (
+        _CollectionResetter(settings)
+        if args.replace_existing and not args.dry_run
+        else None
+    )
 
     total_rows = 0
 
@@ -87,7 +90,9 @@ def main() -> None:
 def _parse_args() -> argparse.Namespace:
     root = Path.cwd()
 
-    parser = argparse.ArgumentParser(description="Migrate Phase 1 chunks to Chroma Cloud")
+    parser = argparse.ArgumentParser(
+        description="Migrate Phase 1 chunks to Chroma Cloud"
+    )
     parser.add_argument(
         "--input-dir",
         type=Path,
@@ -173,7 +178,10 @@ class _CollectionResetter:
         self._settings = settings
         self._http = httpx.Client(
             base_url=base_url,
-            headers={"x-chroma-token": settings.api_key, "content-type": "application/json"},
+            headers={
+                "x-chroma-token": settings.api_key,
+                "content-type": "application/json",
+            },
             timeout=30.0,
         )
         self._resolved_db = self._resolve_database_name()
@@ -198,7 +206,9 @@ class _CollectionResetter:
         identity_resp.raise_for_status()
         identity = identity_resp.json()
         databases = [str(item) for item in identity.get("databases", [])]
-        return next((db for db in databases if db.lower() == requested.lower()), requested)
+        return next(
+            (db for db in databases if db.lower() == requested.lower()), requested
+        )
 
 
 if __name__ == "__main__":

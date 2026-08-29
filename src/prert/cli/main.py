@@ -10,7 +10,6 @@ from typing import Callable, Dict, List, Tuple
 
 from prert.config import load_dotenv_if_available
 
-
 ENTRYPOINTS: Dict[str, str] = {
     "extract": "prert.cli.extract",
     "migrate": "prert.cli.migrate",
@@ -19,6 +18,7 @@ ENTRYPOINTS: Dict[str, str] = {
     "app350": "prert.cli.app350",
     "phase3": "prert.cli.phase3",
     "phase3-freeze": "prert.cli.phase3_freeze",
+    "cnmv2": "prert.cli.cnmv2",
     "phase4": "prert.cli.phase4",
     "phase4-web": "prert.cli.phase4_web",
     "phase4-synth": "prert.cli.phase4_synthetic",
@@ -65,6 +65,10 @@ def run(argv: List[str] | None = None) -> int:
 
     if command in {"-h", "--help", "help"}:
         _print_help()
+        return 0
+
+    if command in {"-v", "--version"}:
+        _print_version()
         return 0
 
     if command in {"doctor", "guide", "interactive"}:
@@ -156,7 +160,9 @@ def _run_guide(argv: List[str]) -> int:
         print("Phase 2")
         print("1. prert phase2")
         print("2. Optional public mapping: prert opp115")
-        print("3. Optional enrichment: prert phase2 --public-input data/processed/opp115_public_mapping.csv")
+        print(
+            "3. Optional enrichment: prert phase2 --public-input data/processed/opp115_public_mapping.csv"
+        )
         if args.goal == "phase2":
             return 0
         print("")
@@ -171,9 +177,13 @@ def _run_guide(argv: List[str]) -> int:
 
     if args.goal in {"full", "phase4", "validation"}:
         print("Phase 4")
-        print("1. Validate artifacts: prert phase4 --baseline-dir artifacts/phase-3-freeze")
+        print(
+            "1. Validate artifacts: prert phase4 --baseline-dir artifacts/phase-3-freeze"
+        )
         print("2. Launch web app: prert phase4-web --public")
-        print("3. Optional synthetic fixtures: prert phase4-synth --output-dir artifacts/phase-4/synthetic-compliance")
+        print(
+            "3. Optional synthetic fixtures: prert phase4-synth --output-dir artifacts/phase-4/synthetic-compliance"
+        )
 
     return 0
 
@@ -244,8 +254,14 @@ def _interactive_options(goal: str) -> List[Tuple[str, List[str]]]:
     if goal in {"full", "phase1"}:
         options.extend(
             [
-                ("Phase 1: Extract controls and chunks", ["extract", "--chunk", "--output-dir", "artifacts/phase-1"]),
-                ("Phase 1: Migrate chunks to Chroma", ["migrate", "--input-dir", "artifacts/phase-1"]),
+                (
+                    "Phase 1: Extract controls and chunks",
+                    ["extract", "--chunk", "--output-dir", "artifacts/phase-1"],
+                ),
+                (
+                    "Phase 1: Migrate chunks to Chroma",
+                    ["migrate", "--input-dir", "artifacts/phase-1"],
+                ),
             ]
         )
 
@@ -268,11 +284,21 @@ def _interactive_options(goal: str) -> List[Tuple[str, List[str]]]:
     if goal in {"full", "phase4", "validation"}:
         options.extend(
             [
-                ("Phase 4: Validate baseline artifacts", ["phase4", "--baseline-dir", "artifacts/phase-3-freeze"]),
-                ("Phase 4: Launch compliance web app", ["phase4-web", "--port", "7860"]),
+                (
+                    "Phase 4: Validate baseline artifacts",
+                    ["phase4", "--baseline-dir", "artifacts/phase-3-freeze"],
+                ),
+                (
+                    "Phase 4: Launch compliance web app",
+                    ["phase4-web", "--port", "7860"],
+                ),
                 (
                     "Phase 4: Generate synthetic compliance fixtures",
-                    ["phase4-synth", "--output-dir", "artifacts/phase-4/synthetic-compliance"],
+                    [
+                        "phase4-synth",
+                        "--output-dir",
+                        "artifacts/phase-4/synthetic-compliance",
+                    ],
                 ),
             ]
         )
@@ -311,7 +337,9 @@ def _check_iso_inputs(root: Path) -> int:
     iso_files = sorted(
         path
         for path in regulations_dir.glob("*.docx")
-        if path.name.startswith("ISO") or path.name.startswith("BS EN ISO") or path.name.startswith("BS ISO")
+        if path.name.startswith("ISO")
+        or path.name.startswith("BS EN ISO")
+        or path.name.startswith("BS ISO")
     )
     if iso_files:
         print(f"[PASS] ISO DOCX inputs discovered: {len(iso_files)}")
@@ -369,6 +397,7 @@ def _print_help() -> None:
     print("  opp115         Preprocess OPP-115 public mapping inputs")
     print("  phase3         Run Phase 3 baseline training")
     print("  phase3-freeze  Run Phase 3 acceptance freeze")
+    print("  cnmv2          Run CNMv2 pipeline (build-chroma, phase3, ablation)")
     print("  phase4         Run Phase 4 validation benchmark")
     print("  phase4-web     Launch Phase 4 Gradio web app")
     print("  phase4-synth   Generate synthetic policy/schema fixtures")
@@ -377,6 +406,7 @@ def _print_help() -> None:
     print("  doctor         Validate environment, inputs, and credentials")
     print("  guide          Print recommended command order")
     print("  interactive    Pick commands from an interactive menu")
+    print("  --version      Show PrERT version")
     print("")
     print("Examples:")
     print("  prert guide --goal full")
@@ -384,6 +414,12 @@ def _print_help() -> None:
     print("  prert interactive --goal phase1 --select 1 --execute")
     print("  prert extract --chunk --output-dir artifacts/phase-1")
     print("  prert phase4-web --public")
+
+
+def _print_version() -> None:
+    from prert import __version__
+
+    print(f"PrERT version: {__version__}")
 
 
 if __name__ == "__main__":

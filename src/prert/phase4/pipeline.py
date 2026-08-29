@@ -99,7 +99,9 @@ def run_phase4_validation(
         "comparison_summary": comparison_summary,
     }
 
-    output_files = write_phase4_validation_outputs(output_dir=output_dir, payload=payload)
+    output_files = write_phase4_validation_outputs(
+        output_dir=output_dir, payload=payload
+    )
     payload["output_files"] = output_files
 
     _emit_status(

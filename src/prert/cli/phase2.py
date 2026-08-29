@@ -22,7 +22,9 @@ def main() -> None:
     outputs = manifest["output_counts"]
 
     print("Phase 2 pipeline complete")
-    print(f"Mapped controls: {coverage['mapped_controls']} / {coverage['total_controls']}")
+    print(
+        f"Mapped controls: {coverage['mapped_controls']} / {coverage['total_controls']}"
+    )
     print(f"Metric specs: {outputs['metric_specs']}")
     print(f"Synthetic policies: {outputs.get('synthetic_policies', 0)}")
     print(f"Synthetic events: {outputs['synthetic_events']}")
@@ -33,7 +35,9 @@ def main() -> None:
 def _parse_args() -> argparse.Namespace:
     root = Path.cwd()
 
-    parser = argparse.ArgumentParser(description="Run Phase 2 metrics and data-preparation pipeline")
+    parser = argparse.ArgumentParser(
+        description="Run Phase 2 metrics and data-preparation pipeline"
+    )
     parser.add_argument(
         "--controls-path",
         type=Path,

@@ -28,7 +28,9 @@ def test_phase4_synthetic_generator_writes_expected_artifacts(tmp_path: Path) ->
     assert {row["compliance_band"] for row in rows} == {"low", "medium", "high"}
     assert all(len(row["policy_claims"]) >= 5 for row in rows)
     assert all(len(row["schema_tables"]) >= 3 for row in rows)
-    assert {claim["compliance_status"] for row in rows for claim in row["policy_claims"]} >= {
+    assert {
+        claim["compliance_status"] for row in rows for claim in row["policy_claims"]
+    } >= {
         "compliant",
         "partial",
         "noncompliant",
@@ -46,7 +48,9 @@ def test_phase4_synthetic_generator_writes_expected_artifacts(tmp_path: Path) ->
     assert schema_fixture.read_text(encoding="utf-8").count("CREATE TABLE") >= 3
 
 
-def test_phase4_synthetic_generator_produces_ordered_band_scores(tmp_path: Path) -> None:
+def test_phase4_synthetic_generator_produces_ordered_band_scores(
+    tmp_path: Path,
+) -> None:
     output_dir = tmp_path / "synthetic"
 
     manifest = generate_synthetic_policy_schema_dataset(

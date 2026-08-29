@@ -12,9 +12,13 @@ def compute_calibration_report(
     num_bins: int = 10,
 ) -> Dict[str, Any]:
     label_list = [str(label) for label in labels]
-    overall = _calibration_for_target(predictions, label_list, num_bins=num_bins, target_label=None)
+    overall = _calibration_for_target(
+        predictions, label_list, num_bins=num_bins, target_label=None
+    )
     per_label = {
-        label: _calibration_for_target(predictions, label_list, num_bins=num_bins, target_label=label)
+        label: _calibration_for_target(
+            predictions, label_list, num_bins=num_bins, target_label=label
+        )
         for label in label_list
     }
     macro_ece = _mean(float(report["ece"]) for report in per_label.values())
@@ -31,12 +35,14 @@ def compute_calibration_report(
 def compute_threshold_sweep(
     predictions: Sequence[Mapping[str, Any]],
     labels: Sequence[str],
-    focus_labels: Sequence[str] = ("user", "system"),
+    focus_labels: Sequence[str] = ("user", "system", "organization"),
     thresholds: Optional[Sequence[float]] = None,
 ) -> Dict[str, Any]:
     label_list = [str(label) for label in labels]
     focus = [label for label in focus_labels if label in label_list]
-    threshold_values = [round(float(value), 4) for value in (thresholds or _default_thresholds())]
+    threshold_values = [
+        round(float(value), 4) for value in (thresholds or _default_thresholds())
+    ]
 
     by_label: Dict[str, List[Dict[str, Any]]] = {}
     for label in focus:
@@ -60,7 +66,11 @@ def compute_threshold_sweep(
 
             precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
             recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-            f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+            f1 = (
+                (2 * precision * recall / (precision + recall))
+                if (precision + recall) > 0
+                else 0.0
+            )
 
             rows.append(
                 {
@@ -124,6 +134,16 @@ def compute_bootstrap_confidence_intervals(
             unstratified.append(idx)
 
     rnd = random.Random(seed)
+    if not isinstance(rnd, random.Random):
+        import logging
+
+        _logger = logging.getLogger(__name__)
+        _logger.error(
+            f"Bootstrap: rnd is {type(rnd).__name__}, not random.Random. "
+            f"seed={seed!r}, type(seed)={type(seed).__name__}"
+        )
+        raise TypeError(f"Failed to create Random instance: got {type(rnd).__name__}")
+
     row_count = len(predictions)
     for _ in range(max(1, n_resamples)):
         sample_indices: List[int] = []
@@ -131,7 +151,10 @@ def compute_bootstrap_confidence_intervals(
             pool = by_actual[label]
             if not pool:
                 continue
-            sample_indices.extend(pool[rnd.randrange(len(pool))] for _ in range(len(pool)))
+            # Resample within label class with replacement
+            for _ in range(len(pool)):
+                idx = pool[rnd.randrange(len(pool))]
+                sample_indices.append(idx)
         for _ in range(len(unstratified)):
             sample_indices.append(unstratified[rnd.randrange(len(unstratified))])
         # Pad/trim to original size in case stratification dropped rows.
@@ -188,7 +211,9 @@ def _calibration_for_target(
         if target_label is None:
             predicted_label = str(prediction.get("predicted_label", ""))
             if predicted_label not in labels:
-                predicted_label = max(probabilities.items(), key=lambda item: item[1])[0]
+                predicted_label = max(probabilities.items(), key=lambda item: item[1])[
+                    0
+                ]
             confidence = float(probabilities.get(predicted_label, 0.0))
             outcome = 1.0 if predicted_label == actual_label else 0.0
         else:
@@ -250,8 +275,7 @@ def _classification_metrics_from_predictions(
     labels: Sequence[str],
 ) -> Dict[str, Any]:
     confusion: Dict[str, Dict[str, int]] = {
-        actual: {predicted: 0 for predicted in labels}
-        for actual in labels
+        actual: {predicted: 0 for predicted in labels} for actual in labels
     }
 
     correct = 0
@@ -271,11 +295,17 @@ def _classification_metrics_from_predictions(
     for label in labels:
         tp = confusion[label][label]
         fp = sum(confusion[actual][label] for actual in labels if actual != label)
-        fn = sum(confusion[label][predicted] for predicted in labels if predicted != label)
+        fn = sum(
+            confusion[label][predicted] for predicted in labels if predicted != label
+        )
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+        f1 = (
+            (2 * precision * recall / (precision + recall))
+            if (precision + recall) > 0
+            else 0.0
+        )
         support = tp + fn  # actual occurrences of `label`
         per_class_f1[label] = f1
         per_class_support[label] = support
@@ -302,7 +332,9 @@ def _classification_metrics_from_predictions(
     }
 
 
-def _extract_probabilities(prediction: Mapping[str, Any], labels: Sequence[str]) -> Dict[str, float]:
+def _extract_probabilities(
+    prediction: Mapping[str, Any], labels: Sequence[str]
+) -> Dict[str, float]:
     raw = prediction.get("probabilities")
     if isinstance(raw, Mapping):
         values = {label: max(0.0, float(raw.get(label, 0.0))) for label in labels}

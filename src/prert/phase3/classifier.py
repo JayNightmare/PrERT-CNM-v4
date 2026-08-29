@@ -16,7 +16,6 @@ from typing import Any, Dict, Iterable, List, Protocol, Sequence, Tuple
 
 from prert.phase3.types import ClauseExample
 
-
 TOKEN_PATTERN = re.compile(r"[a-z0-9]{2,}")
 TFIDF_TOKEN_PATTERN = r"(?u)\b[a-zA-Z0-9][a-zA-Z0-9']+\b"
 DEFAULT_PRIVACYBERT_MODEL_NAME = "mukund/privbert"
@@ -38,7 +37,9 @@ class NaiveBayesTextClassifier:
         self.alpha = alpha
         self.class_doc_counts: Dict[str, int] = {label: 0 for label in self.labels}
         self.class_token_totals: Dict[str, int] = {label: 0 for label in self.labels}
-        self.class_token_counts: Dict[str, Counter[str]] = {label: Counter() for label in self.labels}
+        self.class_token_counts: Dict[str, Counter[str]] = {
+            label: Counter() for label in self.labels
+        }
         self.vocabulary: set[str] = set()
         self.total_docs = 0
 
@@ -62,7 +63,9 @@ class NaiveBayesTextClassifier:
     def predict_proba(self, text: str) -> Dict[str, float]:
         log_scores = self._class_log_scores(text)
         max_log = max(log_scores.values())
-        shifted = {label: math.exp(score - max_log) for label, score in log_scores.items()}
+        shifted = {
+            label: math.exp(score - max_log) for label, score in log_scores.items()
+        }
         total = sum(shifted.values())
         if total <= 0:
             uniform = 1.0 / max(len(self.labels), 1)
@@ -75,7 +78,10 @@ class NaiveBayesTextClassifier:
             "alpha": self.alpha,
             "class_doc_counts": self.class_doc_counts,
             "class_token_totals": self.class_token_totals,
-            "class_token_counts": {label: dict(counter) for label, counter in self.class_token_counts.items()},
+            "class_token_counts": {
+                label: dict(counter)
+                for label, counter in self.class_token_counts.items()
+            },
             "vocabulary": sorted(self.vocabulary),
             "total_docs": self.total_docs,
         }
@@ -90,14 +96,20 @@ class NaiveBayesTextClassifier:
             payload = json.load(handle)
 
         model = cls(labels=payload["labels"], alpha=float(payload["alpha"]))
-        model.class_doc_counts = {k: int(v) for k, v in payload["class_doc_counts"].items()}
-        model.class_token_totals = {k: int(v) for k, v in payload["class_token_totals"].items()}
+        model.class_doc_counts = {
+            k: int(v) for k, v in payload["class_doc_counts"].items()
+        }
+        model.class_token_totals = {
+            k: int(v) for k, v in payload["class_token_totals"].items()
+        }
         model.class_token_counts = {
             label: Counter({token: int(count) for token, count in counts.items()})
             for label, counts in payload["class_token_counts"].items()
         }
         model.vocabulary = set(payload.get("vocabulary", []))
-        model.total_docs = int(payload.get("total_docs", sum(model.class_doc_counts.values())))
+        model.total_docs = int(
+            payload.get("total_docs", sum(model.class_doc_counts.values()))
+        )
         return model
 
     def _class_log_scores(self, text: str) -> Dict[str, float]:
@@ -193,7 +205,9 @@ class TfidfLogisticRegressionClassifier:
             labels.append(example.label)
 
         if not texts:
-            raise ValueError("No training examples available for logistic regression model")
+            raise ValueError(
+                "No training examples available for logistic regression model"
+            )
 
         x_train = self.vectorizer.fit_transform(texts)
         self.model.fit(x_train, labels)
@@ -240,7 +254,9 @@ class TfidfLogisticRegressionClassifier:
 
 
 class _PrivacyBertTrainingDataset:
-    def __init__(self, encodings: Dict[str, Sequence[Any]], labels: Sequence[int]) -> None:
+    def __init__(
+        self, encodings: Dict[str, Sequence[Any]], labels: Sequence[int]
+    ) -> None:
         self.encodings = encodings
         self.labels = list(labels)
 
@@ -258,12 +274,16 @@ def _patch_multiprocess_resource_tracker() -> None:
         return
 
     try:
-        resource_tracker_module = importlib.import_module("multiprocess.resource_tracker")
+        resource_tracker_module = importlib.import_module(
+            "multiprocess.resource_tracker"
+        )
     except ModuleNotFoundError:
         return
 
     resource_tracker_cls = getattr(resource_tracker_module, "ResourceTracker", None)
-    if resource_tracker_cls is None or getattr(resource_tracker_cls, "_prert_safe_stop_locked", False):
+    if resource_tracker_cls is None or getattr(
+        resource_tracker_cls, "_prert_safe_stop_locked", False
+    ):
         return
 
     def _safe_stop_locked(
@@ -351,7 +371,9 @@ class PrivacyBertClassifier:
         self._training_args_cls = transformers_module.TrainingArguments
         self._auto_tokenizer_cls = transformers_module.AutoTokenizer
         self._auto_model_cls = transformers_module.AutoModelForSequenceClassification
-        self._early_stopping_cls = getattr(transformers_module, "EarlyStoppingCallback", None)
+        self._early_stopping_cls = getattr(
+            transformers_module, "EarlyStoppingCallback", None
+        )
 
         self.label_to_id = {label: idx for idx, label in enumerate(self.labels)}
         self.id_to_label = {idx: label for label, idx in self.label_to_id.items()}
@@ -367,20 +389,28 @@ class PrivacyBertClassifier:
 
     def _has_accelerator(self) -> bool:
         accelerator_module = getattr(self._torch, "accelerator", None)
-        if accelerator_module is not None and callable(getattr(accelerator_module, "is_available", None)):
+        if accelerator_module is not None and callable(
+            getattr(accelerator_module, "is_available", None)
+        ):
             return bool(accelerator_module.is_available())
 
         cuda_module = getattr(self._torch, "cuda", None)
-        if cuda_module is not None and callable(getattr(cuda_module, "is_available", None)):
+        if cuda_module is not None and callable(
+            getattr(cuda_module, "is_available", None)
+        ):
             return bool(cuda_module.is_available())
 
         xpu_module = getattr(self._torch, "xpu", None)
-        if xpu_module is not None and callable(getattr(xpu_module, "is_available", None)):
+        if xpu_module is not None and callable(
+            getattr(xpu_module, "is_available", None)
+        ):
             return bool(xpu_module.is_available())
 
         backends = getattr(self._torch, "backends", None)
         mps_module = getattr(backends, "mps", None) if backends is not None else None
-        if mps_module is not None and callable(getattr(mps_module, "is_available", None)):
+        if mps_module is not None and callable(
+            getattr(mps_module, "is_available", None)
+        ):
             return bool(mps_module.is_available())
 
         return False
@@ -446,17 +476,21 @@ class PrivacyBertClassifier:
             class_counts[idx] += 1
         total = sum(class_counts)
         n_classes = len(self.labels)
-        class_weights = [
-            total / (n_classes * max(count, 1)) for count in class_counts
-        ]
-        class_weights_tensor = self._torch.tensor(class_weights, dtype=self._torch.float32)
+        class_weights = [total / (n_classes * max(count, 1)) for count in class_counts]
+        class_weights_tensor = self._torch.tensor(
+            class_weights, dtype=self._torch.float32
+        )
 
         loss_type = self.loss_type
         focal_gamma = self.focal_gamma
         torch_mod = self._torch
         nn_module = getattr(torch_mod, "nn", None)
-        functional_module = getattr(nn_module, "functional", None) if nn_module is not None else None
-        if loss_type in {"weighted_ce", "focal"} and (nn_module is None or functional_module is None):
+        functional_module = (
+            getattr(nn_module, "functional", None) if nn_module is not None else None
+        )
+        if loss_type in {"weighted_ce", "focal"} and (
+            nn_module is None or functional_module is None
+        ):
             raise RuntimeError(
                 "torch.nn / torch.nn.functional are required for loss_type in {weighted_ce, focal}"
             )
@@ -491,7 +525,9 @@ class PrivacyBertClassifier:
                 return (loss, outputs) if return_outputs else loss
 
         def _compute_metrics(eval_pred):  # type: ignore[no-untyped-def]
-            from sklearn.metrics import f1_score  # local import: only used during real training
+            from sklearn.metrics import (
+                f1_score,
+            )  # local import: only used during real training
 
             predictions, label_ids = eval_pred
             # predictions may be tuple in some configurations
@@ -519,7 +555,9 @@ class PrivacyBertClassifier:
             # Trainer in that path). Skip under weighted_ce/focal since the
             # subclass owns the loss.
             if self.loss_type == "ce" and self.label_smoothing_factor > 0.0:
-                training_args_kwargs["label_smoothing_factor"] = self.label_smoothing_factor
+                training_args_kwargs["label_smoothing_factor"] = (
+                    self.label_smoothing_factor
+                )
 
             if eval_dataset is not None:
                 training_args_kwargs.update(
@@ -546,7 +584,10 @@ class PrivacyBertClassifier:
             if eval_dataset is not None:
                 trainer_kwargs["eval_dataset"] = eval_dataset
                 trainer_kwargs["compute_metrics"] = _compute_metrics
-                if self._early_stopping_cls is not None and self.early_stopping_patience > 0:
+                if (
+                    self._early_stopping_cls is not None
+                    and self.early_stopping_patience > 0
+                ):
                     trainer_kwargs["callbacks"] = [
                         self._early_stopping_cls(
                             early_stopping_patience=self.early_stopping_patience
@@ -620,7 +661,9 @@ class PrivacyBertClassifier:
             "warmup_steps": self.warmup_steps,
             "early_stopping_patience": self.early_stopping_patience,
         }
-        with (save_dir / "training_metadata.json").open("w", encoding="utf-8") as handle:
+        with (save_dir / "training_metadata.json").open(
+            "w", encoding="utf-8"
+        ) as handle:
             json.dump(metadata, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
 

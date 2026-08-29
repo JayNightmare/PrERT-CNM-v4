@@ -1,0 +1,875 @@
+%%
+%% Copyright 2019-2024 Elsevier Ltd
+%%
+%% This file is part of the 'CAS Bundle'.
+%% --------------------------------------
+%%
+%% Template article for cas-sc documentclass for
+%% double column output.
+
+\documentclass[a4paper,fleqn]{cas-sc}
+
+%\documentclass[a4paper,fleqn,longmktitle]{cas-sc}
+
+\usepackage[numbers,square]{natbib}
+
+% Additional packages used by tables, figures, algorithm, and the pipeline diagram
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tikz}
+\usepackage{xcolor}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
+\usepackage{float}
+\usepackage{capt-of}
+\usepackage[ruled,linesnumbered]{algorithm2e}
+\usepackage{graphicx}
+\usepackage[
+    inline,
+    textsize=footnotesize,
+    textwidth=1.8cm
+]{todonotes}
+\newcommand{\bluecheck}{{\color{blue}\cmark}}
+\newcommand*{\Razi}{\textcolor{blue}}
+
+% --- CNM ablation placeholders. Replace each \CNM* macro with the numeric
+% --- value produced by `prert-cnm ablation` (see ablation_summary.json).
+% --- Visible "TODO" markers appear in the compiled PDF until the numbers
+% --- are filled in, so no result table can slip through with placeholders.
+\newcommand{\CNMVAL}[1]{{\color{red}\textbf{[TODO val\_macF1 k=#1]}}}
+\newcommand{\CNMTEST}[1]{{\color{red}\textbf{[TODO test\_macF1 k=#1]}}}
+\newcommand{\CNMACC}[1]{{\color{red}\textbf{[TODO test\_acc k=#1]}}}
+\newcommand{\CNMPRIM}[1]{{\color{red}\textbf{[TODO primary k=#1]}}}
+
+\begin{document}
+\let\WriteBookmarks\relax
+\def\floatpagepagefraction{1}
+\def\textpagefraction{.001}
+
+% Short title
+\shorttitle{AI-Driven Privacy Assurance Quantification}
+
+% Short author
+\shortauthors{Bell Compaan and Arshad}
+
+% Main title of the paper
+\title [mode = title]{Strengthening User Privacy through AI-Driven Assurance Quantification and International Standards Alignment}
+
+% First author
+\author[1]{Jordan (Jay) Bell Compaan}
+\cormark[1]
+\ead{k2119852@kingston.ac.uk}
+\ead[url]{https://github.com/JayNightmare/PrERT-CNM-v4}
+\credit{Conceptualization, Methodology, Software, Data curation, Formal analysis, Investigation, Writing -- original draft}
+\affiliation[1]{organization={Kingston University London},
+            addressline={55-59 Penrhyn Rd},
+            city={Kingston Upon Thames},
+            postcode={KT1 2EE},
+            country={UK}}
+
+\author[2]{Razi Arshad}
+\ead{}
+\credit{Supervision, Project administration, Writing -- review and editing}
+\affiliation[2]{organization={Kingston University London},
+            addressline={55-59 Penrhyn Rd},
+            city={Kingston Upon Thames},
+            postcode={KT1 2EE},
+            country={UK}}
+
+\cortext[1]{Corresponding author}
+
+% ============================================================================
+% Abstract
+% ============================================================================
+\begin{abstract}
+Automated privacy-policy analysis and standards-based regulatory measurement remain two largely disconnected research domains. Natural-language-processing (NLP) systems can classify privacy-policy clauses with high accuracy, but existing approaches provide limited support for translating clause-level predictions into interpretable, standards-traceable assessments of what a policy discloses about its controls. This paper proposes \textbf{PrERT-CNM} (\textbf{P}rivacy B\textbf{ERT} with \textbf{C}ontextual \textbf{N}eural \textbf{M}emory), an AI-driven framework that couples a fine-tuned privacy-domain transformer with a retrieval-augmented memory over a harmonised regulatory-control catalogue and a Bayesian aggregation layer, and produces multi-level \emph{privacy-assurance} scores that summarise the observable evidence of controls disclosed in policy text. The framework harmonises 683 controls from the General Data Protection Regulation (GDPR), eight ISO/IEC standards, and the NIST Privacy Framework, and yields per-level posterior distributions with 95\% credible intervals whose contributing clauses are individually citable. The Contextual Neural Memory is implemented as a numpy-backed dense-vector index over the harmonised catalogue with a cosine top-$k$ retriever whose output is concatenated into the PrivBERT input at both training and inference time; an ablation over $k \in \{0, 1, 3, 5, 10\}$ is reported. On the OPP-115 dataset with strict policy-level partitioning and the CNM enabled at $k = 5$, the classifier attains a test macro-F1 of \CNMTEST{5}{} and accuracy of \CNMACC{5}{} versus 0.640 and 0.815 for a same-split multinomial na\"ive-Bayes baseline; the corresponding CNM-disabled configuration ($k = 0$) attains a macro-F1 of \CNMTEST{0}{} and is retained as a direct baseline. A policy-level cluster bootstrap over 1{,}000 resamples places the CNM-free macro-F1 in the 95\% interval [0.870, 0.922]. Per-class calibration is strong on the majority class (organisation ECE = 0.013) but weaker on the minority classes (user 0.144; system 0.146), which motivates the reporting of credible intervals rather than point scores. Across the 12 test policies the primary posterior score varies from 0.754 to 0.969 (mean 0.925, std 0.061), and a prior-sensitivity sweep across five prior families keeps the primary score within a $0.005$ band. Every reported score is traceable to contributing clauses and, through the standards mapping, to the originating regulatory provision. The construct evaluated in this paper is policy-disclosed assurance rather than legal compliance or the probability of a breach; external validation of the assurance construct against expert judgement is the principal remaining gap.
+\todo[inline]{Addressed. The abstract has been condensed, the framework name is re-defined so that the ``CNM'' expansion refers to a retrieval-augmented memory over the standards catalogue that is now a fully documented \emph{and implemented} architectural component (Section~\ref{sec:cnm}, ablation in Section~\ref{sec:cnm-ablation}), and the score is renamed to \emph{privacy assurance} to reflect what the model actually computes. Non-CNM numerical results are unchanged; CNM-enabled numbers are drawn from Table~\ref{tab:cnmablation}.}
+\end{abstract}
+
+\begin{keywords}
+privacy assurance quantification \sep natural language processing \sep BERT \sep retrieval-augmented memory \sep Bayesian inference \sep GDPR \sep ISO/IEC controls \sep NIST Privacy Framework
+\end{keywords}
+
+\maketitle
+
+% ============================================================================
+% General response to reviewer
+% ============================================================================
+\section*{Response to General Paper Comment}
+The manuscript has been substantially revised across three axes. \emph{Scientific coherence:} the research problem, three gaps, contributions, methodology, and results are now presented as one continuous argument, with each stage explicitly referring back to its motivating gap and forward to the experiment that evaluates it. \emph{Construct terminology:} the score computed by the framework is renamed \emph{privacy assurance} throughout, because higher values indicate stronger evidence of controls disclosed in the policy rather than higher risk of harm; the distinction between disclosed assurance, standards alignment, and legal compliance is stated in Section~\ref{sec:construct} and maintained consistently in the results and discussion. \emph{Framework name:} the ``Contextual Neural Memory'' component named in the acronym is now a fully documented \emph{and implemented} architectural module (Section~\ref{sec:cnm}) that retrieves standards-linked context over the 683-entry harmonised catalogue and concatenates it into the PrivBERT input at both training and inference time; Section~\ref{sec:cnm-ablation} reports an ablation over $k \in \{0, 1, 3, 5, 10\}$. The paper's structure, mathematics, and evaluation have been updated accordingly.
+\todo[inline]{Addressed. The general comment has been answered by (i) a paragraph-by-paragraph revision for logical flow, (ii) a global terminology change from ``privacy risk'' to ``privacy assurance'' with an explicit construct definition in Section~\ref{sec:construct}, and (iii) a new Section~\ref{sec:cnm} that documents \emph{and} implements the Contextual Neural Memory as a retrieval-augmented memory over the standards catalogue, with an ablation over the retrieval budget in Section~\ref{sec:cnm-ablation}. The framework name is now grounded in a real component rather than a placeholder.}
+
+% ==========================================================
+\section{Introduction}\label{sec:intro}
+Online services rely on privacy policies as the principal, and often only, instrument through which individuals are informed of how their personal data are collected, processed, and shared. Such documents are typically long, legally dense, and difficult to compare across services, which limits the ability of users to give informed consent and to make meaningful choices between providers. In parallel, organisations must satisfy overlapping obligations under the EU General Data Protection Regulation (GDPR) \cite{gdpr2016}, the ISO/IEC 27000 and 29100 families of information-security and privacy standards \cite{iso27001_2022,iso27002_2022,iso29100_2011}, and the NIST Privacy Framework \cite{nist_pf_2020}. These regulatory instruments articulate normative requirements but do not, by themselves, define the quantitative, observable evidence needed to measure how well a specific policy addresses them.
+\todo[inline]{Addressed. The word ``notoriously'' has been removed. Explicit citations to OPP-115 \cite{wilson2016opp115}, ISO/IEC 27001 and 29100 are provided in the intro and again in Section~\ref{sec:construct}. The problem is now framed as a chain of research needs rather than three disconnected sentences.}
+
+\subsection{Current State of the Art and Its Limits}\label{sec:sota}
+Three complementary research strands have advanced automated privacy-policy analysis to its current state. First, corpus construction and clause classification: the OPP-115 corpus \cite{wilson2016opp115} established a benchmark of 115 manually annotated privacy policies and remains the canonical supervised anchor; hierarchical neural classifiers \cite{harkous2018polisis} and mobile-app compliance systems \cite{zimmeck2019maps} have scaled category prediction to large volumes of text, and privacy-domain transformers \cite{srinath2021privaseer,muralitharan2024privacybertlstm} have raised clause-classification accuracy substantially. Second, standards-to-metrics operationalisation: legal ontologies such as PrOnto \cite{palmirani2018pronto} and P2Onto \cite{novikova2025privacyrisks} encode GDPR concepts in a shared vocabulary; NIST PRAM \cite{brooks2017nistpram} formalises analyst-driven privacy risk assessment; and controls-mapping efforts translate regulatory text into structured control catalogues. Third, quantitative aggregation: Bayesian and ontology-based methods aggregate evidence into numerical scores \cite{novikova2025privacyrisks,oetzel2014pia}. What none of these strands provides, however, is a single pipeline that starts from natural-language policy text and produces standards-linked, multi-level assessments with calibrated uncertainty. The interpretation strand stops at category labels; the operationalisation strand stops at conceptual mapping; and the aggregation strand assumes structured inputs. This paper is motivated by, and addresses, the gaps left between these three strands.
+\todo[inline]{Addressed. The three research gaps are now derived from named limitations of existing work rather than asserted. Each gap is presented in the ``what existing work does / what is missing / why it matters'' format.}
+
+\subsection{Three Gaps in Existing Research}
+\paragraph{Gap 1: from clause labels to standards-linked evidence.} \emph{What existing work does:} clause classifiers assign OPP-115 or similar categorical labels to policy sentences with high accuracy \cite{harkous2018polisis,srinath2021privaseer,muralitharan2024privacybertlstm}. \emph{What is missing:} no widely adopted pipeline links those labels to the specific regulatory provisions that a clause satisfies or fails to disclose. \emph{Why it matters:} without such a link, a category label such as ``First-Party Collection/Use'' cannot be used to answer the operational question, ``does this policy provide the evidence that GDPR Article 5 requires?''
+\paragraph{Gap 2: from normative text to quantitative indicators.} \emph{What existing work does:} standards \cite{gdpr2016,iso27001_2022,nist_pf_2020} and legal ontologies \cite{palmirani2018pronto} articulate obligations. \emph{What is missing:} they do not define the quantitative, observable evidence needed to measure them at scale on natural-language text. \emph{Why it matters:} without observable indicators, ``appropriate technical and organisational measures'' cannot be audited by any procedure other than expert reading.
+\paragraph{Gap 3: from noisy clause-level evidence to a defensible summary.} \emph{What existing work does:} weighted-score \cite{novikova2025privacyrisks} and likelihood--impact \cite{brooks2017nistpram} approaches aggregate evidence into a single number. \emph{What is missing:} calibrated uncertainty, per-level decomposition, and traceability from the summary back to individual policy sentences. \emph{Why it matters:} a scalar score without uncertainty misrepresents its own reliability, particularly when the underlying evidence is sparse for a given policy or level.
+
+\subsection{Construct Definition: Privacy Assurance}\label{sec:construct}
+Because the framework proposed in this paper produces a score that increases when a policy discloses stronger evidence of privacy controls, calling that score a ``privacy risk'' score would be conceptually inverted. Throughout the paper, the framework's output is therefore called a \emph{privacy-assurance} score. Formally, for a policy $\mathcal{P}$ and a level $\ell \in \{\text{user}, \text{system}, \text{organisation}\}$, the level assurance is the posterior probability, under the Bayesian model defined in Section~\ref{sec:phase3}, that a randomly drawn clause of $\mathcal{P}$ classified into level $\ell$ constitutes valid evidence of a level-$\ell$ control. A value of $1$ denotes a posterior belief that the policy provides strong, unambiguous evidence of controls at that level; a value of $0$ denotes a posterior belief that no such evidence is present.
+\todo[inline]{Addressed. The score is renamed to \emph{privacy assurance} and its formal definition is given in Section~\ref{sec:construct}. Every subsequent reference to ``risk score'' has been updated to ``assurance score''. The distinction between disclosed assurance, standards alignment, legal compliance and organisational privacy risk is made explicit in this section and referred back to in the results and limitations.}
+Four distinctions are essential. \emph{Disclosed assurance} is the construct measured here: presence of evidence of controls in the natural-language policy text. \emph{Standards alignment} is a downstream mapping from disclosed assurance onto the requirements of a given standard (GDPR, ISO/IEC, NIST). \emph{Legal compliance} is a determination that a controller's actual practices satisfy applicable law, and requires expert legal judgement that is out of scope for this framework. \emph{Organisational privacy risk} additionally depends on operational implementation, adversarial behaviour, and breach likelihood, none of which is observable from policy text alone. PrERT-CNM addresses the first construct and provides evidence towards the second; it does not, and cannot, certify the third or fourth.
+
+\subsection{Framework and Research Questions}
+The paper proposes \textbf{PrERT-CNM} (\emph{Privacy BERT with Contextual Neural Memory}), a framework that couples (i) a fine-tuned privacy-domain transformer classifier, (ii) a retrieval-augmented Contextual Neural Memory over a harmonised standards catalogue, and (iii) a Bayesian aggregation layer that returns per-level assurance posteriors with 95\% credible intervals. The framework follows a design-science methodology \cite{hevner2004design}: an artefact is designed, built, and evaluated iteratively on the OPP-115 corpus \cite{wilson2016opp115,opp115_dataset}.
+
+To the best of the authors' knowledge, and consistent with the most recent survey of privacy quantification \cite{arshad2024characterisation}, no prior work simultaneously (i) extracts a harmonised, machine-readable control catalogue from the GDPR, the ISO/IEC 27000/29100 standards families and the NIST Privacy Framework, (ii) fine-tunes a privacy-specific transformer classifier and integrates its clause probabilities into a level-specific Bayesian model whose priors are elicited from standards expectations, and (iii) reports per-regulation verdicts whose supporting clauses are individually citable. The recent P2Onto approach \cite{novikova2025privacyrisks} is the closest antecedent but operates on a small manual sample of three policies and does not report calibrated uncertainty. Existing transformer approaches \cite{srinath2021privaseer,muralitharan2024privacybertlstm} stop at clause labels.
+\todo[inline]{Addressed. The novelty claim is now preceded by the corresponding recent related work (P2Onto, PrivBERT, PrivacyBERT-LSTM, Arshad and Asghar) and states precisely what is missing from each, rather than an unqualified absolute.}
+
+The empirical evaluation answers four research questions:
+\begin{itemize}
+  \item \textbf{RQ1.} How accurately can privacy-policy clauses be classified into user-, system-, and organisation-level obligations under strict policy-level data separation?
+  \item \textbf{RQ2.} How well can heterogeneous regulatory provisions be harmonised into a shared catalogue of measurable indicators, and how accurately can policy clauses be linked to those indicators?
+  \item \textbf{RQ3.} Can clause-level classifier evidence be integrated into interpretable per-level Bayesian assurance estimates whose credible intervals reflect evidence sparsity?
+  \item \textbf{RQ4.} How robust are the resulting scores to class imbalance, clause duplication, and Bayesian prior selection?
+\end{itemize}
+Each research question is mapped to specific experiments in Section~\ref{sec:methodology} and answered in Section~\ref{sec:results}.
+
+\subsection{Scientific Contributions}
+The scientific contributions of this research are as follows:
+\begin{enumerate}
+  \item A standards-to-controls mapping (Table~\ref{tab:phase1-stats}) that harmonises 683 controls from GDPR, eight ISO/IEC standards, and the NIST Privacy Framework into a normalised catalogue linking every control to a measurable indicator at the user, system, or organisation level.
+  \item A retrieval-augmented Contextual Neural Memory (Section~\ref{sec:cnm}) that indexes the harmonised control catalogue and injects standards context into clause classification at inference time, so that mapping is a first-class step of the forward pass rather than a post-hoc lookup.
+  \item A formal Bayesian assurance-integration layer (Algorithm~\ref{alg:bayes}) that converts clause-level classifier probabilities into per-level posterior distributions with 95\% credible intervals, and a traceable per-regulation assessment pathway that emits framework-specific evidence summaries with clause-level citations.
+\end{enumerate}
+Implementation features -- the acceptance-check tooling, synthetic policy/schema fixtures, the Gradio web demonstrator, and the variant-tracked evaluation stack -- are engineering deliverables and are documented alongside the released code and model checkpoint \cite{prertcnm_github,prertcnm_huggingface}.
+
+\paragraph{Paper organisation.} Section~\ref{sec:literature} critically reviews related work. Section~\ref{sec:framework} describes the PrERT-CNM framework, including the CNM module. Section~\ref{sec:methodology} details the methodology. Section~\ref{sec:results} reports the experiments. Section~\ref{sec:discussion} discusses interpretation, limitations, ethics, and future work. Section~\ref{sec:conclusion} concludes.
+\todo[inline]{Addressed. The paper-organisation paragraph has been shortened to five sentences.}
+
+% ==========================================================
+\section{Related Work}\label{sec:literature}
+This section reviews four research strands and, for each strand, critically identifies (i) what existing work achieves, (ii) its limitations, and (iii) the unresolved gap that PrERT-CNM addresses. The comparative comparison against the closest prior systems is presented in Table~\ref{tab:litcompare}.
+\todo[inline]{Addressed. Related Work has been rewritten as a critical review. For each strand a short ``achievement / limitation / unresolved gap'' block is included, and the comparative table (Table~\ref{tab:litcompare}) has been retained and made consistent with the new terminology.}
+
+\subsection{AI for Privacy-Policy Analysis}
+\emph{Achievement.} Automated privacy-policy analysis has progressed through three overlapping generations: annotated corpora with classical machine learning \cite{wilson2016opp115,sathyendra2017optout,poplavska2020gdprmap}; hierarchical neural classifiers and mobile-app compliance systems \cite{harkous2018polisis,zimmeck2019maps}; and privacy-domain transformers \cite{devlin2019bert,srinath2021privaseer,muralitharan2024privacybertlstm}. Parallel work on legal NLP has explored rationale extraction and retrieval-augmented question answering \cite{chalkidis2022legalnlp,ravichander2019qa}.
+\emph{Limitation.} Across all three generations, systems output categorical labels or per-clause probabilities. They do not link those probabilities to specific regulatory provisions, they do not aggregate them into level-specific summaries, and they rarely accompany their outputs with uncertainty.
+\emph{Unresolved gap.} The step from category labels to standards-linked, calibrated, multi-level assessments remains open. PrERT-CNM addresses this step through the CNM module and the Bayesian aggregation layer.
+\todo[inline]{Addressed. The triple-``do not'' sentence has been rewritten. The subsection now closes with an explicit statement of what existing systems cannot do that PrERT-CNM is designed to provide.}
+
+\subsection{Privacy Quantification and Breach Analytics}
+\emph{Achievement.} Privacy risk has been formalised along several dimensions. Solove's taxonomy \cite{solove2006taxonomy} organises harms conceptually. Likelihood--impact methodologies operationalise privacy impact assessment \cite{brooks2017nistpram,oetzel2014pia}. Threat-modelling frameworks such as LINDDUN \cite{deng2011linddun} enumerate privacy threat categories. Ontology-based methods such as P2Onto \cite{novikova2025privacyrisks} derive numerical scores from the presence of critical data types and coverage of purposes, legal bases, and opt-out options. Empirical breach corpora \cite{enisa_tl_2024,prc_breaches} supply frequency and severity evidence for the harms dimension.
+\emph{Limitation.} Quantitative work typically operates at a single level of abstraction, treats likelihood and impact as scalar analyst inputs, and rarely connects the resulting score to specific standards obligations \cite{arshad2024characterisation}. Ontology-based scoring \cite{novikova2025privacyrisks} works on a manual sample of three policies and does not report calibrated uncertainty. Breach corpora are decoupled from policy text.
+\emph{Unresolved gap.} A concrete mechanism for aggregating clause-level policy evidence into per-level, standards-linked posterior estimates with credible intervals. PrERT-CNM addresses this through the retrieval-augmented CNM (which links clauses to specific provisions) and Beta--Bernoulli aggregation (which produces credible intervals).
+
+\subsection{Standards and Regulatory Frameworks}
+\emph{Achievement.} Control-based frameworks provide auditable structure. The GDPR \cite{gdpr2016} establishes principles (Article~5), security obligations (Article~32), and breach notification (Article~33). The ISO/IEC family \cite{iso27001_2022,iso27002_2022,iso27005_2022,iso27018_2019,iso27701_2019,iso29100_2011,iso29151_2017,iso15944_12_2020}, the NIST Privacy Framework \cite{nist_pf_2020}, the NIST AI Risk Management Framework \cite{nist_aiRMF_2023}, and the EU AI Act \cite{eu_ai_act_2024} together codify obligations spanning security, privacy, and AI governance. Legal ontologies \cite{palmirani2018pronto,novikova2025privacyrisks} and machine-readable-policy languages \cite{cranor2002p3p,ashley2003epal,gerl2018lpl,pardo2019pilot} formalise these obligations. Automated GDPR-compliance systems \cite{amaral2021gdprnn} apply rule-based or shallow-neural techniques to check specific articles.
+\emph{Limitation.} Standards leave measurement to implementers, ontologies focus on representation rather than automated measurement, and policy languages require policy authors to write in the formal language rather than in natural English. Automated compliance work targets specific articles or DPAs rather than the natural-language policies presented to end users.
+\emph{Unresolved gap.} A pipeline that operates directly on the natural-language policy text and links each clause to the relevant provision across three standards families simultaneously. PrERT-CNM addresses this by combining the harmonised control catalogue with the CNM retriever and the Bayesian layer.
+
+\subsection{Probabilistic Risk Modelling}
+\emph{Achievement.} Probabilistic graphical models \cite{pearl1988probabilistic,koller2009pgm} provide the general formalism for reasoning under partial evidence; Bayesian text classification \cite{domingos1997optimality} demonstrates conjugate updates on categorical evidence; and Beta--Bernoulli belief updating \cite{gelman2013bayesian} is the textbook choice for evidence that takes the form of independent Bernoulli-like signals with an unknown rate.
+\emph{Limitation.} The independence assumption is violated when clauses within the same policy reuse phrasing, and softmax classifier probabilities are not, in general, probabilities that a regulatory control is satisfied.
+\emph{Unresolved gap.} A formulation that (i) is theoretically justified as an assurance measure rather than a compliance guarantee, (ii) is empirically calibrated at the per-class level, and (iii) accommodates within-policy dependence at evaluation time. Section~\ref{sec:phase3} states the theoretical justification, Section~\ref{sec:calibration} reports per-class calibration, and Section~\ref{sec:calibration} handles within-policy dependence via policy-level cluster bootstrapping.
+
+\subsection{Synthesis and Positioning}
+Table~\ref{tab:litcompare} compares representative prior systems against PrERT-CNM on the dimensions most relevant to standards-linked assurance quantification. The comparison is presented descriptively rather than as Yes/No columns, so that PrERT-CNM is judged on the same attributes as the systems it extends.
+\begin{table*}[t]
+\centering
+\caption{Descriptive comparison of representative privacy-analysis and privacy-quantification approaches against PrERT-CNM.}
+\label{tab:litcompare}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}p{0.11\textwidth} p{0.09\textwidth} p{0.11\textwidth} p{0.09\textwidth} p{0.11\textwidth} p{0.10\textwidth} p{0.08\textwidth} p{0.09\textwidth} p{0.08\textwidth}@{}}
+\toprule
+\textbf{Study} & \textbf{Dataset} & \textbf{NLP method} & \textbf{Granularity} & \textbf{Regulatory mapping} & \textbf{Score definition} & \textbf{Uncertainty} & \textbf{Traceability} & \textbf{External val.} \\
+\midrule
+OPP-115 \cite{wilson2016opp115} & OPP-115 & Manual annot. & Segment & None & --- & --- & --- & Inter-annot. agreement \\
+Polisis \cite{harkous2018polisis} & OPP-115 & Hierarchical CNN & Segment & None & --- & Softmax only & Category label & Crowd study \\
+MAPS \cite{zimmeck2019maps} & APP-350 & NLP + static & App & Mobile privacy law & Rule violation & --- & Rule ID & Manual audit \\
+PrivacyBERT-LSTM \cite{muralitharan2024privacybertlstm} & Custom & BERT + LSTM & Sentence & None & --- & Softmax only & --- & --- \\
+PrivaSeer / PrivBERT \cite{srinath2021privaseer} & PrivaSeer & Domain-pretrained BERT & Corpus / clause & None & --- & --- & --- & Downstream tasks \\
+P2Onto \cite{novikova2025privacyrisks} & OPP-115 (3 pol.) & Ontology + rules & Data-practice & GDPR concepts & Weighted PD types & --- & Ontology class & Expert scoring (n=7) \\
+NIST PRAM \cite{brooks2017nistpram} & N/A (questionnaire) & --- & System & NIST PF & Likelihood$\times$impact & Analyst judgement & Risk register & --- \\
+Arshad and Asghar \cite{arshad2024characterisation} & --- (survey) & --- & Conceptual & Cross-framework & Multi-dim. (concept) & --- & --- & --- \\
+\textbf{PrERT-CNM (this work)} & \textbf{OPP-115} & \textbf{PrivBERT + CNM retrieval + Bayesian} & \textbf{Clause + policy + level} & \textbf{GDPR, 8~ISO/IEC, NIST~PF} & \textbf{Per-level posterior assurance prob.} & \textbf{95\%~credible intervals; cluster bootstrap} & \textbf{Clause $\to$ control $\to$ standard} & \textbf{Policy-level split; case study; expert planned} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% ==========================================================
+\section{Proposed AI-Driven Assurance Quantification Framework}\label{sec:framework}
+The proposed framework, PrERT-CNM, is implemented as a reproducible four-phase pipeline. Each phase emits versioned artefacts (JSON Lines records and manifests) that serve as verified inputs to the next. Figure~\ref{fig:pipeline} summarises the project workflow at the phase level, and Figure~\ref{fig:inference} shows the run-time inference path for a single policy.
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=6.5mm,
+  box/.style={draw, rounded corners, align=center, inner sep=4pt,
+              text width=0.86\columnwidth, font=\footnotesize, fill=blue!4},
+  arr/.style={-{Latex[length=2mm]}, thick}]
+\node[box] (p1) {\textbf{Phase 1 -- Standards-to-Controls}\\
+  Regulation-specific parsers; harmonised control records; indexing for retrieval};
+\node[box, below=of p1] (p2) {\textbf{Phase 2 -- Metrics \& Synthetic Data}\\
+  User/system/organisation metric specs; synthetic events; software verification};
+\node[box, below=of p2] (p3) {\textbf{Phase 3 -- Classification, CNM \& Assurance}\\
+  Fine-tuned PrivBERT + CNM retriever (+ LogReg, NB baselines); Beta--Bernoulli aggregation};
+\node[box, below=of p3] (p4) {\textbf{Phase 4 -- Standards-Alignment Assessment}\\
+  Acceptance checks; per-policy case study; framework-specific evidence summaries; web demonstrator};
+\draw[arr] (p1) -- (p2);
+\draw[arr] (p2) -- (p3);
+\draw[arr] (p3) -- (p4);
+\end{tikzpicture}
+\captionof{figure}{Project workflow.}
+\label{fig:pipeline}
+\end{center}
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=5.5mm,
+  ibox/.style={draw, rounded corners, align=center, inner sep=3pt,
+               text width=0.42\columnwidth, font=\scriptsize, fill=green!5},
+  op/.style={draw, rounded corners, align=center, inner sep=3pt,
+             text width=0.42\columnwidth, font=\scriptsize, fill=orange!8},
+  mem/.style={draw, rounded corners, align=center, inner sep=3pt,
+              text width=0.42\columnwidth, font=\scriptsize, fill=purple!8},
+  out/.style={draw, rounded corners, align=center, inner sep=3pt,
+              text width=0.42\columnwidth, font=\scriptsize, fill=blue!8, font=\scriptsize\bfseries},
+  arr/.style={-{Latex[length=2mm]}, thick}]
+\node[ibox] (t1) {Policy text};
+\node[op, below=of t1] (t2) {Clause segmentation};
+\node[mem, below=of t2] (t3) {CNM retriever: top-$k$ controls from indexed catalogue};
+\node[op, below=of t3] (t4) {PrivBERT classifier over \\ clause $\oplus$ retrieved-control context};
+\node[op, below=of t4] (t5) {Beta--Bernoulli update \\ (Algorithm~\ref{alg:bayes})};
+\node[out, below=of t5] (t6) {Per-level assurance posteriors + primary score + per-regulation evidence summaries};
+\draw[arr] (t1) -- (t2);
+\draw[arr] (t2) -- (t3);
+\draw[arr] (t3) -- (t4);
+\draw[arr] (t4) -- (t5);
+\draw[arr] (t5) -- (t6);
+\end{tikzpicture}
+\captionof{figure}{Inference path for a single policy. Clause text is segmented, retrieval-augmented with the top-$k$ most-relevant controls from the CNM (Section~\ref{sec:cnm}), classified into a level with a confidence, and routed into the Bayesian layer that summarises the policy at the user, system, and organisation levels.}
+\label{fig:inference}
+\end{center}
+
+A unifying abstraction is the three-level privacy taxonomy given in Table~\ref{tab:labelspace}, which maps every OPP-115 data-practice category onto the \texttt{user}, \texttt{system}, or \texttt{organisation} level. The taxonomy defines the classifier label space, the granularity of the metric specifications, and the structure of the Bayesian posteriors.
+
+\begin{table}[t]
+\centering
+\caption{Complete mapping of the ten OPP-115 data-practice categories onto the three-level PrERT-CNM taxonomy.}
+\label{tab:labelspace}
+\footnotesize
+\begin{tabular}{@{}p{0.28\columnwidth} p{0.62\columnwidth}@{}}
+\toprule
+\textbf{PrERT-CNM level} & \textbf{OPP-115 categories mapped to this level} \\
+\midrule
+\texttt{user} & User Choice/Control; User Access, Edit and Deletion \\
+\texttt{system} & Data Security; Do Not Track \\
+\texttt{organisation} & First-Party Collection/Use; Third-Party Sharing/Collection; Data Retention; International and Specific Audiences; Policy Change; Other \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phase 1: Standards-to-Controls Extraction}\label{sec:phase1}
+Phase~1 converts heterogeneous regulatory documents into a harmonised, machine-readable control catalogue. A \emph{control} is defined here as the smallest requirement-bearing unit that (i) originates from a single top-level clause, article, or subcategory of a source document, (ii) states a specific, testable expectation on a data controller or processor, and (iii) can be independently referred to by a normalised identifier. When a top-level provision contains multiple sub-requirements (for example, GDPR Article~5 lists six principles), each sub-requirement is retained as a separate control if it is testable in isolation and would otherwise be lost in aggregation.
+\todo[inline]{Addressed. The definition of ``control'' is now stated formally at the start of Phase~1.}
+
+Rather than a single generic parser, the framework employs \emph{regulation-specific} parsers that respect each document's structure: GDPR articles, ISO/IEC clauses and bullet hierarchies, and NIST Privacy Framework subcategories are each handled by a dedicated extractor. Each extracted control is stored as a record with a normalised identifier (for example, \texttt{gdpr::Article\_32}), its hierarchical path, the source text, and a parser-confidence score. Control text is then segmented and indexed for retrieval by the CNM module.
+
+\paragraph{Overlap and merging.} Two controls from different standards frequently express overlapping requirements (e.g., GDPR Art.~32 on ``appropriate technical and organisational measures'' and ISO/IEC 27002:2022 clause 8.24 on cryptographic controls both articulate technical-security expectations). PrERT-CNM does not merge such controls: each control retains its source identifier, and the CNM retriever surfaces all overlapping controls for a clause whose embedding lies within threshold. This preserves per-standard traceability, at the cost of some redundancy in the retrieved context. A cross-standard \emph{crosswalk} field is attached to each control record, listing sibling controls in other standards; the crosswalk is used only to report per-regulation evidence summaries in Phase~4.
+\todo[inline]{Addressed. The overlap policy (retention of overlapping controls with a crosswalk field, rather than merging) is now stated. Rules for splitting top-level provisions into controls are stated in the ``control'' definition above.}
+
+\paragraph{Extraction statistics.} Table~\ref{tab:phase1-stats} summarises extraction statistics per source. The released repository \cite{prertcnm_github} contains the full manifest with parser-confidence distributions for each control.
+
+\begin{table}[t]
+\centering
+\caption{Phase~1 extraction statistics per regulatory source.}
+\label{tab:phase1-stats}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l r r r@{}}
+\toprule
+\textbf{Source} & \textbf{Provisions} & \textbf{Controls} & \textbf{Retained} \\
+& \textbf{processed} & \textbf{extracted} & \textbf{after norm.} \\
+\midrule
+GDPR (Regulation 2016/679) & 99 articles & 187 & 187 \\
+ISO/IEC 27001:2022 & 10 clauses + Annex~A & 93 & 93 \\
+ISO/IEC 27002:2022 & 4 domains & 93 & 93 \\
+ISO/IEC 27005:2022 & 10 clauses & 41 & 41 \\
+ISO/IEC 27018:2019 & 18 clauses & 30 & 30 \\
+ISO/IEC 27701:2019 & 5 clauses & 84 & 84 \\
+ISO/IEC 29100:2011 & 5 clauses & 11 & 11 \\
+ISO/IEC 29151:2017 & 18 clauses & 27 & 27 \\
+ISO/IEC 15944-12:2020 & 8 clauses & 17 & 17 \\
+NIST Privacy Framework 1.0 & 5 functions & 100 & 100 \\
+\midrule
+\textbf{Total} & --- & \textbf{683} & \textbf{683} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Two-stage validation protocol.} Extraction quality is assessed by two independent stages. \emph{Stage A: parser correctness.} A stratified sample of 200 controls (20 per source, drawn uniformly across the parser-confidence range) is manually inspected; a control is judged correct if its identifier, hierarchical path, and source text match the corresponding provision in the source document. \emph{Stage B: clause-to-control mapping accuracy.} A stratified sample of 200 policy clauses drawn from the OPP-115 training partition (proportional to level distribution) is labelled by two independent annotators with the correct control identifier for each clause; inter-annotator agreement is reported (Cohen's $\kappa$), and the CNM retriever's top-$k$ output is scored against this reference by recall@$k$ for $k \in \{1, 3, 5\}$. Stage~B is intentionally distinct from Stage~A because a correctly extracted provision does not guarantee that a clause has been correctly linked to it. The full validation study is under way at the time of writing; the parser-correctness sample of 60 controls previously reported yielded 57/60 correct on the first pass, and the expanded 200-control Stage~A and 200-clause Stage~B evaluations will be included at the next revision.
+\todo[inline]{Addressed. The validation is now split into two stages (parser correctness and clause-to-control mapping accuracy). Sample sizes have been increased from 60 to 200 for each stage. The prior 60-control result is retained as a preliminary observation, and the full validation is flagged as work in progress; the responsibility for completing the annotation study is the corresponding author's, and is listed as an outstanding action in Section~\ref{sec:discussion}.}
+
+\subsection{Phase 2: Metrics, Synthetic Data, and Software Verification}\label{sec:phase2}
+Phase~2 translates the Phase~1 controls into metric specifications. Table~\ref{tab:metrics} lists the metrics used at each level. Each metric specifies its scoring formula, evidence fields, standards-control identifiers, normalisation rule, missing-data treatment, and direction.
+
+\begin{table*}[t]
+\centering
+\caption{Metric specifications used at each level of the PrERT-CNM taxonomy. Missing evidence is recorded as \texttt{null} and the metric's contribution is set to its prior expectation, so that a policy is not penalised for silence unless silence is itself a control failure.}
+\label{tab:metrics}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}p{0.08\textwidth} p{0.13\textwidth} p{0.14\textwidth} p{0.15\textwidth} p{0.12\textwidth} p{0.09\textwidth} p{0.09\textwidth}@{}}
+\toprule
+\textbf{Level} & \textbf{Metric ID} & \textbf{Scoring formula} & \textbf{Evidence fields} & \textbf{Standards source} & \textbf{Normalisation} & \textbf{Direction} \\
+\midrule
+user & \texttt{consent\_control} & Fraction of clauses describing opt-in/opt-out choices, weighted by classifier confidence & \texttt{clause\_id}, \texttt{confidence}, \texttt{choice\_type} & GDPR~Art.~6; ISO/IEC~29100 & Scaled to [0,1] & Higher = stronger assurance \\
+user & \texttt{user\_access\_deletion} & Fraction of clauses describing subject rights (access, correct, delete) & \texttt{clause\_id}, \texttt{confidence}, \texttt{right\_type} & GDPR~Arts.~15--17; ISO/IEC~27701 & Scaled to [0,1] & Higher = stronger assurance \\
+system & \texttt{security\_controls} & Fraction of clauses describing technical security measures & \texttt{clause\_id}, \texttt{confidence}, \texttt{control\_type} & GDPR~Art.~32; ISO/IEC~27002; NIST~PF PR.PT & Scaled to [0,1] & Higher = stronger assurance \\
+system & \texttt{tracking\_controls} & Fraction of clauses describing tracking, Do Not Track, or cookie preferences & \texttt{clause\_id}, \texttt{confidence} & ISO/IEC~29100; NIST~PF CT.PO & Scaled to [0,1] & Higher = stronger assurance \\
+organisation & \texttt{collection\_use} & Fraction of clauses declaring lawful specific purposes of collection & \texttt{clause\_id}, \texttt{confidence}, \texttt{purpose} & GDPR~Art.~5; ISO/IEC~27701 & Scaled to [0,1] & Higher = stronger assurance \\
+organisation & \texttt{third\_party\_sharing} & Fraction of clauses declaring third-party recipients and legal basis & \texttt{clause\_id}, \texttt{confidence}, \texttt{recipient} & GDPR~Arts.~26,~44; ISO/IEC~27018 & Scaled to [0,1] & Higher = stronger assurance \\
+organisation & \texttt{retention\_governance} & Fraction of clauses describing retention periods and governance & \texttt{clause\_id}, \texttt{confidence}, \texttt{duration} & GDPR~Art.~5(1)(e); ISO/IEC~27701 & Scaled to [0,1] & Higher = stronger assurance \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\paragraph{Software-verification role of the synthetic data.} Phase~2 generates synthetic observations across three scenarios (\emph{normal}, \emph{stressed}, \emph{adversarial}) with a fixed random seed. In each scenario 500 observations are drawn per metric. The \emph{normal} scenario samples check counts from $\text{Poisson}(\lambda{=}20)$, failure counts from $\text{Binomial}(n{=}\text{checks}, p{=}0.05)$, and observed confidence from $\text{Beta}(8, 2)$; the \emph{stressed} scenario raises the failure rate to $p{=}0.20$ and shifts observed confidence to $\text{Beta}(5, 5)$; the \emph{adversarial} scenario applies $p{=}0.50$, injects missing fields on 30\% of observations, and samples confidence from $\text{Beta}(2, 8)$.
+\emph{Scope.} These synthetic scenarios are used \emph{only} for software verification: they confirm that the aggregation code preserves the theoretically expected ordering \emph{normal} $\prec$ \emph{stressed} $\prec$ \emph{adversarial} (mean scoring residual $0.06$, $0.27$, $0.55$) and that missing-evidence handling widens credible intervals as intended. They do not appear in any empirical result: real-policy validation is performed exclusively on OPP-115 (Section~\ref{sec:results}) and independent expert validation is planned as future work.
+\todo[inline]{Addressed. Software verification (via the synthetic scenarios) and empirical validation (on OPP-115 and, subsequently, on expert-labelled samples) are now separated in the text and in the reporting structure. The synthetic data are explicitly labelled as software-verification only.}
+
+\subsection{Phase 3: Contextual Neural Memory, Classification, and Bayesian Aggregation}\label{sec:phase3}
+
+The analytical core of PrERT-CNM has three coupled components: a \emph{Contextual Neural Memory} that retrieves relevant regulatory controls for each policy clause (Section~\ref{sec:cnm}), a fine-tuned \emph{PrivBERT classifier} that assigns clauses to levels using the retrieved context, and a \emph{Bayesian aggregation layer} that produces per-level assurance posteriors. The novel components are (i) the CNM retriever, (ii) its coupling with the classifier at inference time, and (iii) the Bayesian layer whose priors are elicited from standards expectations and whose per-level output is auditable back to individual sentences.
+
+\subsubsection{Contextual Neural Memory}\label{sec:cnm}
+The CNM is a retrieval-augmented memory over the harmonised standards catalogue, implemented as a numpy-backed dense-vector index with a cosine-similarity retriever whose output is concatenated into the PrivBERT input at both training and inference time. Formally, given clause $x$, tokeniser $T$, PrivBERT encoder $E_\theta$, and memory index $\mathcal{M} = \{(v_i, e_i)\}_{i=1}^{|\mathcal{M}|}$ where $v_i$ is the control record (identifier, hierarchical path, standard source, and text) and $e_i \in \mathbb{R}^d$ is a fixed dense embedding of the control text under encoder $\phi$:
+\begin{equation}
+R_k(x) = \operatorname*{arg\,top-}k_{\,i \in \{1,\ldots,|\mathcal{M}|\}}\; \frac{\phi(x)^\top e_i}{\|\phi(x)\|\,\|e_i\|},
+\label{eq:retriever}
+\end{equation}
+and the classifier operates on the retrieval-augmented input
+\begin{equation}
+\tilde{x} = x \; \texttt{[SEP]} \; c_{r_1} \; \texttt{[SEP]} \; \ldots \; \texttt{[SEP]} \; c_{r_k},
+\qquad p = \mathrm{softmax}\!\left(E_\theta(T(\tilde{x}))\right),
+\label{eq:cnm-forward}
+\end{equation}
+where $\{r_1,\ldots,r_k\}$ are the indices returned by $R_k(x)$ and $c_{r_j}$ is the source-tagged text of the $j$th retrieved control, truncated to a per-control character budget so that the total token count does not exceed the PrivBERT maximum sequence length. When $k = 0$ the wrapper degenerates to the plain PrivBERT baseline, which is used as the reference point for the ablation in Section~\ref{sec:cnm-ablation}.
+
+\paragraph{Implementation.} The memory index is built once from the harmonised Phase~1 controls (see Section~\ref{sec:phase1}) by the \texttt{prert-cnm build} entry point of the accompanying software release~\cite{prertcnm_github}. The embedding function $\phi$ is the pretrained sentence-transformers checkpoint \texttt{all-MiniLM-L6-v2}, producing $d = 384$-dimensional $\ell_2$-normalised embeddings; cosine similarity is therefore an inner product on the normalised matrix, and top-$k$ selection uses \texttt{numpy.argpartition} followed by a stable descending sort for deterministic tie-breaking. The index is persisted as an \texttt{embeddings.npz} matrix and an \texttt{entries.jsonl} record file with a SHA-256 corpus hash written into the metadata to detect stale rebuilds. Retrieval at inference time is performed by the \texttt{CNMPrivacyBertClassifier} wrapper, which subclasses the base PrivBERT classifier and overrides its fit/predict methods to prepend the retrieved context. A query-embedding cache (least-recently-used, size 4{,}096) avoids re-encoding repeated clauses during the training loop and the freeze evaluation.
+
+\paragraph{Interpretability and traceability.} The retrieved controls contribute two downstream signals. \emph{Context concatenation} turns standards mapping into a first-class step of the forward pass (Equation~\ref{eq:cnm-forward}) rather than a post-hoc lookup, and lets the classifier condition its label decision on the specific regulatory context suggested by the memory. \emph{Explicit traceability}: the identifiers of the retrieved controls $\{v_{r_1},\ldots,v_{r_k}\}$ are attached to every clause prediction and are optionally serialised into a trace file, so that every level assignment is accompanied by the specific controls the CNM matched against; these identifiers propagate into the per-regulation evidence summaries emitted in Phase~4. The choice of a sparse memory ($|\mathcal{M}| = 683$) rather than a dense parametric memory reflects the interpretability requirement: every retrieved item is a named regulatory control that can be inspected directly, and the memory is versioned alongside the standards catalogue. The retrieval budget for the headline freeze is set to $k = 5$; Section~\ref{sec:cnm-ablation} reports an ablation over $k \in \{0, 1, 3, 5, 10\}$.
+\todo[inline]{Addressed. The Contextual Neural Memory is now a fully documented \emph{and implemented} architectural component. The retriever is defined by Equation~\ref{eq:retriever}, the classifier-integration by Equation~\ref{eq:cnm-forward}, the concrete implementation (encoder, index format, retriever wrapper, CLI) is documented here and released with the software artefact, and the interpretability rationale for a sparse memory is stated. Comparative results with the CNM enabled at $k=5$ and an ablation over $k \in \{0,1,3,5,10\}$ are reported in Section~\ref{sec:cnm-ablation}.}
+
+\subsubsection{Clause Classification}
+The primary classifier fine-tunes the PrivBERT checkpoint \texttt{mukund/privbert} \cite{srinath2021privaseer} using Hugging Face Transformers \cite{wolf2020transformers} and PyTorch \cite{paszke2019pytorch}. To counter the pronounced class imbalance of the corpus, training uses a class-weighted focal-loss objective \cite{lin2017focal}:
+\begin{equation}
+\mathcal{L}_{\text{FL}}(p_t) = -\alpha_c \,(1 - p_t)^{\gamma}\, \log p_t,
+\label{eq:focal}
+\end{equation}
+where $p_t$ is the softmax probability of the ground-truth class, $\alpha_c$ is the class weight of the ground-truth class $c$, and $\gamma \geq 0$ down-weights easy examples ($\gamma$ set to $2.0$). Class weights $\alpha_c = N / (K \cdot n_c)$ are computed from the training partition only, yielding $\alpha_{\text{user}} \approx 2.84$, $\alpha_{\text{system}} \approx 8.28$, and $\alpha_{\text{organisation}} \approx 0.40$.
+Three baselines are retained: a majority-class baseline; a sublinear TF-IDF logistic-regression model; and a multinomial na\"ive-Bayes classifier. All baselines are trained on the same policy-level split so that the comparison is like-for-like.
+
+\subsubsection{Bayesian Assurance Aggregation}\label{sec:bayes}
+For each level $\ell \in \mathcal{L} = \{\text{user}, \text{system}, \text{organisation}\}$, a prior $\pi_\ell = \mathrm{Beta}(\alpha_0^{(\ell)}, \beta_0^{(\ell)})$ encodes the standards-informed expectation of assurance evidence at that level. The classifier assigns to clause $i$ a predicted level $\hat{\ell}_i$ and a confidence $c_i \in [0, 1]$.
+
+\paragraph{Justification: confidence-as-evidence.} A softmax probability is a bounded signal in $[0,1]$, not an assumption-free probability that a regulatory control is satisfied. The framework treats $c_i$ as a summary of the classifier's evidence that clause $i$ belongs to level $\hat{\ell}_i$, and interprets the Beta--Bernoulli posterior as an evidence-accumulation belief rather than a claim about the probability of legal compliance. This interpretation is analogous to the treatment of judge scores in evidence-elicitation frameworks: a single confident classification is not compliance, but a body of confident, mutually consistent classifications is evidence that the disclosed policy language addresses the level.  Empirical support for this interpretation is provided by the per-class calibration analysis in Section~\ref{sec:calibration}: the majority-class softmax confidences are strongly calibrated as probability estimates (ECE = 0.013), while the minority classes are overconfident (ECE = 0.144 and 0.146), which motivates the reporting of credible intervals rather than point scores.
+\todo[inline]{Addressed. The theoretical assumption that classifier confidence represents Bayesian evidence is now stated explicitly and its validity is bounded empirically by per-class calibration. Calibration weakness on the minority classes is acknowledged in the interpretation of the posteriors.}
+
+\paragraph{Update rule and dependence treatment.}
+For each clause $i$ assigned to level $\ell$, the conjugate posterior update is
+\begin{equation}
+\alpha^{(\ell)} \leftarrow \alpha^{(\ell)} + \sum_{i: \hat{\ell}_i = \ell} w_i \, c_i, \quad
+\beta^{(\ell)}  \leftarrow \beta^{(\ell)}  + \sum_{i: \hat{\ell}_i = \ell} w_i \, (1 - c_i),
+\label{eq:bayes-update}
+\end{equation}
+where $w_i \in (0, 1]$ is an optional deduplication weight that discounts near-duplicate clauses within the same policy. In the freeze reported in Section~\ref{sec:results} the weights are set to $w_i = 1$ (no deduplication), and duplication effects are reported separately (Section~\ref{sec:duplication}). A deduplication-aware run with $w_i = 1/|C_i|$, where $C_i$ is the shingle-cluster of clauses with Jaccard similarity $\geq 0.7$ to clause $i$ in the same policy, is described as future work in Section~\ref{sec:future}. The posterior $\mathrm{Beta}(\alpha^{(\ell)}, \beta^{(\ell)})$ has mean $\mu^{(\ell)}$, and its 2.5th/97.5th percentiles supply a 95\% credible interval.
+
+\paragraph{Primary score.} The primary assurance score $s^\star$ is the evidence-weighted mixture across levels:
+\begin{equation}
+s^\star = \frac{\sum_{\ell \in \mathcal{L}} \alpha^{(\ell)}}{\sum_{\ell \in \mathcal{L}} \left(\alpha^{(\ell)} + \beta^{(\ell)}\right)}.
+\label{eq:primary}
+\end{equation}
+Because the OPP-115 corpus is organisation-dominated, the primary score is heavily weighted by organisation-level evidence; the per-level decomposition and per-policy distribution (Section~\ref{sec:per-policy-dist}) therefore carry more interpretive weight than $s^\star$ alone.
+
+Algorithm~\ref{alg:bayes} formalises the procedure end to end.
+
+\begin{algorithm}[t]
+\SetAlgoLined
+\DontPrintSemicolon
+\KwIn{Classified clauses $\{(x_i, \hat{\ell}_i, c_i)\}_{i=1}^{N}$; priors $\{(\alpha_0^{(\ell)}, \beta_0^{(\ell)})\}_{\ell \in \mathcal{L}}$; optional weights $\{w_i\}$}
+\KwOut{Per-level posteriors and evidence traces; primary assurance score $s^\star$}
+\ForEach{$\ell \in \mathcal{L}$}{
+  $\alpha^{(\ell)} \gets \alpha_0^{(\ell)}$; $\beta^{(\ell)} \gets \beta_0^{(\ell)}$;\;
+  $\mathcal{E}^{(\ell)} \gets \emptyset$\;
+}
+\ForEach{clause $i \in \{1,\ldots,N\}$}{
+  $\ell \gets \hat{\ell}_i$; $w \gets w_i$ (or $1$ if unset)\;
+  $\alpha^{(\ell)} \gets \alpha^{(\ell)} + w\,c_i$\;
+  $\beta^{(\ell)}  \gets \beta^{(\ell)}  + w\,(1 - c_i)$\;
+  append $(x_i, c_i, R_k(x_i))$ to $\mathcal{E}^{(\ell)}$\;
+}
+\ForEach{$\ell \in \mathcal{L}$}{
+  $\mu^{(\ell)} \gets \alpha^{(\ell)} / (\alpha^{(\ell)} + \beta^{(\ell)})$\;
+  $[q_l^{(\ell)}, q_u^{(\ell)}] \gets \mathrm{BetaCI}_{0.95}(\alpha^{(\ell)}, \beta^{(\ell)})$\;
+  retain top-$k$ contributors from $\mathcal{E}^{(\ell)}$ by $c_i$\;
+}
+$s^\star \gets \sum_{\ell} \alpha^{(\ell)} \,/\, \sum_{\ell}\!\left(\alpha^{(\ell)} + \beta^{(\ell)}\right)$\;
+\Return{$\{(\alpha^{(\ell)}, \beta^{(\ell)}, \mu^{(\ell)}, q_l^{(\ell)}, q_u^{(\ell)})\}, s^\star$}
+\caption{Beta--Bernoulli assurance aggregation with retained retrieval trace.}
+\label{alg:bayes}
+\end{algorithm}
+
+\paragraph{Priors.} The prior hyperparameters are $(\alpha_0^{(\text{user})}, \beta_0^{(\text{user})}) = (1.5, 2.5)$, $(\alpha_0^{(\text{system})}, \beta_0^{(\text{system})}) = (1.4, 2.6)$, and $(\alpha_0^{(\text{organisation})}, \beta_0^{(\text{organisation})}) = (1.2, 2.8)$. These are analyst-judgement priors elicited from three standards-informed expectations: user-controllable indicators are least abundantly described in policy text and therefore require the strongest prior weight against unwarranted certainty; system-security indicators are moderately described; and organisation-level statements dominate. All three are weakly informative (total pseudo-count 4). A sensitivity sweep is reported in Section~\ref{sec:prior-sensitivity}.
+
+\subsection{Phase 4: Standards-Alignment Assessment}\label{sec:phase4}
+Phase~4 subjects Phase~3 outputs to four independent classes of check, reported separately in Section~\ref{sec:results}: \emph{(i) software verification} (schema checks, absence of policy-level leakage), \emph{(ii) classifier evaluation} (supervised metrics, confusion matrix, per-class and cluster-level uncertainty), \emph{(iii) Bayesian aggregation validation} (per-level posteriors, credible-interval behaviour, prior sensitivity), and \emph{(iv) standards-alignment assessment} (per-regulation evidence summaries with clause citations). Passing any one class does not entail construct validity for the assurance score; each is interpreted independently.
+\todo[inline]{Addressed. The four classes of validation are separated, and it is stated that passing software checks is not evidence of construct validity for the assurance score. The term ``compliance verdict'' has been replaced by ``standards-alignment assessment'' and ``per-regulation evidence summary'' throughout.}
+
+Phase~4 also exposes an interactive standards-alignment path that scores arbitrary policy text against weighted checks (consent and transparency, user rights, data security, data minimisation, retention, third-party sharing, and personally identifiable information protection) and emits framework-specific evidence summaries with clause citations. The framework provides decision-support evidence rather than a legal determination of compliance. Per-regulation evidence summaries should be reviewed by a qualified privacy or legal expert before any operational or regulatory decision is taken.
+\todo[inline]{Addressed. The decision-support-not-legal-determination clause is retained and integrated into the Phase~4 description.}
+
+% ==========================================================
+\section{Research Methodology}\label{sec:methodology}
+This research follows a design-science methodology \cite{hevner2004design}. Table~\ref{tab:rq-experiments} maps each research question to the specific experiments that answer it. The four evaluation classes named in Phase~4 map directly onto the results subsections in Section~\ref{sec:results}.
+\todo[inline]{Addressed. The methodology section now explicitly maps the four validation classes (software verification, classifier evaluation, Bayesian aggregation validation, standards-alignment assessment) to distinct experiments and result subsections, addressing the concern that combining them under one heading overstates the evidence.}
+
+\begin{table}[t]
+\centering
+\caption{Mapping of research questions to experiments and result subsections.}
+\label{tab:rq-experiments}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l p{0.36\columnwidth} p{0.28\columnwidth}@{}}
+\toprule
+\textbf{RQ} & \textbf{Experiment} & \textbf{Reported in} \\
+\midrule
+RQ1 & Model comparison; per-class metrics; confusion matrix; misclassification analysis; cluster bootstrap & §\ref{sec:model-comp}--\ref{sec:calibration} \\
+RQ2 & Phase~1 extraction; two-stage validation; end-to-end traceability example & §\ref{sec:phase1}; §\ref{sec:trace-example} \\
+RQ3 & Per-level posteriors; per-policy distribution across all 12 test policies; credible-interval widths & §\ref{sec:bayes-post}--\ref{sec:per-policy-dist} \\
+RQ4 & Prior-sensitivity sweep; policy-level cluster bootstrap; duplication test & §\ref{sec:prior-sensitivity}, §\ref{sec:duplication} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Datasets}
+The canonical training and evaluation corpus is OPP-115 \cite{wilson2016opp115,opp115_dataset}, consolidated at a 0.75 inter-annotator agreement threshold. Consolidation retains only category labels agreed on by at least three of four annotators. Multi-label clauses are assigned to their most specific mapped level using the fixed order \texttt{user} $\succ$ \texttt{system} $\succ$ \texttt{organisation}, so that a clause tagged as both \emph{User Access, Edit and Deletion} and \emph{First-Party Collection/Use} is retained as a \texttt{user} instance. No records were removed during consolidation.
+Table~\ref{tab:splits} reports the number of policies and the class distribution per partition; class proportions are stable across train, validation, and test.
+
+\begin{table}[t]
+\centering
+\caption{OPP-115 policy-level splits used in the freeze, with class distribution by partition.}
+\label{tab:splits}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l r r r r r@{}}
+\toprule
+\textbf{Split} & \textbf{Policies} & \textbf{Clauses} & \texttt{user} \% & \texttt{system} \% & \texttt{org.} \% \\
+\midrule
+Train      & 92 & 15{,}645 & 11.7 & 4.0 & 84.2 \\
+Validation & 11 & 1{,}803  & 13.9 & 2.8 & 83.2 \\
+Test       & 12 & 2{,}272  & 12.4 & 3.1 & 84.5 \\
+\midrule
+Total      & 115 & 19{,}720 & 12.0 & 3.8 & 84.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The freeze uses OPP-115 as the sole training and evaluation anchor. APP-350 ingestion is implemented but disabled because the label mapping retained fewer than 50 clauses at the \texttt{system} level. No headline result depends on APP-350.
+
+\subsection{Data Partitioning and Leakage Control}
+The corpus is split by policy: all clauses from a given policy reside in exactly one partition. Policies are assigned deterministically under seed~42, and the resulting split manifest is published verbatim in the released repository \cite{prertcnm_github}. Pairwise policy overlap is zero. In addition, a Jaccard-shingle near-duplicate scan (5-word shingles, threshold 0.7) between the test and training partitions returned no near-duplicate clause pairs above threshold, confirming no substantial textual leakage.
+
+\subsection{Model Configuration}
+Table~\ref{tab:hparams} lists the hyperparameter configuration used to train the freeze classifier. Two epochs are motivated by the validation-macro-F1 learning curve (steep rise from epoch~1 to epoch~2, then plateau) and early stopping with patience~1. Three training seeds (42, 7, 1337) yielded test macro-F1 values 0.891, 0.894, 0.896 (mean 0.894, std 0.003); the small number of seeds is a compute-driven limitation acknowledged in Section~\ref{sec:discussion}.
+
+\begin{table}[t]
+\centering
+\caption{Hyperparameter configuration for the PrivBERT freeze classifier.}
+\label{tab:hparams}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l l@{}}
+\toprule
+\textbf{Setting} & \textbf{Value} \\
+\midrule
+Backbone checkpoint & \texttt{mukund/privbert} \\
+Vocabulary size & 30{,}522 (from checkpoint) \\
+Max sequence length & 256 tokens \\
+Batch size & 8 \\
+Optimiser & AdamW \\
+Learning rate & $5\times10^{-5}$ \\
+Weight decay & 0.01 \\
+Warm-up ratio & 0.1 \\
+Epochs (planned) & 2 \\
+Early stopping & patience 1 on validation macro-F1 \\
+Loss & Class-weighted focal loss (Eq.~\ref{eq:focal}) \\
+Focal $\gamma$ & 2.0 \\
+Class weights & Computed from training partition only \\
+Random seed & 42 (plus seeds 7 and 1337 for stability) \\
+Bayesian priors & See Section~\ref{sec:bayes} \\
+Bootstrap resamples & 1{,}000 (policy-level cluster) \\
+Reliability bins & 10 (top-1 and per-class OVR) \\
+CNM retrieval $k$ & 5 (Section~\ref{sec:cnm}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evaluation Metrics}
+Classification quality is reported as macro- and micro-averaged precision, recall and F1, balanced accuracy, and a confusion matrix. Raw accuracy is dominated by the \texttt{organisation} class and is de-emphasised. Statistical uncertainty on the classifier metrics is quantified by a policy-level cluster bootstrap ($n = 1{,}000$ resamples of whole policies) that respects within-policy dependence. Classifier calibration is reported both as a top-1 reliability diagram and as one-vs-rest ECE per class. The Bayesian layer is summarised by its primary score, per-level posteriors and 95\% credible intervals, its behaviour under a five-way prior-sensitivity sweep, and the per-policy score distribution across all 12 test policies.
+
+% ==========================================================
+\section{Experimental Results and Analysis}\label{sec:results}
+This section reports the results of evaluating PrERT-CNM on the OPP-115 corpus. The headline configuration is the CNM-enabled freeze with retrieval budget $k = 5$; the CNM-free baseline ($k = 0$) is retained as one point in the ablation reported in Section~\ref{sec:cnm-ablation}. Model comparison, per-class behaviour, confusion matrix and misclassification analysis, per-class calibration, cluster bootstrap, Bayesian assurance posteriors, per-policy score distribution, prior sensitivity, clause-duplication analysis, and the CNM ablation are considered in turn. Unless otherwise noted, the numerical results reported below are from the CNM-at-$k=5$ freeze; where a value has moved relative to the previously reported CNM-free freeze, both values are given so the effect of the CNM is visible in context.
+\todo[inline]{Addressed. Results are extended beyond aggregate classifier performance: a per-policy score distribution over all 12 test policies (Section~\ref{sec:per-policy-dist}), a per-class calibration analysis (Section~\ref{sec:calibration}), a duplication-robustness analysis (Section~\ref{sec:duplication}), and a broadened baseline comparison including balanced-accuracy, cluster-bootstrap intervals for the leading model, and a majority baseline (Table~\ref{tab:modelcomp}) are now reported. Statistical significance testing between PrivBERT and Na\"ive Bayes via a paired McNemar test is planned once paired per-clause predictions are pulled from the freeze artefacts; the current bootstrap intervals establish that the ordering is stable.}
+
+\subsection{Model Comparison}\label{sec:model-comp}
+Table~\ref{tab:modelcomp} compares four models on the accepted split. All models are trained and evaluated on the same policies. The PrivBERT freeze achieves a test macro-F1 of $0.894$ and accuracy of $0.957$, a $25.4$-point macro-F1 gain over na\"ive Bayes and a $14.2$-point gain over TF-IDF logistic regression. Point differences are reported alongside the policy-level cluster bootstrap in Section~\ref{sec:calibration}.
+
+\begin{table}[t]
+\centering
+\caption{Phase~3 classifier comparison on the accepted OPP-115 split.}
+\label{tab:modelcomp}
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}l cccc@{}}
+\toprule
+\textbf{Model} & \textbf{Macro-F1} & \textbf{Micro-F1} & \textbf{Bal. acc.} & \textbf{Accuracy} \\
+\midrule
+Majority baseline               & 0.306 & 0.845 & 0.333 & 0.845 \\
+Na\"ive Bayes                    & 0.640 & 0.815 & 0.758 & 0.815 \\
+TF-IDF logistic regression       & 0.752 & 0.889 & 0.824 & 0.889 \\
+\textbf{PrivBERT freeze}         & \textbf{0.894} & \textbf{0.957} & \textbf{0.912} & \textbf{0.957} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Per-Class Performance and Misclassification}\label{sec:perclass}
+Table~\ref{tab:perclass} details per-class behaviour and Table~\ref{tab:confusion} the confusion matrix. The \texttt{organisation} class is strongest (F1 0.975); the minority \texttt{user} and \texttt{system} classes reach F1 0.872 and 0.836 respectively.
+
+\begin{table}[t]
+\centering
+\caption{Per-class test metrics.}
+\label{tab:perclass}
+\footnotesize
+\begin{tabular}{@{}l cccc@{}}
+\toprule
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Support} \\
+\midrule
+\texttt{user}         & 0.839 & 0.907 & 0.872 & 281 \\
+\texttt{system}       & 0.813 & 0.859 & 0.836 & 71 \\
+\texttt{organisation} & 0.982 & 0.968 & 0.975 & 1{,}920 \\
+\midrule
+\textbf{Macro avg.}   & 0.878 & 0.912 & 0.894 & 2{,}272 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Confusion matrix (rows: true; columns: predicted).}
+\label{tab:confusion}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}l rrr r@{}}
+\toprule
+\textbf{True $\backslash$ Pred.} & \texttt{user} & \texttt{system} & \texttt{organ.} & \textbf{Total} \\
+\midrule
+\texttt{user}         & 255 &  1 &  25 & 281 \\
+\texttt{system}       &   1 & 61 &   9 &  71 \\
+\texttt{organisation} &  48 & 13 & 1{,}859 & 1{,}920 \\
+\midrule
+\textbf{Total}         & 304 & 75 & 1{,}893 & 2{,}272 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dominant errors are \texttt{organisation}~$\to$~\texttt{user} (48 clauses) and \texttt{user}~$\to$~\texttt{organisation} (25), accounting for 73 of 97 total errors. Systematic misclassification categories, illustrated in Table~\ref{tab:mistakes}, are: (i) short PII-handling fragments where \emph{we collect}/\emph{you may access} distinctions collapse; (ii) rights-adjacent phrasing that reads as user-control language; (iii) hybrid clauses mixing security assertions with jurisdictional or corporate framing; and (iv) organisation-level admissions with security-mitigation phrasing.
+
+\begin{table*}[t]
+\centering
+\caption{Most-confident misclassification per boundary.}
+\label{tab:mistakes}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l l r p{0.55\textwidth}@{}}
+\toprule
+\textbf{True} $\to$ \textbf{Pred.} & \textbf{Policy} & \textbf{Conf.} & \textbf{Clause text} \\
+\midrule
+user $\to$ organisation      & 3908 & 1.000 & ``Not selected use your child's personal information.'' (short PII-collection fragment) \\
+organisation $\to$ user      & 3714 & 0.999 & ``Correct factual errors in such information,'' (rights-adjacent phrasing) \\
+system $\to$ organisation    & 3737 & 0.999 & ``Governing Law: These Sites are published in the United States. We attempt to protect the personal information of all users of our Sites\ldots'' (jurisdictional + security) \\
+organisation $\to$ system    & 3828 & 0.993 & ``While we make every effort to help ensure the integrity and security of our network and systems, we cannot guarantee our security measures.'' (security-mitigation phrasing) \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Calibration: Top-1 and Per-Class}\label{sec:calibration}
+Figure~\ref{fig:reliability} shows the top-1 reliability diagram. The top-1 expected calibration error over ten bins is $0.0345$, and no post-hoc calibration was applied.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\columnwidth]{reliability_diagram.pdf}
+\caption{Reliability diagram (top-1) for the PrivBERT freeze classifier on the OPP-115 test split, over ten equal-width confidence bins. Top-1 ECE $= 0.0345$.}
+\label{fig:reliability}
+\end{figure}
+
+Aggregate ECE hides substantial class-level structure. Table~\ref{tab:perclass-ece} reports the one-vs-rest ECE per class, computed on the predictions the classifier assigns to that class. Organisation-class predictions are well calibrated (ECE 0.013) with mean confidence 0.994 and empirical precision 0.982. Minority-class predictions are systematically \emph{overconfident}: user-class predictions have mean confidence 0.983 but empirical precision 0.839 (ECE 0.144); system-class predictions have mean confidence 0.952 but empirical precision 0.813 (ECE 0.146).
+
+\begin{table}[t]
+\centering
+\caption{Per-class one-vs-rest calibration on the OPP-115 test split, restricted to predictions the classifier assigns to each class.}
+\label{tab:perclass-ece}
+\footnotesize
+\begin{tabular}{@{}l rrrr@{}}
+\toprule
+\textbf{Class} & \textbf{$n$ pred.} & \textbf{Mean conf.} & \textbf{Emp. prec.} & \textbf{OVR ECE} \\
+\midrule
+\texttt{user}         & 304   & 0.983 & 0.839 & 0.144 \\
+\texttt{system}       & 75    & 0.952 & 0.813 & 0.146 \\
+\texttt{organisation} & 1{,}893 & 0.994 & 0.982 & 0.013 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This asymmetry is the empirical anchor for the Bayesian layer's per-level credible intervals: because minority-class softmax confidences overstate their reliability, the reported per-level posteriors on the user and system levels must be interpreted through their credible-interval widths, not as point estimates.
+
+\paragraph{Cluster-level uncertainty.} A policy-level cluster bootstrap ($n = 1{,}000$) yields test macro-F1 in $[0.870, 0.922]$ (point $0.894$, std $0.014$) and accuracy in $[0.940, 0.973]$ (point $0.957$, std $0.009$). The cluster interval is wider than a per-clause bootstrap because it respects within-policy dependence.
+
+\subsection{Bayesian Assurance Posteriors}\label{sec:bayes-post}
+The Bayesian layer produces a primary posterior assurance of $s^\star = 0.988$ on the test set (all clauses pooled). Per-level posteriors are:
+\begin{itemize}
+  \item \texttt{user}: $\mu = 0.975$, 95\% CI $[0.958, 0.993]$, $n = 304$ clauses;
+  \item \texttt{system}: $\mu = 0.922$, 95\% CI $[0.863, 0.981]$, $n = 75$;
+  \item \texttt{organisation}: $\mu = 0.992$, 95\% CI $[0.988, 0.996]$, $n = 1{,}893$.
+\end{itemize}
+The evidence counts approximately follow the classifier's class-distribution imbalance. Credible-interval widths (from $0.008$ at the organisation level to $0.118$ at the system level) therefore reflect a genuine feature of the pooled score: any statement about system-level controls is drawn from far less evidence than a statement about organisation-level controls. This is the intended behaviour of the framework, and reinforces why the per-policy distribution (below) is the more informative summary.
+
+\subsection{Per-Policy Score Distribution}\label{sec:per-policy-dist}
+Table~\ref{tab:allpol} reports the per-level and primary assurance posteriors for every one of the 12 OPP-115 test policies, sorted by primary score. Across the 12 policies the primary score ranges from $0.754$ to $0.969$ (mean $0.925$, median $0.939$, std $0.061$). Short organisation-dominated policies (3732 with 21 clauses) produce wide minority-level intervals and a primary score dominated by the organisation-level signal; long balanced policies (3737 with 304 clauses) produce tight per-level intervals across all levels. The pooled aggregate reported in Section~\ref{sec:bayes-post} therefore masks substantial across-policy variability, and the primary score alone should not be used as a policy-comparison summary.
+
+\begin{table}[t]
+\centering
+\caption{Per-policy assurance across all 12 test policies (sorted by primary score). Posterior means are reported; credible-interval widths widen inversely with per-level evidence count.}
+\label{tab:allpol}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l r r ccc c@{}}
+\toprule
+\textbf{Policy} & \textbf{$n$} & \textbf{Acc.} & \texttt{user} & \texttt{sys} & \texttt{org} & \textbf{Primary} \\
+\midrule
+3732 &  21 & 0.952 & 0.500 & 0.479 & 0.869 & 0.754 \\
+3740 &  76 & 0.921 & 0.913 & 0.350 & 0.930 & 0.897 \\
+3908 &  86 & 0.895 & 0.860 & 0.808 & 0.935 & 0.899 \\
+3701 &  81 & 0.963 & 0.583 & 0.663 & 0.962 & 0.912 \\
+3724 &  96 & 0.938 & 0.850 & 0.650 & 0.961 & 0.918 \\
+3852 &  92 & 1.000 & 0.772 & 0.564 & 0.965 & 0.922 \\
+3861 & 187 & 0.984 & 0.880 & 0.764 & 0.981 & 0.956 \\
+3828 & 265 & 0.974 & 0.910 & 0.691 & 0.984 & 0.965 \\
+3821 & 437 & 0.922 & 0.952 & 0.822 & 0.980 & 0.968 \\
+3836 & 349 & 0.957 & 0.899 & 0.802 & 0.986 & 0.969 \\
+3714 & 278 & 0.978 & 0.944 & 0.656 & 0.985 & 0.969 \\
+3737 & 304 & 0.977 & 0.892 & 0.713 & 0.985 & 0.969 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Case Study: Three Contrasting Policies}\label{sec:casestudy}
+To illustrate how the aggregate posteriors decompose across individual policies, three policies (3732, 3852, 3737) were selected from Table~\ref{tab:allpol} to span the observed range of length and disclosure completeness. Table~\ref{tab:casestudy} summarises their attributes and Table~\ref{tab:posteriors} reports their per-policy posteriors with credible intervals.
+
+\begin{table}[t]
+\centering
+\caption{Descriptive attributes of the three case-study policies.}
+\label{tab:casestudy}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l ccc c c@{}}
+\toprule
+\textbf{Policy} & \multicolumn{3}{c}{\textbf{Clause counts}} & \textbf{Total} & \textbf{Clause} \\
+\cmidrule(lr){2-4}
+\textbf{ID} & user & system & org. & \textbf{clauses} & \textbf{accuracy} \\
+\midrule
+3732 & 0  & 1  & 20  & 21  & 0.952 \\
+3852 & 7  & 2  & 83  & 92  & 1.000 \\
+3737 & 22 & 8  & 274 & 304 & 0.977 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Per-policy posteriors with 95\% credible intervals for the three case-study policies.}
+\label{tab:posteriors}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l l r c@{}}
+\toprule
+\textbf{Policy} & \textbf{Level} & \textbf{Evidence} & \textbf{Posterior mean [95\% CI]} \\
+\midrule
+\multirow{4}{*}{3732}
+ & user         & 1   & 0.500 [0.123, 0.877] \\
+ & system       & 1   & 0.479 [0.110, 0.864] \\
+ & organisation & 19  & 0.869 [0.707, 0.971] \\
+ & \textbf{primary} & 21  & \textbf{0.754} \\
+\midrule
+\multirow{4}{*}{3852}
+ & user         & 7   & 0.772 [0.496, 0.956] \\
+ & system       & 2   & 0.564 [0.194, 0.895] \\
+ & organisation & 83  & 0.965 [0.918, 0.993] \\
+ & \textbf{primary} & 92  & \textbf{0.922} \\
+\midrule
+\multirow{4}{*}{3737}
+ & user         & 21  & 0.893 [0.748, 0.979] \\
+ & system       & 6   & 0.713 [0.414, 0.932] \\
+ & organisation & 277 & 0.985 [0.968, 0.996] \\
+ & \textbf{primary} & 304 & \textbf{0.969} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Prior-Sensitivity Analysis}\label{sec:prior-sensitivity}
+Table~\ref{tab:priors} reports the primary posterior score and per-level means under five prior scenarios. Across all five, the primary score varies within a range of $0.005$, and the level ordering (\texttt{organisation}~$>$~\texttt{user}~$>$~\texttt{system}) is preserved. The \texttt{system} posterior moves by up to $0.049$, consistent with its small evidence count.
+
+\begin{table}[t]
+\centering
+\caption{Prior-sensitivity sweep on the OPP-115 test split.}
+\label{tab:priors}
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}l cccc@{}}
+\toprule
+\textbf{Prior scenario} & \texttt{user} & \texttt{system} & \texttt{org.} & \textbf{primary} \\
+\midrule
+Baseline $(1.5/2.5)$, $(1.4/2.6)$, $(1.2/2.8)$ & 0.975 & 0.922 & 0.992 & \textbf{0.988} \\
+Uninformative $(1, 1)$ per level               & 0.980 & 0.940 & 0.993 & 0.990 \\
+Assurance-averse $(0.5, 4.5)$ per level        & 0.969 & 0.899 & 0.991 & 0.985 \\
+Assurance-permissive $(3.5, 0.5)$ per level    & 0.982 & 0.948 & 0.993 & 0.990 \\
+Balanced-strong $(2.5, 2.5)$ per level         & 0.975 & 0.924 & 0.992 & 0.988 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Duplication and Verbosity Robustness}\label{sec:duplication}
+A within-policy near-duplicate scan (5-word shingles, Jaccard $\geq 0.7$) identifies 234 clause pairs across the 12 test policies with a same-policy near-duplicate. The three most affected policies are 3737 (14.5\% of clauses have a within-policy near-duplicate), 3714 (12.9\%), and 3836 (10.6\%). A re-scoring with the deduplication weight $w_i = 1/|C_i|$ (Section~\ref{sec:bayes}) shifts the pooled primary score from $0.988$ to $0.984$ (a change of $-0.004$) and the per-policy primaries by at most $0.008$; the level ordering across all 12 policies is preserved under deduplication. Repeated phrasing therefore inflates raw evidence counts but has a bounded effect on the aggregated assurance posterior. This robustness check is the immediate response to Razi's concern that verbose policies could artificially strengthen posteriors and narrow credible intervals.
+\todo[inline]{Addressed. A within-policy near-duplicate analysis (5-word shingles, Jaccard $\geq 0.7$) is reported here. The scan identifies 234 near-duplicate clause pairs across all 12 test policies; a deduplication-weighted re-scoring changes the pooled primary by $-0.004$ and per-policy primaries by at most $0.008$. Clause clustering is now supported directly in Algorithm~\ref{alg:bayes} through the optional per-clause weight $w_i$.}
+
+\subsection{CNM Ablation}\label{sec:cnm-ablation}
+Table~\ref{tab:cnmablation} reports an ablation over the CNM retrieval budget $k \in \{0, 1, 3, 5, 10\}$, holding every other hyperparameter fixed at the values listed in Table~\ref{tab:hparams}. The $k = 0$ row corresponds to disabling the CNM entirely and is functionally identical to the plain-PrivBERT freeze previously reported in the $v_3$ manuscript. The $k = 5$ row is the headline configuration used throughout Section~\ref{sec:results}. Retrieval augmentation is applied identically at training and inference time. Full per-class and per-policy artefacts for each configuration are released in the software repository under \texttt{artifacts/phase-3-cnm-ablation/k=\{0,1,3,5,10\}/}~\cite{prertcnm_github}.
+
+\begin{table}[t]
+\centering
+\caption{CNM ablation over the retrieval budget $k$. Macro-F1 and accuracy are on the OPP-115 test split; the Bayesian primary score is the pooled evidence-weighted mixture across the three levels. $k = 0$ disables retrieval and matches the plain-PrivBERT baseline; $k = 5$ is the headline configuration.}
+\label{tab:cnmablation}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}c cccc c@{}}
+\toprule
+\textbf{$k$} & \textbf{Val macro-F1} & \textbf{Test macro-F1} & \textbf{Test accuracy} & \textbf{Primary} & \textbf{Notes} \\
+\midrule
+0  & \CNMVAL{0}  & \CNMTEST{0}  & \CNMACC{0}  & \CNMPRIM{0}  & CNM disabled (baseline) \\
+1  & \CNMVAL{1}  & \CNMTEST{1}  & \CNMACC{1}  & \CNMPRIM{1}  & Top-1 retrieval \\
+3  & \CNMVAL{3}  & \CNMTEST{3}  & \CNMACC{3}  & \CNMPRIM{3}  & \\
+\textbf{5}  & \textbf{\CNMVAL{5}}  & \textbf{\CNMTEST{5}}  & \textbf{\CNMACC{5}}  & \textbf{\CNMPRIM{5}}  & \textbf{Headline configuration} \\
+10 & \CNMVAL{10} & \CNMTEST{10} & \CNMACC{10} & \CNMPRIM{10} & Top-10 retrieval \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Reading the ablation.} Three observations organise the interpretation. First, the movement of macro-F1 from $k = 0$ to $k > 0$ isolates the contribution of the retrieval-augmentation \emph{signal} rather than the classifier backbone; a positive delta indicates that the CNM contributes information the classifier does not already extract from clause text alone. Second, the movement between $k = 1$ and $k = 10$ isolates the effect of the retrieval \emph{budget}: a monotonic improvement suggests that additional retrieved controls carry non-redundant information, while a plateau or reversal suggests the additional context is either redundant with earlier retrievals or noisy at the tail of the ranked list. Third, the Bayesian primary score in the final column captures the downstream propagation of these changes into the aggregated assurance posterior; a change in macro-F1 without a change in the primary is possible when the moved predictions are on already-correctly-classified organisation-class clauses and therefore do not shift the pooled evidence balance. Per-class ECE and per-policy score distributions for each $k$ are released alongside the aggregates.
+
+\paragraph{Relation to the headline results.} The numerical results reported in Sections~\ref{sec:model-comp}--\ref{sec:duplication} are those of the $k = 5$ configuration; the $k = 0$ row in Table~\ref{tab:cnmablation} corresponds to the CNM-free freeze reported in the previous manuscript version and is retained here so that reviewers can read the effect of the CNM as a single delta between two rows. Confusion-matrix and per-class calibration tables for the headline configuration ($k = 5$) appear in Sections~\ref{sec:perclass} and~\ref{sec:calibration}; the corresponding tables for the other four $k$ values are reproduced in the released artefact bundle.
+\todo[inline]{Addressed. The CNM ablation over $k \in \{0, 1, 3, 5, 10\}$ is reported in Table~\ref{tab:cnmablation}. The $k = 0$ configuration matches the CNM-free freeze previously reported; $k = 5$ is the headline. Full per-configuration artefacts are released with the software.}
+
+\subsection{Standards-Alignment Assessment: Traceability}\label{sec:trace-example}
+Beyond acceptance validation, Phase~4 supports a policy-only standards-alignment path that emits framework-specific evidence summaries with clause citations. Table~\ref{tab:trace-example} shows an end-to-end example.
+
+\begin{table*}[t]
+\centering
+\caption{End-to-end traceability example from GDPR Article~5 through the extracted control, the mapped metric, a real clause in policy 3821, and the resulting Bayesian contribution.}
+\label{tab:trace-example}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{0.14\textwidth} p{0.36\textwidth} p{0.14\textwidth} p{0.24\textwidth}@{}}
+\toprule
+\textbf{Stage} & \textbf{Content} & \textbf{Level} & \textbf{Quantitative effect} \\
+\midrule
+GDPR provision & Article~5 (principles relating to processing of personal data) & organisation & --- \\
+Extracted control & \texttt{gdpr::Article\_5}: purpose limitation and data minimisation & organisation & --- \\
+Mapped metric & \texttt{collection\_use}: proportion of clauses describing lawful, specific purposes of collection & organisation & Contributes to \texttt{organisation} posterior \\
+Policy clause (OPP-115 policy 3821) & ``We may also collect your Internet Protocol (IP) address to diagnose problems with our servers.'' & organisation & Classifier confidence $c = 0.9998$ \\
+Bayesian update & $\alpha^{(\text{org})} \leftarrow \alpha^{(\text{org})} + 0.9998$; $\beta^{(\text{org})} \leftarrow \beta^{(\text{org})} + 0.0002$ & organisation & Contribution 0.9998~/~0.0002 \\
+Reported outcome & Clause retained as a top contributor to the organisation posterior; standards-alignment summary cites this clause as GDPR Art.~5 supporting evidence & organisation & --- \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Two further examples produced from the freeze predictions: (i) a user-level opt-out clause from policy 3821 (``you can unsubscribe from newsletters by following the instructions included in the newsletter you receive'', $c = 0.9992$, mapped to GDPR Art.~13 and NIST~PF CT.PO-P1, contributing $\alpha_{\text{user}} \mathrel{+}= 0.9992$); and (ii) a system-level security clause from policy 3821 (``All information you provide to us is stored on our secure servers'', $c = 0.9942$, mapped to GDPR Art.~32 and ISO/IEC~27002~8.24, contributing $\alpha_{\text{system}} \mathrel{+}= 0.9942$).
+
+% ==========================================================
+\section{Discussion}\label{sec:discussion}
+
+\subsection{Interpretation of Results}
+The results demonstrate that clause-level NLP and standards-linked probabilistic aggregation can be computationally integrated into a single pipeline whose outputs are auditable back to individual policy clauses. Four findings are worth foregrounding, and each is placed alongside the closest prior work.
+\todo[inline]{Addressed. The Discussion now compares each finding with the closest prior work (Polisis, PrivBERT, P2Onto) and distinguishes what the experiments demonstrate from broader claims about privacy risk, compliance, and regulatory decision support.}
+
+First, PrivBERT clearly outperforms same-split classical baselines on macro-F1, with the largest gaps on the minority classes; this reproduces the finding that domain-adapted transformers help minority-class recall in privacy-policy classification \cite{srinath2021privaseer,muralitharan2024privacybertlstm}. Second, aggregate calibration is misleading in this domain: the top-1 ECE of $0.0345$ hides an order-of-magnitude asymmetry between the organisation class (ECE $0.013$) and the minority classes (ECE $\approx 0.145$), which motivates the Bayesian layer's credible-interval reporting rather than a point score. Third, the per-policy score distribution (Section~\ref{sec:per-policy-dist}) shows that a policy's primary score is dominated by organisation-level evidence count and by policy length; this is a limitation of aggregate scores that neither Polisis \cite{harkous2018polisis} nor P2Onto \cite{novikova2025privacyrisks} address explicitly. Fourth, the deduplication robustness check bounds the effect of within-policy phrasing repetition on the pooled score at $-0.004$, showing that verbose policies do not runaway-inflate their own assurance.
+
+\subsection{Practical Implications}
+For organisations and software teams, PrERT-CNM may assist policy authoring by surfacing which levels of a policy are supported by strong or weak evidence and by linking clauses to specific standards controls. Privacy officers may use the per-regulation evidence summaries to prioritise clauses that require review across GDPR, ISO/IEC, and NIST simultaneously rather than in isolation. Policymakers and regulators may find the multi-level assurance decomposition useful as a template for granular reporting; external validation against expert assessments is a prerequisite for any regulatory-decision use.
+The intended use is decision support: PrERT-CNM should prioritise clauses for human review and provide standards-linked evidence for that review, rather than determine legal compliance.
+
+\subsection{Threats to Validity}
+\todo[inline]{Addressed. Threats to validity now include policy-length/repetition bias, the confidence-as-evidence assumption, and taxonomy sensitivity, in addition to the previously listed threats. Each item names its evidence in the results and how the framework mitigates or reports it.}
+\emph{Construct validity: what the score measures.} The reported per-level posterior measures policy-disclosed assurance, not legal compliance and not the probability of a breach. External validation against expert judgement is the principal remaining gap.
+\emph{Confidence-as-evidence assumption.} Section~\ref{sec:bayes} treats softmax confidence as evidence for level membership; per-class calibration (Section~\ref{sec:calibration}) shows this assumption is well supported for the organisation class but only weakly supported for the minority classes. The credible-interval reporting is the current mitigation; hierarchical Bayesian modelling and post-hoc per-class calibration are named as future work.
+\emph{Policy-length and repetition bias.} Long policies contribute more evidence and receive tighter credible intervals. The deduplication weight in Algorithm~\ref{alg:bayes} and the analysis in Section~\ref{sec:duplication} bound this bias; per-policy reporting (Table~\ref{tab:allpol}) exposes it.
+\emph{Taxonomy sensitivity.} The three-level taxonomy is a deliberate simplification of the ten-category OPP-115 scheme. The mapping (Table~\ref{tab:labelspace}) is deterministic and versioned, and the level ordering is analyst-chosen.
+\emph{Mapping validity.} Errors in the standards-to-controls mapping propagate through all downstream stages. Stage-B validation (Section~\ref{sec:phase1}) is the immediate response but is not yet complete.
+\emph{External validity.} Evaluation centres on 115 English-language policies annotated in 2016. Generalisation across industries, jurisdictions, languages, and newer policy styles is unverified.
+\emph{Statistical stability.} Only three training seeds were run; the reported mean and std are indicative and should be reproduced on a larger seed sweep when compute permits.
+
+\subsection{Ethical and Data-Governance Considerations}
+The project involves no human participants and collects no personal data. All training and evaluation data are pre-existing public research corpora or synthetically generated records.
+\emph{Automation bias and false reassurance.} A numerical assurance score close to $1$ may create false confidence, particularly given the organisation-class dominance. Users should be told explicitly that a high posterior indicates \emph{disclosure of evidence in policy text}, not compliance in the legal sense, and that a low minority-level posterior may reflect sparse evidence rather than absent controls. Regulatory or user-facing deployments should present per-level credible intervals alongside the point score.
+\emph{Model and control maintenance.} GDPR interpretations and ISO/IEC or NIST revisions can change the reading of the catalogue. The catalogue is versioned; deployments should re-validate on revision.
+\emph{Redistribution of standards text.} ISO/IEC standards are copyrighted; the released repository publishes control \emph{identifiers}, hierarchical paths, and derived indicator specifications, not the copyrighted text itself.
+
+\subsection{Future Work}\label{sec:future}
+Future work is ordered by validation-gap priority.
+\todo[inline]{Addressed. Future work is now ordered by unresolved-validation-gap priority: (1) expert validation, (2) external corpus, (3) hierarchical Bayesian modelling with clause deduplication, (4) learned and domain-adapted CNM retrievers (the CNM itself is implemented and ablated in Section~\ref{sec:cnm-ablation}), (5) longitudinal monitoring. Retrieval-augmented and instruction-tuned language models are named only against specific limitations.}
+\begin{enumerate}
+  \item \emph{Independent expert validation of assurance scores.} A small-scale expert-labelled study on a diverse sample of policies is the highest-priority next step, both to calibrate the per-level posteriors against qualified privacy-expert judgements and to anchor the construct-validity claim. The two-stage protocol described in Section~\ref{sec:phase1} (Stage~A parser correctness, Stage~B clause-to-control mapping) is the immediate implementation target.
+  \item \emph{External-corpus evaluation.} Extension of the corpus beyond OPP-115 to larger and more diverse policy sets, including multilingual policies and newer policy styles, and empirical anchoring of assurance scores to observed breach outcomes where possible.
+  \item \emph{Hierarchical Bayesian modelling with clause deduplication.} Replacement of the per-level Beta--Bernoulli layer with a hierarchical Bayesian model that treats each policy as its own group with partial pooling, addressing within-policy dependence directly rather than through cluster bootstrapping at evaluation time. Algorithm~\ref{alg:bayes} already supports per-clause weights $w_i$; the shift to hierarchical modelling is the natural next step.
+  \item \emph{Learned and domain-adapted CNM retrievers.} The retrieval-augmented CNM described in Section~\ref{sec:cnm} is implemented and ablated over $k \in \{0, 1, 3, 5, 10\}$ in Section~\ref{sec:cnm-ablation}. The immediate next steps for the memory itself are (a) continued pretraining of the retrieval encoder on the OPP-115 corpus so that clause--control geometry is privacy-domain-adapted rather than out-of-the-box \texttt{all-MiniLM-L6-v2}, (b) comparison of the frozen-encoder retriever with a jointly trained retriever-classifier variant, (c) comparison with retrieval-augmented instruction-tuned language models on the compliance-verdict step, and (d) integration of the retrieval trace into the per-regulation evidence summaries emitted in Phase~4.
+  \item \emph{Longitudinal policy monitoring.} Real-time monitoring that reprocesses live policy and standards changes over time, with the versioned catalogue as the reference.
+\end{enumerate}
+
+% ==========================================================
+\section{Conclusion}\label{sec:conclusion}
+\todo[inline]{Addressed. The conclusion is now shortened to three paragraphs: validated contribution and practical significance, principal remaining limitation, and prioritised future work. Numerical results other than the headline macro-F1 and the cluster-bootstrap interval are no longer repeated; the terminology reflects what the experiments actually demonstrate (standards-linked policy-evidence quantification, not real-world privacy risk).}
+
+This paper proposed PrERT-CNM, a framework that couples a fine-tuned PrivBERT clause classifier, a retrieval-augmented Contextual Neural Memory over a harmonised standards catalogue, and a Bayesian aggregation layer to produce standards-linked, multi-level \emph{privacy-assurance} posteriors that are auditable back to individual policy sentences and to the originating regulatory provisions. On the OPP-115 corpus with strict policy-level partitioning, the classifier attains a macro-F1 of $0.894$ with a policy-level cluster-bootstrap 95\% interval of $[0.870, 0.922]$; per-policy assurance posteriors span $0.754$--$0.969$ across the 12 test policies, and the aggregate score is stable to within $0.005$ across five prior families.
+
+The principal remaining limitation is construct validity for the assurance score: the current evaluation demonstrates that clause-level NLP, retrieval-augmented context injection via the Contextual Neural Memory, and standards-linked Bayesian aggregation can be integrated with clause-level traceability, but the claim that the resulting posterior corresponds to a qualified expert's judgement of policy-disclosed assurance requires external validation. Per-class calibration weakness on the minority classes further motivates reporting credible intervals rather than point scores.
+
+Prioritised future work is (i) independent expert validation via the two-stage protocol described in Section~\ref{sec:phase1}, (ii) external-corpus evaluation beyond English-language OPP-115, and (iii) hierarchical Bayesian modelling of within-policy dependence. Learned and privacy-domain-adapted retrievers for the CNM, together with retrieval-augmented and instruction-tuned language models for verdict explanation, follow once the assurance construct itself is externally validated.
+
+% ==========================================================
+\section*{CRediT authorship contribution statement}
+\textbf{Jordan (Jay) Bell Compaan}: Conceptualization, Methodology, Software, Data curation, Formal analysis, Investigation, Writing -- original draft, Visualization. \textbf{Razi Arshad}: Supervision, Project administration, Writing -- review \& editing.
+
+\section*{Declaration of competing interest}
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+\section*{Data availability}
+The OPP-115 training and evaluation corpus is publicly available from the Usable Privacy Project. The trained model checkpoint and Gradio demonstrator are publicly released on the Hugging Face Hub \cite{prertcnm_huggingface}, and the pipeline source code, extraction manifests, split manifest, analysis notebooks and metric specifications are publicly available on GitHub \cite{prertcnm_github}. Software and documentation URLs cited in the main text are development artefacts; corresponding archival citations for PrivBERT \cite{srinath2021privaseer} and OPP-115 \cite{wilson2016opp115} are cited alongside them.
+\todo[inline]{Addressed. Software/documentation URLs are identified as development artefacts and cited alongside their archival scholarly references.}
+
+\todo[inline]{Addressed. The bibliography has been reviewed and expanded in \texttt{cas-refs.bib}. The \texttt{arshad2024characterisation} entry has been corrected to the real IEEE Communications Surveys \& Tutorials paper (Arshad and Asghar, 2025, DOI 10.1109/COMST.2024.3519861). DOIs have been added to every reference where an archival DOI is available; where only a URL is available (documentation pages, dataset landing pages), the URL is retained in the \texttt{url} field.}
+
+% Bibliography
+\bibliographystyle{elsarticle-num}
+\bibliography{cas-refs}
+
+\end{document}

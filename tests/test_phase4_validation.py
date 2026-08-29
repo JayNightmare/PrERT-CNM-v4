@@ -17,7 +17,9 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
             handle.write(json.dumps(row) + "\n")
 
 
-def _prediction_rows(prefix: str, count: int, label: str = "organization") -> list[dict]:
+def _prediction_rows(
+    prefix: str, count: int, label: str = "organization"
+) -> list[dict]:
     rows: list[dict] = []
     for index in range(count):
         rows.append(
@@ -157,9 +159,18 @@ def _write_phase3_artifacts(
             output_dir / "bayesian_risk_test.json",
             {
                 "levels": {
-                    "user": {"evidence_count": 2, "top_contributors": [{"example_id": "u-1"}]},
-                    "system": {"evidence_count": 1, "top_contributors": [{"example_id": "s-1"}]},
-                    "organization": {"evidence_count": 3, "top_contributors": [{"example_id": "o-1"}]},
+                    "user": {
+                        "evidence_count": 2,
+                        "top_contributors": [{"example_id": "u-1"}],
+                    },
+                    "system": {
+                        "evidence_count": 1,
+                        "top_contributors": [{"example_id": "s-1"}],
+                    },
+                    "organization": {
+                        "evidence_count": 3,
+                        "top_contributors": [{"example_id": "o-1"}],
+                    },
                 }
             },
         )
@@ -220,7 +231,9 @@ def _write_phase3_artifacts(
 
 def test_phase4_validation_passes_on_valid_artifacts(tmp_path: Path) -> None:
     artifact_dir = tmp_path / "phase-3"
-    _write_phase3_artifacts(artifact_dir, include_bayesian=True, source="polisis::normalized")
+    _write_phase3_artifacts(
+        artifact_dir, include_bayesian=True, source="polisis::normalized"
+    )
 
     report = evaluate_phase4_validation(
         artifact_dir=artifact_dir,
@@ -237,10 +250,14 @@ def test_phase4_validation_passes_on_valid_artifacts(tmp_path: Path) -> None:
 
 def test_phase4_validation_fails_when_prediction_count_mismatch(tmp_path: Path) -> None:
     artifact_dir = tmp_path / "phase-3"
-    _write_phase3_artifacts(artifact_dir, validation_rows=4, test_rows=3, include_bayesian=True)
+    _write_phase3_artifacts(
+        artifact_dir, validation_rows=4, test_rows=3, include_bayesian=True
+    )
 
     # Force mismatch by truncating validation predictions.
-    _write_jsonl(artifact_dir / "validation_predictions.jsonl", _prediction_rows("val", 2))
+    _write_jsonl(
+        artifact_dir / "validation_predictions.jsonl", _prediction_rows("val", 2)
+    )
 
     report = evaluate_phase4_validation(
         artifact_dir=artifact_dir,
@@ -258,7 +275,9 @@ def test_phase4_validation_fails_when_prediction_count_mismatch(tmp_path: Path) 
 
 def test_phase4_polisis_advisory_is_non_blocking(tmp_path: Path) -> None:
     artifact_dir = tmp_path / "phase-3"
-    _write_phase3_artifacts(artifact_dir, include_bayesian=False, source="opp115::consolidation-0.75")
+    _write_phase3_artifacts(
+        artifact_dir, include_bayesian=False, source="opp115::consolidation-0.75"
+    )
 
     report = evaluate_phase4_validation(
         artifact_dir=artifact_dir,
@@ -274,7 +293,9 @@ def test_phase4_polisis_advisory_is_non_blocking(tmp_path: Path) -> None:
 
 def test_phase4_polisis_requirement_is_blocking(tmp_path: Path) -> None:
     artifact_dir = tmp_path / "phase-3"
-    _write_phase3_artifacts(artifact_dir, include_bayesian=False, source="opp115::consolidation-0.75")
+    _write_phase3_artifacts(
+        artifact_dir, include_bayesian=False, source="opp115::consolidation-0.75"
+    )
 
     report = evaluate_phase4_validation(
         artifact_dir=artifact_dir,
@@ -295,8 +316,12 @@ def test_phase4_pipeline_writes_reports_and_leaderboard(tmp_path: Path) -> None:
     candidate_dir = tmp_path / "phase-3-candidate"
     output_dir = tmp_path / "phase-4"
 
-    _write_phase3_artifacts(baseline_dir, test_macro_f1=0.70, test_accuracy=0.75, include_bayesian=True)
-    _write_phase3_artifacts(candidate_dir, test_macro_f1=0.82, test_accuracy=0.86, include_bayesian=True)
+    _write_phase3_artifacts(
+        baseline_dir, test_macro_f1=0.70, test_accuracy=0.75, include_bayesian=True
+    )
+    _write_phase3_artifacts(
+        candidate_dir, test_macro_f1=0.82, test_accuracy=0.86, include_bayesian=True
+    )
 
     payload = run_phase4_validation(
         output_dir=output_dir,

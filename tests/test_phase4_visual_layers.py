@@ -27,24 +27,49 @@ class _DummyModelWithSetter:
 
 
 def test_run_visual_layers_single_clause_with_stubbed_backend(monkeypatch) -> None:
-    monkeypatch.setattr(visual_layers, "_get_model_bundle", lambda model_id, revision: _DummyBundle())
+    monkeypatch.setattr(
+        visual_layers, "_get_model_bundle", lambda model_id, revision: _DummyBundle()
+    )
 
-    def _fake_analyze(_bundle, text, _max_length, _selected_layers, _selected_heads, _top_tokens):
+    def _fake_analyze(
+        _bundle, text, _max_length, _selected_layers, _selected_heads, _top_tokens
+    ):
         return {
             "text": text,
             "token_count": 7,
             "tokens": ["[CLS]", "we", "collect", "data", "for", "support", "[SEP]"],
             "predictions": [{"label": "organization", "score": 0.92}],
             "layer_activation": [
-                {"layer": 1, "mean_norm": 1.2, "max_norm": 2.3, "mean_abs": 0.21, "activation_score": 0.53}
+                {
+                    "layer": 1,
+                    "mean_norm": 1.2,
+                    "max_norm": 2.3,
+                    "mean_abs": 0.21,
+                    "activation_score": 0.53,
+                }
             ],
             "attention": [
-                {"layer": 1, "head": 0, "mean": 0.11, "max": 0.45, "entropy": 1.23, "cls_focus": [{"token": "collect", "score": 0.25}]}
+                {
+                    "layer": 1,
+                    "head": 0,
+                    "mean": 0.11,
+                    "max": 0.45,
+                    "entropy": 1.23,
+                    "cls_focus": [{"token": "collect", "score": 0.25}],
+                }
             ],
             "math_breakdown": {"layer": 1, "supported": False, "note": "stub"},
             "step_trace": [{"step": "tokenize", "detail": "stub"}],
             "architecture": {
-                "nodes": [{"id": "input", "label": "Input Tokens", "group": "io", "level": 0, "trigger": 1.0}],
+                "nodes": [
+                    {
+                        "id": "input",
+                        "label": "Input Tokens",
+                        "group": "io",
+                        "level": 0,
+                        "trigger": 1.0,
+                    }
+                ],
                 "edges": [],
                 "triggered_node_ids": ["input"],
             },
@@ -72,7 +97,9 @@ def test_run_visual_layers_single_clause_with_stubbed_backend(monkeypatch) -> No
 
 
 def test_run_visual_layers_full_policy_aggregates(monkeypatch) -> None:
-    monkeypatch.setattr(visual_layers, "_get_model_bundle", lambda model_id, revision: _DummyBundle())
+    monkeypatch.setattr(
+        visual_layers, "_get_model_bundle", lambda model_id, revision: _DummyBundle()
+    )
     monkeypatch.setattr(
         visual_layers,
         "split_policy_clauses",
@@ -82,7 +109,9 @@ def test_run_visual_layers_full_policy_aggregates(monkeypatch) -> None:
         ],
     )
 
-    def _fake_analyze(_bundle, text, _max_length, _selected_layers, _selected_heads, _top_tokens):
+    def _fake_analyze(
+        _bundle, text, _max_length, _selected_layers, _selected_heads, _top_tokens
+    ):
         return {
             "text": text,
             "token_count": 10,
@@ -93,12 +122,27 @@ def test_run_visual_layers_full_policy_aggregates(monkeypatch) -> None:
                 {"layer": 2, "mean_norm": 1.1, "max_norm": 2.1, "mean_abs": 0.21},
             ],
             "attention": [
-                {"layer": 1, "head": 0, "mean": 0.12, "max": 0.41, "entropy": 1.1, "cls_focus": []}
+                {
+                    "layer": 1,
+                    "head": 0,
+                    "mean": 0.12,
+                    "max": 0.41,
+                    "entropy": 1.1,
+                    "cls_focus": [],
+                }
             ],
             "math_breakdown": {"layer": 1, "supported": False, "note": "stub"},
             "step_trace": [{"step": "tokenize", "detail": "stub"}],
             "architecture": {
-                "nodes": [{"id": "input", "label": "Input Tokens", "group": "io", "level": 0, "trigger": 1.0}],
+                "nodes": [
+                    {
+                        "id": "input",
+                        "label": "Input Tokens",
+                        "group": "io",
+                        "level": 0,
+                        "trigger": 1.0,
+                    }
+                ],
                 "edges": [],
                 "triggered_node_ids": ["input"],
             },
@@ -133,10 +177,34 @@ def test_render_and_export_svg(tmp_path: Path) -> None:
         "result": {
             "architecture": {
                 "nodes": [
-                    {"id": "input", "label": "Input Tokens", "group": "io", "level": 0, "trigger": 1.0},
-                    {"id": "embedding", "label": "Embeddings", "group": "embedding", "level": 1, "trigger": 1.0},
-                    {"id": "layer_1", "label": "Layer 1", "group": "transformer", "level": 2, "trigger": 0.7},
-                    {"id": "softmax", "label": "Softmax", "group": "head", "level": 3, "trigger": 1.0},
+                    {
+                        "id": "input",
+                        "label": "Input Tokens",
+                        "group": "io",
+                        "level": 0,
+                        "trigger": 1.0,
+                    },
+                    {
+                        "id": "embedding",
+                        "label": "Embeddings",
+                        "group": "embedding",
+                        "level": 1,
+                        "trigger": 1.0,
+                    },
+                    {
+                        "id": "layer_1",
+                        "label": "Layer 1",
+                        "group": "transformer",
+                        "level": 2,
+                        "trigger": 0.7,
+                    },
+                    {
+                        "id": "softmax",
+                        "label": "Softmax",
+                        "group": "head",
+                        "level": 3,
+                        "trigger": 1.0,
+                    },
                 ],
                 "edges": [
                     {"src": "input", "dst": "embedding", "weight": 1.0},

@@ -7,8 +7,12 @@ from random import Random
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from prert.extract.schema import stable_hash
-from prert.phase2.types import MetricSpec, SyntheticObservation, SyntheticPolicyClaim, SyntheticPolicyDocument
-
+from prert.phase2.types import (
+    MetricSpec,
+    SyntheticObservation,
+    SyntheticPolicyClaim,
+    SyntheticPolicyDocument,
+)
 
 SCENARIO_PROFILES: Dict[str, Dict[str, float]] = {
     "normal": {
@@ -38,9 +42,31 @@ SCENARIO_COMPLIANCE_BANDS = {
 }
 
 CLAIM_STATUS_PATTERNS = {
-    "normal": ("compliant", "compliant", "compliant", "partial", "compliant", "compliant", "noncompliant"),
-    "stressed": ("compliant", "partial", "partial", "noncompliant", "compliant", "partial"),
-    "adversarial": ("noncompliant", "partial", "noncompliant", "compliant", "partial", "noncompliant"),
+    "normal": (
+        "compliant",
+        "compliant",
+        "compliant",
+        "partial",
+        "compliant",
+        "compliant",
+        "noncompliant",
+    ),
+    "stressed": (
+        "compliant",
+        "partial",
+        "partial",
+        "noncompliant",
+        "compliant",
+        "partial",
+    ),
+    "adversarial": (
+        "noncompliant",
+        "partial",
+        "noncompliant",
+        "compliant",
+        "partial",
+        "noncompliant",
+    ),
 }
 
 CLAIM_STRENGTH_RANGES = {
@@ -95,9 +121,13 @@ def generate_synthetic_observations(
     for spec in metric_specs:
         for scenario in scenarios:
             profile = SCENARIO_PROFILES[scenario]
-            policy_claim_link = _select_policy_claim_link(policy_claim_index, scenario, spec, rnd)
+            policy_claim_link = _select_policy_claim_link(
+                policy_claim_index, scenario, spec, rnd
+            )
             total_checks = _sample_total_checks(spec.level, rnd)
-            failure_rate = _claim_adjusted_failure_rate(profile["failure_rate"], policy_claim_link)
+            failure_rate = _claim_adjusted_failure_rate(
+                profile["failure_rate"], policy_claim_link
+            )
             failure_count = _sample_failure_count(total_checks, failure_rate, rnd)
             # B5: cap missing_fields at len(required_fields) to honour the
             # MetricSpec contract instead of using a magic constant of 6.
@@ -105,7 +135,9 @@ def generate_synthetic_observations(
             missing_fields = _sample_missing_fields(
                 profile["missing_rate"], rnd, missing_field_cap
             )
-            confidence = round(rnd.uniform(profile["confidence_low"], profile["confidence_high"]), 4)
+            confidence = round(
+                rnd.uniform(profile["confidence_low"], profile["confidence_high"]), 4
+            )
 
             entity_type = spec.level
             # B1: derive entity_id deterministically from the control id so
@@ -173,8 +205,13 @@ def generate_synthetic_policy_documents(
     for scenario in scenarios:
         compliance_band = SCENARIO_COMPLIANCE_BANDS.get(scenario, "unknown")
         for policy_index in range(max(1, int(policies_per_scenario))):
-            organization, sector, region = ORGANIZATION_PROFILES[(policy_index + len(scenario)) % len(ORGANIZATION_PROFILES)]
-            policy_id = "policy::" + stable_hash(f"{scenario}|{policy_index}|{seed}|phase2")[:16]
+            organization, sector, region = ORGANIZATION_PROFILES[
+                (policy_index + len(scenario)) % len(ORGANIZATION_PROFILES)
+            ]
+            policy_id = (
+                "policy::"
+                + stable_hash(f"{scenario}|{policy_index}|{seed}|phase2")[:16]
+            )
             claim_count = rnd.randint(claims_low, claims_high)
             selected_specs = _select_policy_specs(specs, claim_count, rnd)
             claims: List[SyntheticPolicyClaim] = []
@@ -183,7 +220,9 @@ def generate_synthetic_policy_documents(
                 compliance_status = _claim_status_for_index(scenario, claim_index)
                 strength_low, strength_high = CLAIM_STRENGTH_RANGES[compliance_status]
                 compliance_strength = round(rnd.uniform(strength_low, strength_high), 4)
-                claim_type = rnd.choice(CLAIM_TYPES.get(spec.level, CLAIM_TYPES["organization"]))
+                claim_type = rnd.choice(
+                    CLAIM_TYPES.get(spec.level, CLAIM_TYPES["organization"])
+                )
                 claim_text = _render_claim_text(
                     spec=spec,
                     organization=organization,
@@ -191,7 +230,10 @@ def generate_synthetic_policy_documents(
                     compliance_status=compliance_status,
                     rnd=rnd,
                 )
-                claim_id = "claim::" + stable_hash(f"{policy_id}|{claim_index}|{spec.metric_id}")[:18]
+                claim_id = (
+                    "claim::"
+                    + stable_hash(f"{policy_id}|{claim_index}|{spec.metric_id}")[:18]
+                )
                 claims.append(
                     SyntheticPolicyClaim(
                         claim_id=claim_id,
@@ -257,7 +299,9 @@ def _sample_failure_count(total_checks: int, failure_rate: float, rnd: Random) -
     return failures
 
 
-def _sample_missing_fields(missing_rate: float, rnd: Random, max_fields: int = 6) -> int:
+def _sample_missing_fields(
+    missing_rate: float, rnd: Random, max_fields: int = 6
+) -> int:
     count = 0
     for _ in range(max_fields):
         if rnd.random() < missing_rate:
@@ -265,7 +309,9 @@ def _sample_missing_fields(missing_rate: float, rnd: Random, max_fields: int = 6
     return count
 
 
-def _select_policy_specs(specs: Sequence[MetricSpec], claim_count: int, rnd: Random) -> List[MetricSpec]:
+def _select_policy_specs(
+    specs: Sequence[MetricSpec], claim_count: int, rnd: Random
+) -> List[MetricSpec]:
     by_level: Dict[str, List[MetricSpec]] = defaultdict(list)
     for spec in specs:
         by_level[spec.level].append(spec)
@@ -337,7 +383,11 @@ def _render_claim_text(
         ),
     }
 
-    template = rnd.choice(templates.get((level, compliance_status), templates[("organization", compliance_status)]))
+    template = rnd.choice(
+        templates.get(
+            (level, compliance_status), templates[("organization", compliance_status)]
+        )
+    )
     return f"{template.format(org=organization, claim_type=claim_type)} This claim is mapped to {control_ref}."
 
 
@@ -407,17 +457,23 @@ def _select_policy_claim_link(
     spec: MetricSpec,
     rnd: Random,
 ) -> Optional[PolicyClaimLink]:
-    metric_matches = policy_claim_index.get("by_metric", {}).get((scenario, spec.metric_id), [])
+    metric_matches = policy_claim_index.get("by_metric", {}).get(
+        (scenario, spec.metric_id), []
+    )
     if metric_matches:
         return rnd.choice(metric_matches)
 
-    level_matches = policy_claim_index.get("by_level", {}).get((scenario, spec.level), [])
+    level_matches = policy_claim_index.get("by_level", {}).get(
+        (scenario, spec.level), []
+    )
     if level_matches:
         return rnd.choice(level_matches)
     return None
 
 
-def _claim_adjusted_failure_rate(base_failure_rate: float, link: Optional[PolicyClaimLink]) -> float:
+def _claim_adjusted_failure_rate(
+    base_failure_rate: float, link: Optional[PolicyClaimLink]
+) -> float:
     if link is None:
         return base_failure_rate
 

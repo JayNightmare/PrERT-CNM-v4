@@ -4,27 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "prert-cnm-v4"
-version = "0.6.0"
+version = "0.7.2"
 description = "An open-source framework for Strengthening User Privacy through AI-Driven Risk Quantification and International Standards Alignment"
 readme = "docs/README.md"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.11,<=3.15"
 dependencies = [
-  "accelerate>=1.13.0",
+  "accelerate>=1.14.0",
   "chromadb>=1.5.9",
   "httpx>=0.28.1",
-  "matplotlib>=3.10.9",
-  "PyYAML>=6.0.2",
-  "scikit-learn>=1.8.0",
-  "python-dotenv>=1.2.2",
+  "matplotlib>=3.11.1",
+  "PyYAML>=6.0.3",
+  "scikit-learn>=1.9.0",
+  "sentence-transformers>=6.0.0",
+  "python-dotenv>=1.2.3",
   "python-docx>=1.2.0",
-  "pypdf>=6.10.2",
-  "pytest>=9.0.3",
-  "audioop-lts>=0.2.2; python_version >= '3.13'",
-  "ruff>=0.15.12",
-  "torch>=2.11.0",
-  "transformers>=5.8.0",
-  "gradio>=6.19.0",
-  "huggingface_hub>=1.21.0",
+  "pypdf>=6.16.2",
+  "pytest>=9.1.1",
+  "audioop-lts>=0.2.2",
+  "ruff>=0.16.4",
+  "torch>=2.13.0",
+  "transformers>=5.16.1",
+  "gradio>=6.26.0",
+  "huggingface_hub>=1.29.0",
 ]
 
 [project.scripts]
@@ -35,6 +36,9 @@ prert-phase2 = "prert.cli.phase2:main"
 prert-app350 = "prert.cli.app350:main"
 prert-phase3 = "prert.cli.phase3:main"
 prert-phase3-freeze = "prert.cli.phase3_freeze:main"
+prert-cnm = "prert.phase3.cnm.cli:main"
+prert-cnm-discover = "prert.phase3.cnm.discover_controls:main"
+prert-cnmv2 = "prert.cli.cnmv2:main"
 prert-phase4 = "prert.cli.phase4:main"
 prert-phase4-web = "prert.cli.phase4_web:main"
 prert-phase4-synth = "prert.cli.phase4_synthetic:main"

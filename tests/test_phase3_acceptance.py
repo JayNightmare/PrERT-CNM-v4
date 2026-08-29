@@ -17,11 +17,18 @@ def _write_minimum_artifacts(output_dir: Path) -> dict:
         "levels": {
             "user": {"evidence_count": 2, "top_contributors": [{"example_id": "u1"}]},
             "system": {"evidence_count": 1, "top_contributors": [{"example_id": "s1"}]},
-            "organization": {"evidence_count": 3, "top_contributors": [{"example_id": "o1"}]},
+            "organization": {
+                "evidence_count": 3,
+                "top_contributors": [{"example_id": "o1"}],
+            },
         }
     }
-    (output_dir / "bayesian_risk_test.json").write_text(json.dumps(bayesian_payload) + "\n", encoding="utf-8")
-    (output_dir / "bayesian_risk_validation.json").write_text(json.dumps(bayesian_payload) + "\n", encoding="utf-8")
+    (output_dir / "bayesian_risk_test.json").write_text(
+        json.dumps(bayesian_payload) + "\n", encoding="utf-8"
+    )
+    (output_dir / "bayesian_risk_validation.json").write_text(
+        json.dumps(bayesian_payload) + "\n", encoding="utf-8"
+    )
 
     return {
         "phase": "phase-3",
@@ -68,7 +75,9 @@ def test_phase3_acceptance_passes_for_privacybert_with_bayesian(tmp_path: Path) 
     assert report["acceptance"]["passed"] is True
 
 
-def test_phase3_acceptance_fails_when_privacybert_required_but_missing(tmp_path: Path) -> None:
+def test_phase3_acceptance_fails_when_privacybert_required_but_missing(
+    tmp_path: Path,
+) -> None:
     output_dir = tmp_path / "phase-3"
     manifest = _write_minimum_artifacts(output_dir)
     manifest["inputs"]["model_type"] = "logreg_tfidf"
@@ -81,7 +90,9 @@ def test_phase3_acceptance_fails_when_privacybert_required_but_missing(tmp_path:
     )
 
     assert report["acceptance"]["passed"] is False
-    failed_names = {c["name"] for c in report["acceptance"]["checks"] if not c["passed"]}
+    failed_names = {
+        c["name"] for c in report["acceptance"]["checks"] if not c["passed"]
+    }
     assert "privacybert_model_required" in failed_names
 
 
@@ -121,5 +132,9 @@ def test_phase3_acceptance_can_require_polisis_source(tmp_path: Path) -> None:
     )
 
     assert report["acceptance"]["passed"] is False
-    failed_names = {c["name"] for c in report["acceptance"]["checks"] if c["required"] and not c["passed"]}
+    failed_names = {
+        c["name"]
+        for c in report["acceptance"]["checks"]
+        if c["required"] and not c["passed"]
+    }
     assert "polisis_source_required" in failed_names

@@ -29,7 +29,9 @@ def main() -> None:
 
 def _parse_args() -> argparse.Namespace:
     root = Path.cwd()
-    parser = argparse.ArgumentParser(description="Normalise APP-350 into a conservative Phase 3 auxiliary JSONL dataset")
+    parser = argparse.ArgumentParser(
+        description="Normalise APP-350 into a conservative Phase 3 auxiliary JSONL dataset"
+    )
     parser.add_argument(
         "--input-path",
         type=Path,

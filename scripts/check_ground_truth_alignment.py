@@ -46,7 +46,9 @@ def load_iso_baseline(path: Path) -> Dict[str, Any]:
 
     standards = payload.get("iso_standards")
     if not isinstance(standards, dict):
-        raise ValueError("ISO baseline manifest must include an 'iso_standards' object.")
+        raise ValueError(
+            "ISO baseline manifest must include an 'iso_standards' object."
+        )
 
     return standards
 
@@ -99,7 +101,9 @@ def main() -> int:
             if cfg["source"].suffix.lower() == ".docx":
                 source_text = normalize(read_docx_text(cfg["source"]))
             else:
-                source_text = normalize(cfg["source"].read_text(encoding="utf-8", errors="ignore"))
+                source_text = normalize(
+                    cfg["source"].read_text(encoding="utf-8", errors="ignore")
+                )
 
         record_ids = [row["record_id"] for row in controls]
         normalized_ids = [row["normalized_id"] for row in controls]
@@ -117,7 +121,10 @@ def main() -> int:
             control_id = chunk.get("control_id")
             if control_id not in controls_by_id:
                 missing_chunk_refs += 1
-            if chunk.get("metadata", {}).get("regulation", "").lower() != chunk.get("regulation", "").lower():
+            if (
+                chunk.get("metadata", {}).get("regulation", "").lower()
+                != chunk.get("regulation", "").lower()
+            ):
                 metadata_reg_mismatch += 1
 
         sample = controls[:20]
@@ -129,14 +136,22 @@ def main() -> int:
 
         id_pattern_ok = True
         if reg == "gdpr":
-            id_pattern_ok = all(str(row.get("native_id", "")).startswith("Article ") for row in controls)
+            id_pattern_ok = all(
+                str(row.get("native_id", "")).startswith("Article ") for row in controls
+            )
         elif reg.startswith("iso"):
             id_pattern_ok = all(
-                re.match(r"^(?:[1-9]\d*|A)(?:\.[0-9]+|\.[a-z])*$", str(row.get("native_id", "")))
+                re.match(
+                    r"^(?:[1-9]\d*|A)(?:\.[0-9]+|\.[a-z])*$",
+                    str(row.get("native_id", "")),
+                )
                 for row in controls
             )
         elif reg == "nistpf":
-            id_pattern_ok = all(re.match(r"^[A-Z]{2}\.[A-Z]{2}-P\d+$", str(row.get("native_id", ""))) for row in controls)
+            id_pattern_ok = all(
+                re.match(r"^[A-Z]{2}\.[A-Z]{2}-P\d+$", str(row.get("native_id", "")))
+                for row in controls
+            )
 
         iso_baseline_ok = True
         missing_ids: list[str] = []
@@ -192,7 +207,9 @@ def main() -> int:
                 f"{'PASS' if iso_baseline_ok else 'FAIL'} "
                 f"missing={len(missing_ids)} extra={len(extra_ids)}"
             )
-            print(f"  baseline source file check={'PASS' if source_file_ok else 'FAIL'}")
+            print(
+                f"  baseline source file check={'PASS' if source_file_ok else 'FAIL'}"
+            )
             if missing_ids:
                 print(f"  missing ids sample={missing_ids[:10]}")
             if extra_ids:
@@ -217,12 +234,16 @@ def main() -> int:
         identity = ident_resp.json()
 
         databases = [str(x) for x in identity.get("databases", [])]
-        resolved_db = next((db for db in databases if db.lower() == db_config.lower()), db_config)
+        resolved_db = next(
+            (db for db in databases if db.lower() == db_config.lower()), db_config
+        )
 
         print(f"tenant={identity.get('tenant')}")
         print(f"configured_db={db_config} resolved_db={resolved_db}")
 
-        collections_resp = client.get(f"/api/v2/tenants/{tenant}/databases/{resolved_db}/collections")
+        collections_resp = client.get(
+            f"/api/v2/tenants/{tenant}/databases/{resolved_db}/collections"
+        )
         collections_resp.raise_for_status()
         collections = collections_resp.json()
         by_name = {item.get("name"): item for item in collections}

@@ -19,7 +19,12 @@ def test_build_opp115_public_rows_from_annotations(tmp_path: Path) -> None:
     _write_csv(
         opp115_root / "documentation" / "policies_opp115.csv",
         [
-            ["Policy UID", "Policy URL", "Policy collection date", "Policy last updated date"],
+            [
+                "Policy UID",
+                "Policy URL",
+                "Policy collection date",
+                "Policy last updated date",
+            ],
             ["105", "https://example.com/policy", "2016-02-08", "2016-02-07"],
         ],
     )
@@ -93,7 +98,12 @@ def test_run_opp115_processing_writes_outputs(tmp_path: Path) -> None:
     _write_csv(
         opp115_root / "documentation" / "policies_opp115.csv",
         [
-            ["Policy UID", "Policy URL", "Policy collection date", "Policy last updated date"],
+            [
+                "Policy UID",
+                "Policy URL",
+                "Policy collection date",
+                "Policy last updated date",
+            ],
             ["200", "https://example.org/policy", "2016-02-08", ""],
         ],
     )
@@ -110,7 +120,16 @@ def test_run_opp115_processing_writes_outputs(tmp_path: Path) -> None:
                 "Comments",
                 "Sectoral Data",
             ],
-            ["2", "example.org", "Org", "200", "2016-02-08", "Yes", "", "News: Newspapers"],
+            [
+                "2",
+                "example.org",
+                "Org",
+                "200",
+                "2016-02-08",
+                "Yes",
+                "",
+                "News: Newspapers",
+            ],
         ],
     )
     _write_csv(

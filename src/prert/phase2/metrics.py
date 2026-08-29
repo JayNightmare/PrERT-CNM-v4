@@ -7,7 +7,6 @@ from typing import Any, Dict, Iterable, List
 from prert.extract.schema import stable_hash
 from prert.phase2.types import MetricSpec
 
-
 USER_KEYWORDS = {
     "consent",
     "data subject",

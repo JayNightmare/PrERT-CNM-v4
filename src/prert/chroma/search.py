@@ -13,7 +13,9 @@ def build_dense_search(query: str, *, limit: int = 10) -> Any:
     )
 
 
-def build_sparse_search(query: str, *, limit: int = 10, sparse_key: str = "sparse_embedding") -> Any:
+def build_sparse_search(
+    query: str, *, limit: int = 10, sparse_key: str = "sparse_embedding"
+) -> Any:
     return _build_search_payload(
         query=query,
         limit=limit,
@@ -77,7 +79,10 @@ def _build_search_payload(query: str, *, limit: int, mode: str, **kwargs: Any) -
             )
             ranking = Rrf(
                 ranks=[dense_rank, sparse_rank],
-                weights=[kwargs.get("dense_weight", 0.7), kwargs.get("sparse_weight", 0.3)],
+                weights=[
+                    kwargs.get("dense_weight", 0.7),
+                    kwargs.get("sparse_weight", 0.3),
+                ],
                 k=kwargs.get("rrf_k", 60),
             )
 
@@ -92,22 +97,21 @@ def _build_search_payload(query: str, *, limit: int, mode: str, **kwargs: Any) -
                 )
             )
 
-        return (
-            search.limit(limit)
-            .select(
-                K.DOCUMENT,
-                K.SCORE,
-                K("regulation"),
-                K("control_id"),
-                K("source_document_id"),
-                K("chunk_index"),
-            )
+        return search.limit(limit).select(
+            K.DOCUMENT,
+            K.SCORE,
+            K("regulation"),
+            K("control_id"),
+            K("source_document_id"),
+            K("chunk_index"),
         )
     except Exception:
         return _fallback_payload(query=query, limit=limit, mode=mode, **kwargs)
 
 
-def _fallback_payload(query: str, *, limit: int, mode: str, **kwargs: Any) -> Dict[str, Any]:
+def _fallback_payload(
+    query: str, *, limit: int, mode: str, **kwargs: Any
+) -> Dict[str, Any]:
     payload: Dict[str, Any] = {
         "query": query,
         "mode": mode,

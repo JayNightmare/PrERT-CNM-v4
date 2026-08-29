@@ -93,7 +93,9 @@ def run_phase3_pipeline(
         manifest_input_set = "labeled"
     elif polisis_root is not None or polisis_source_dir is not None:
         if polisis_root is None:
-            raise ValueError("polisis_root is required when polisis_source_dir is not provided")
+            raise ValueError(
+                "polisis_root is required when polisis_source_dir is not provided"
+            )
         examples = build_polisis_clause_examples(
             polisis_root=polisis_root,
             input_set=polisis_input_set,
@@ -104,7 +106,9 @@ def run_phase3_pipeline(
         manifest_input_set = polisis_input_set
     else:
         if opp115_root is None:
-            raise ValueError("opp115_root is required when labeled_input_path is not provided")
+            raise ValueError(
+                "opp115_root is required when labeled_input_path is not provided"
+            )
         examples = build_opp115_clause_examples(
             opp115_root=opp115_root,
             input_set=input_set,
@@ -117,10 +121,7 @@ def run_phase3_pipeline(
         raise ValueError("No training examples were produced for Phase 3")
 
     primary_splits = split_examples_by_policy(examples=examples, seed=seed)
-    splits = {
-        split_name: list(rows)
-        for split_name, rows in primary_splits.items()
-    }
+    splits = {split_name: list(rows) for split_name, rows in primary_splits.items()}
     primary_dataset_manifest = build_dataset_manifest(
         splits=primary_splits,
         seed=seed,
@@ -237,7 +238,9 @@ def run_phase3_pipeline(
     write_json(output_dir / "calibration_validation.json", calibration_validation)
     write_json(output_dir / "calibration_test.json", calibration_test)
 
-    threshold_validation = compute_threshold_sweep(validation_predictions, labels=LABELS)
+    threshold_validation = compute_threshold_sweep(
+        validation_predictions, labels=LABELS
+    )
     threshold_test = compute_threshold_sweep(test_predictions, labels=LABELS)
     write_json(output_dir / "threshold_sweep_validation.json", threshold_validation)
     write_json(output_dir / "threshold_sweep_test.json", threshold_test)
@@ -265,8 +268,12 @@ def run_phase3_pipeline(
     }
     if enable_bayesian_scoring:
         priors = load_bayesian_priors(bayesian_priors_path)
-        validation_risk = compute_bayesian_risk(validation_predictions, priors=priors, top_k=bayesian_top_k)
-        test_risk = compute_bayesian_risk(test_predictions, priors=priors, top_k=bayesian_top_k)
+        validation_risk = compute_bayesian_risk(
+            validation_predictions, priors=priors, top_k=bayesian_top_k
+        )
+        test_risk = compute_bayesian_risk(
+            test_predictions, priors=priors, top_k=bayesian_top_k
+        )
         write_json(output_dir / "bayesian_risk_validation.json", validation_risk)
         write_json(output_dir / "bayesian_risk_test.json", test_risk)
         bayesian_payload = {
@@ -274,7 +281,9 @@ def run_phase3_pipeline(
             "validation": validation_risk,
             "test": test_risk,
             "primary_score": test_risk["overall"]["primary_score"],
-            "priors_source": str(bayesian_priors_path) if bayesian_priors_path else "default",
+            "priors_source": (
+                str(bayesian_priors_path) if bayesian_priors_path else "default"
+            ),
         }
 
     metrics_payload = {
@@ -324,8 +333,12 @@ def run_phase3_pipeline(
                 "thresholds": list(threshold_test.get("thresholds", [])),
             },
             "bootstrap": {
-                "validation_macro_f1_interval_95": bootstrap_validation["metrics"].get("macro_f1", {}).get("interval_95", {}),
-                "test_macro_f1_interval_95": bootstrap_test["metrics"].get("macro_f1", {}).get("interval_95", {}),
+                "validation_macro_f1_interval_95": bootstrap_validation["metrics"]
+                .get("macro_f1", {})
+                .get("interval_95", {}),
+                "test_macro_f1_interval_95": bootstrap_test["metrics"]
+                .get("macro_f1", {})
+                .get("interval_95", {}),
             },
         },
     }
@@ -353,8 +366,12 @@ def run_phase3_pipeline(
         ],
     )
 
-    _write_model_card(output_dir / "model_card.md", metrics_payload, dataset_source_summary)
-    _write_scoring_spec(output_dir / "scoring_spec.md", bayesian_enabled=enable_bayesian_scoring)
+    _write_model_card(
+        output_dir / "model_card.md", metrics_payload, dataset_source_summary
+    )
+    _write_scoring_spec(
+        output_dir / "scoring_spec.md", bayesian_enabled=enable_bayesian_scoring
+    )
     _write_prototype_demo(output_dir / "prototype_demo.md")
 
     resolved_run_id = (run_id or "").strip() or str(uuid4())
@@ -379,7 +396,11 @@ def run_phase3_pipeline(
             "polisis_input_set": polisis_input_set,
             "polisis_source_dir": str(polisis_source_dir) if polisis_source_dir else "",
             "labeled_input_path": str(labeled_input_path) if labeled_input_path else "",
-            "auxiliary_labeled_input_path": str(auxiliary_labeled_input_path) if auxiliary_labeled_input_path else "",
+            "auxiliary_labeled_input_path": (
+                str(auxiliary_labeled_input_path)
+                if auxiliary_labeled_input_path
+                else ""
+            ),
             "model_type": model_type,
             "privacybert_model_name": privacybert_model_name,
             "enable_bayesian_scoring": enable_bayesian_scoring,
@@ -401,11 +422,14 @@ def run_phase3_pipeline(
             "model_type": metrics_payload["model_type"],
             "labels": list(LABELS),
             "vocabulary_size": metrics_payload["training"]["vocabulary_size"],
-            "backbone_model_name": metrics_payload["training"].get("backbone_model_name", ""),
+            "backbone_model_name": metrics_payload["training"].get(
+                "backbone_model_name", ""
+            ),
             "checkpoint_path": str(checkpoint_path),
             "training_config": metrics_payload["training"]["config"],
         },
         "metrics": {
+            "model_type": metrics_payload["model_type"],
             "validation_macro_f1": metrics_payload["validation"]["macro_f1"],
             "test_macro_f1": metrics_payload["test"]["macro_f1"],
             "validation_accuracy": metrics_payload["validation"]["accuracy"],
@@ -414,7 +438,9 @@ def run_phase3_pipeline(
             "calibration_test_ece": calibration_test["overall"]["ece"],
             "calibration_test_macro_ece": calibration_test["macro_ece"],
         },
-        "primary_metric_surface": "bayesian_posterior" if enable_bayesian_scoring else "classifier_metrics",
+        "primary_metric_surface": (
+            "bayesian_posterior" if enable_bayesian_scoring else "classifier_metrics"
+        ),
         "output_files": {
             "training_dataset": "training_dataset.jsonl",
             "validation_dataset": "validation_dataset.jsonl",
@@ -431,8 +457,12 @@ def run_phase3_pipeline(
             "threshold_sweep_test": "threshold_sweep_test.json",
             "bootstrap_ci_validation": "bootstrap_ci_validation.json",
             "bootstrap_ci_test": "bootstrap_ci_test.json",
-            "bayesian_validation": "bayesian_risk_validation.json" if enable_bayesian_scoring else "",
-            "bayesian_test": "bayesian_risk_test.json" if enable_bayesian_scoring else "",
+            "bayesian_validation": (
+                "bayesian_risk_validation.json" if enable_bayesian_scoring else ""
+            ),
+            "bayesian_test": (
+                "bayesian_risk_test.json" if enable_bayesian_scoring else ""
+            ),
             "model_card": "model_card.md",
             "scoring_spec": "scoring_spec.md",
             "prototype_demo": "prototype_demo.md",
@@ -453,7 +483,9 @@ def run_phase3_pipeline(
             "training_sources": training_sources,
             "auxiliary_rows": auxiliary_summary["rows"],
             "auxiliary_source": auxiliary_summary["source"],
-            "backbone_model_name": manifest["model_summary"].get("backbone_model_name", ""),
+            "backbone_model_name": manifest["model_summary"].get(
+                "backbone_model_name", ""
+            ),
             "primary_metric_surface": manifest["primary_metric_surface"],
             "metrics": manifest["metrics"],
             "bayesian_enabled": bool(enable_bayesian_scoring),
@@ -463,7 +495,9 @@ def run_phase3_pipeline(
     return manifest
 
 
-def _write_model_card(path: Path, metrics_payload: Dict[str, Any], source_name: str) -> None:
+def _write_model_card(
+    path: Path, metrics_payload: Dict[str, Any], source_name: str
+) -> None:
     text = f"""# Phase 3 Baseline Model Card
 
 ## Model
@@ -503,7 +537,8 @@ Test:
 
 
 def _write_scoring_spec(path: Path, bayesian_enabled: bool) -> None:
-    bayesian_section = """
+    bayesian_section = (
+        """
 ## Bayesian Risk Outputs
 
 - bayesian_risk_validation.json
@@ -514,9 +549,13 @@ Each Bayesian output includes:
 - per-level posterior alpha/beta
 - posterior mean risk and interval bounds
 - top contributing clauses for each level
-""" if bayesian_enabled else ""
+"""
+        if bayesian_enabled
+        else ""
+    )
 
-    text = """# Phase 3 Baseline Scoring Specification
+    text = (
+        """# Phase 3 Baseline Scoring Specification
 
 ## Output Schema
 
@@ -535,13 +574,16 @@ Each Bayesian output includes:
 - calibration_ece and calibration_brier
 - threshold_sweep precision/recall/f1 by threshold
 - bootstrap confidence intervals for key held-out metrics
-""" + bayesian_section + """
+"""
+        + bayesian_section
+        + """
 
 ## Constraints
 
 - All metric values are in [0, 1] except support counts.
 - Dataset splits are deterministic for a fixed seed.
 """
+    )
     path.write_text(text, encoding="utf-8")
 
 

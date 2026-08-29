@@ -19,11 +19,17 @@ def compare_validation_reports(
         "artifact_dir": str(baseline.get("artifact_dir", "")),
         "name": Path(str(baseline.get("artifact_dir", ""))).name,
         "is_baseline": True,
-        "validation_passed": bool(_as_dict(baseline.get("validation")).get("passed", False)),
+        "validation_passed": bool(
+            _as_dict(baseline.get("validation")).get("passed", False)
+        ),
         "test_macro_f1": _to_optional_float(baseline_metrics.get("test_macro_f1")),
         "test_accuracy": _to_optional_float(baseline_metrics.get("test_accuracy")),
-        "bayesian_primary_score": _to_optional_float(baseline_metrics.get("bayesian_primary_score")),
-        "calibration_test_ece": _to_optional_float(baseline_metrics.get("calibration_test_ece")),
+        "bayesian_primary_score": _to_optional_float(
+            baseline_metrics.get("bayesian_primary_score")
+        ),
+        "calibration_test_ece": _to_optional_float(
+            baseline_metrics.get("calibration_test_ece")
+        ),
     }
     leaderboard.append(baseline_row)
 
@@ -34,11 +40,17 @@ def compare_validation_reports(
             "artifact_dir": artifact_dir,
             "name": Path(artifact_dir).name,
             "is_baseline": False,
-            "validation_passed": bool(_as_dict(report.get("validation")).get("passed", False)),
+            "validation_passed": bool(
+                _as_dict(report.get("validation")).get("passed", False)
+            ),
             "test_macro_f1": _to_optional_float(metrics.get("test_macro_f1")),
             "test_accuracy": _to_optional_float(metrics.get("test_accuracy")),
-            "bayesian_primary_score": _to_optional_float(metrics.get("bayesian_primary_score")),
-            "calibration_test_ece": _to_optional_float(metrics.get("calibration_test_ece")),
+            "bayesian_primary_score": _to_optional_float(
+                metrics.get("bayesian_primary_score")
+            ),
+            "calibration_test_ece": _to_optional_float(
+                metrics.get("calibration_test_ece")
+            ),
         }
         leaderboard.append(row)
 
@@ -46,13 +58,19 @@ def compare_validation_reports(
             {
                 "artifact_dir": artifact_dir,
                 "deltas": {
-                    "test_macro_f1": _delta(row.get("test_macro_f1"), baseline_row.get("test_macro_f1")),
-                    "test_accuracy": _delta(row.get("test_accuracy"), baseline_row.get("test_accuracy")),
+                    "test_macro_f1": _delta(
+                        row.get("test_macro_f1"), baseline_row.get("test_macro_f1")
+                    ),
+                    "test_accuracy": _delta(
+                        row.get("test_accuracy"), baseline_row.get("test_accuracy")
+                    ),
                     "bayesian_primary_score": _delta(
-                        row.get("bayesian_primary_score"), baseline_row.get("bayesian_primary_score")
+                        row.get("bayesian_primary_score"),
+                        baseline_row.get("bayesian_primary_score"),
                     ),
                     "calibration_test_ece": _delta(
-                        row.get("calibration_test_ece"), baseline_row.get("calibration_test_ece")
+                        row.get("calibration_test_ece"),
+                        baseline_row.get("calibration_test_ece"),
                     ),
                 },
             }

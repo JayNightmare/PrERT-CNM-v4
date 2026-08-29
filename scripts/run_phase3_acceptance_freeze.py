@@ -2,6 +2,5 @@
 
 from prert.cli.phase3_freeze import main
 
-
 if __name__ == "__main__":
     main()

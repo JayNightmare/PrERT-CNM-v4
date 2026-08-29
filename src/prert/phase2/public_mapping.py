@@ -7,12 +7,16 @@ from typing import Any, Dict, List, Optional
 
 from prert.phase2.io import read_csv, read_jsonl
 
-
 FIELD_CANDIDATES = {
     "event_date": ["event_date", "date", "incident_date", "disclosure_date"],
     "country": ["country", "jurisdiction", "location"],
     "sector": ["sector", "industry"],
-    "records_affected": ["records_affected", "affected_records", "records", "impacted_records"],
+    "records_affected": [
+        "records_affected",
+        "affected_records",
+        "records",
+        "impacted_records",
+    ],
     "detection_to_response_hours": [
         "detection_to_response_hours",
         "response_hours",
@@ -39,7 +43,9 @@ def load_public_rows(path: Optional[Path]) -> List[Dict[str, Any]]:
     return []
 
 
-def map_public_rows(rows: List[Dict[str, Any]], source_name: str) -> List[Dict[str, Any]]:
+def map_public_rows(
+    rows: List[Dict[str, Any]], source_name: str
+) -> List[Dict[str, Any]]:
     mapped_rows: List[Dict[str, Any]] = []
 
     for idx, row in enumerate(rows):
@@ -53,7 +59,9 @@ def map_public_rows(rows: List[Dict[str, Any]], source_name: str) -> List[Dict[s
             mapped[target_key] = value
 
         mapped["records_affected"] = _to_int(mapped.get("records_affected"))
-        mapped["detection_to_response_hours"] = _to_float(mapped.get("detection_to_response_hours"))
+        mapped["detection_to_response_hours"] = _to_float(
+            mapped.get("detection_to_response_hours")
+        )
 
         missing_required = [
             field_name

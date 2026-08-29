@@ -30,7 +30,10 @@ def evaluate_phase3_acceptance(
     _add_check(
         checks,
         "policy_leakage_protection",
-        all(int(overlap.get(key, 1)) == 0 for key in ("train_validation", "train_test", "validation_test")),
+        all(
+            int(overlap.get(key, 1)) == 0
+            for key in ("train_validation", "train_test", "validation_test")
+        ),
         {
             "train_validation": int(overlap.get("train_validation", -1)),
             "train_test": int(overlap.get("train_test", -1)),
@@ -82,7 +85,8 @@ def evaluate_phase3_acceptance(
         _add_check(
             checks,
             "bayesian_primary_surface",
-            str(manifest.get("primary_metric_surface", "")).strip().lower() == "bayesian_posterior",
+            str(manifest.get("primary_metric_surface", "")).strip().lower()
+            == "bayesian_posterior",
             {"primary_metric_surface": manifest.get("primary_metric_surface")},
         )
         _add_check(
@@ -92,10 +96,14 @@ def evaluate_phase3_acceptance(
             {"bayesian_primary_score": metrics.get("bayesian_primary_score")},
         )
 
-    files_ok, file_details = _check_expected_files(output_dir=output_dir, output_files=output_files)
+    files_ok, file_details = _check_expected_files(
+        output_dir=output_dir, output_files=output_files
+    )
     _add_check(checks, "expected_artifacts_present", files_ok, file_details)
 
-    bayesian_details = _load_bayesian_details(output_dir=output_dir, output_files=output_files)
+    bayesian_details = _load_bayesian_details(
+        output_dir=output_dir, output_files=output_files
+    )
     if require_bayesian:
         _add_check(
             checks,
@@ -123,11 +131,15 @@ def evaluate_phase3_acceptance(
     }
 
 
-def write_phase3_acceptance_report(output_dir: Path, report: Mapping[str, Any]) -> Dict[str, str]:
+def write_phase3_acceptance_report(
+    output_dir: Path, report: Mapping[str, Any]
+) -> Dict[str, str]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     json_path = output_dir / "phase3_acceptance_report.json"
-    json_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    json_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     md_path = output_dir / "phase3_acceptance_report.md"
     md_path.write_text(_render_markdown(report), encoding="utf-8")
@@ -164,7 +176,9 @@ def _render_markdown(report: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _check_expected_files(output_dir: Path, output_files: Mapping[str, Any]) -> tuple[bool, Dict[str, Any]]:
+def _check_expected_files(
+    output_dir: Path, output_files: Mapping[str, Any]
+) -> tuple[bool, Dict[str, Any]]:
     required_keys = [
         "dataset_manifest",
         "classifier_metrics",
@@ -201,14 +215,20 @@ def _check_expected_files(output_dir: Path, output_files: Mapping[str, Any]) -> 
     return len(missing) == 0, {"present": present, "missing": missing}
 
 
-def _load_bayesian_details(output_dir: Path, output_files: Mapping[str, Any]) -> Dict[str, Any]:
+def _load_bayesian_details(
+    output_dir: Path, output_files: Mapping[str, Any]
+) -> Dict[str, Any]:
     test_rel = str(output_files.get("bayesian_test", "")).strip()
     if not test_rel:
         return {"has_evidence": False, "reason": "bayesian_test_output_not_declared"}
 
     test_path = output_dir / test_rel
     if not test_path.exists():
-        return {"has_evidence": False, "reason": "bayesian_test_output_missing", "path": str(test_path)}
+        return {
+            "has_evidence": False,
+            "reason": "bayesian_test_output_missing",
+            "path": str(test_path),
+        }
 
     payload = json.loads(test_path.read_text(encoding="utf-8"))
     levels = _as_dict(payload.get("levels"))
@@ -235,13 +255,20 @@ def _in_unit_interval(value: Any) -> bool:
     return 0.0 <= numeric <= 1.0
 
 
-def _resolve_polisis_details(dataset: Mapping[str, Any], inputs: Mapping[str, Any]) -> Dict[str, Any]:
+def _resolve_polisis_details(
+    dataset: Mapping[str, Any], inputs: Mapping[str, Any]
+) -> Dict[str, Any]:
     dataset_source = str(dataset.get("source", "")).strip()
     polisis_root = str(inputs.get("polisis_root", "")).strip()
     polisis_source_dir = str(inputs.get("polisis_source_dir", "")).strip()
     labeled_input_path = str(inputs.get("labeled_input_path", "")).strip()
 
-    indicators = [dataset_source.lower(), polisis_root.lower(), polisis_source_dir.lower(), labeled_input_path.lower()]
+    indicators = [
+        dataset_source.lower(),
+        polisis_root.lower(),
+        polisis_source_dir.lower(),
+        labeled_input_path.lower(),
+    ]
     has_polisis = any("polisis" in indicator for indicator in indicators)
 
     return {
@@ -260,12 +287,14 @@ def _add_check(
     details: Mapping[str, Any],
     required: bool = True,
 ) -> None:
-    checks.append({
-        "name": name,
-        "required": bool(required),
-        "passed": bool(passed),
-        "details": dict(details),
-    })
+    checks.append(
+        {
+            "name": name,
+            "required": bool(required),
+            "passed": bool(passed),
+            "details": dict(details),
+        }
+    )
 
 
 def _as_dict(value: Any) -> Dict[str, Any]:

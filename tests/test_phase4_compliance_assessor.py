@@ -43,7 +43,9 @@ def test_extract_schema_fields_from_sql_and_json() -> None:
       created_at TIMESTAMP
     );
     """
-    json_schema = '{"users": {"first_name": "string", "last_name": "string", "ssn": "string"}}'
+    json_schema = (
+        '{"users": {"first_name": "string", "last_name": "string", "ssn": "string"}}'
+    )
 
     sql_fields = extract_schema_fields(sql_schema)
     json_fields = extract_schema_fields(json_schema)
@@ -138,4 +140,7 @@ def test_assessor_preserves_clause_boundaries_for_evidence() -> None:
     )
     assert len(consent_check["evidence"]) == 1
     assert "optional data uses" in consent_check["evidence"][0].lower()
-    assert "third-party vendors process billing data" not in consent_check["evidence"][0].lower()
+    assert (
+        "third-party vendors process billing data"
+        not in consent_check["evidence"][0].lower()
+    )

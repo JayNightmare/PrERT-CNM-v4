@@ -6,7 +6,6 @@ from prert.phase3.classifier import PrivacyBertClassifier
 from prert.phase3.types import ClauseExample
 
 
-
 class _FakeTokenizer:
     @classmethod
     def from_pretrained(cls, _model_name: str) -> "_FakeTokenizer":
@@ -14,7 +13,10 @@ class _FakeTokenizer:
 
     def __call__(self, text, **_kwargs):  # type: ignore[no-untyped-def]
         if isinstance(text, list):
-            return {"input_ids": [[1] for _ in text], "attention_mask": [[1] for _ in text]}
+            return {
+                "input_ids": [[1] for _ in text],
+                "attention_mask": [[1] for _ in text],
+            }
         return {"input_ids": [[1]], "attention_mask": [[1]]}
 
 
@@ -103,7 +105,9 @@ def _install_import_stubs(monkeypatch, torch_stub, transformers_stub) -> None:
             return transformers_stub
         raise AssertionError(name)
 
-    monkeypatch.setattr("prert.phase3.classifier.importlib.import_module", _import_module)
+    monkeypatch.setattr(
+        "prert.phase3.classifier.importlib.import_module", _import_module
+    )
 
 
 def _make_examples():
@@ -131,7 +135,9 @@ def test_privacybert_fit_disables_pin_memory_without_accelerator(monkeypatch) ->
     assert _FakeTrainingArguments.calls[-1]["dataloader_pin_memory"] is False
 
 
-def test_privacybert_fit_enables_eval_and_best_model_with_validation(monkeypatch) -> None:
+def test_privacybert_fit_enables_eval_and_best_model_with_validation(
+    monkeypatch,
+) -> None:
     _FakeTrainingArguments.calls.clear()
     _FakeTrainer.calls.clear()
     _FakeEarlyStoppingCallback.instances.clear()
@@ -190,6 +196,26 @@ def test_privacybert_label_smoothing_applied_only_for_plain_ce(monkeypatch) -> N
 
     args = _FakeTrainingArguments.calls[-1]
     assert args["label_smoothing_factor"] == 0.1
+
+
+def test_evaluation_empty_examples_still_returns_predictions_list() -> None:
+    from prert.phase3.evaluation import evaluate_classifier
+
+    metrics = evaluate_classifier(
+        model=SimpleNamespace(
+            predict=lambda text: "user",
+            predict_proba=lambda text: {
+                "user": 1.0,
+                "system": 0.0,
+                "organization": 0.0,
+            },
+        ),
+        examples=[],
+        labels=["user", "system", "organization"],
+    )
+
+    assert metrics["rows"] == 0
+    assert metrics["predictions"] == []
 
 
 def test_privacybert_rejects_unsupported_loss_type() -> None:

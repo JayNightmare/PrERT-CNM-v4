@@ -24,7 +24,10 @@ class ChromaSettings:
         api_key = os.getenv("CHROMA_API_KEY", "").strip()
         tenant = os.getenv("CHROMA_TENANT", "").strip()
         database = os.getenv("CHROMA_DATABASE", "").strip()
-        default_collection = os.getenv("CHROMA_COLLECTION_NAME", "ground_truth").strip() or "ground_truth"
+        default_collection = (
+            os.getenv("CHROMA_COLLECTION_NAME", "ground_truth").strip()
+            or "ground_truth"
+        )
 
         missing = []
         if not api_key:

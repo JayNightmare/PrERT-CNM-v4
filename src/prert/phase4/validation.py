@@ -12,7 +12,6 @@ from prert.phase4.io import (
     resolve_output_path,
 )
 
-
 LABELS: tuple[str, str, str] = ("user", "system", "organization")
 
 
@@ -35,7 +34,10 @@ def evaluate_phase4_validation(
                 checks,
                 "phase3_manifest_present",
                 False,
-                {"reason": str(exc), "path": str(artifact_dir / "phase3_manifest.json")},
+                {
+                    "reason": str(exc),
+                    "path": str(artifact_dir / "phase3_manifest.json"),
+                },
             )
             return {
                 "phase": "phase-4",
@@ -137,7 +139,10 @@ def evaluate_phase4_validation(
     _add_check(
         checks,
         "policy_leakage_protection",
-        all(int(overlap.get(key, 1)) == 0 for key in ("train_validation", "train_test", "validation_test")),
+        all(
+            int(overlap.get(key, 1)) == 0
+            for key in ("train_validation", "train_test", "validation_test")
+        ),
         {
             "train_validation": int(overlap.get("train_validation", -1)),
             "train_test": int(overlap.get("train_test", -1)),
@@ -163,8 +168,14 @@ def evaluate_phase4_validation(
     validation_rows = load_optional_jsonl_rows(validation_predictions_path) or []
     test_rows = load_optional_jsonl_rows(test_predictions_path) or []
 
-    validation_target = int(_as_dict(_as_dict(merged_dataset.get("splits")).get("validation")).get("rows", -1))
-    test_target = int(_as_dict(_as_dict(merged_dataset.get("splits")).get("test")).get("rows", -1))
+    validation_target = int(
+        _as_dict(_as_dict(merged_dataset.get("splits")).get("validation")).get(
+            "rows", -1
+        )
+    )
+    test_target = int(
+        _as_dict(_as_dict(merged_dataset.get("splits")).get("test")).get("rows", -1)
+    )
     count_pass = True
     if validation_target >= 0:
         count_pass = count_pass and validation_target == len(validation_rows)
@@ -187,9 +198,13 @@ def evaluate_phase4_validation(
     _add_check(checks, "prediction_row_schema", schema_ok, schema_details)
 
     prob_ok, prob_details = _validate_probability_mass(validation_rows + test_rows)
-    _add_check(checks, "prediction_probability_mass", prob_ok, prob_details, required=False)
+    _add_check(
+        checks, "prediction_probability_mass", prob_ok, prob_details, required=False
+    )
 
-    executed_at = str(_as_dict(loaded_manifest.get("execution_metadata")).get("executed_at", ""))
+    executed_at = str(
+        _as_dict(loaded_manifest.get("execution_metadata")).get("executed_at", "")
+    )
     _add_check(
         checks,
         "manifest_timestamp_utc",
@@ -224,7 +239,9 @@ def evaluate_phase4_validation(
     bootstrap_payload = load_optional_json(bootstrap_path)
     if bootstrap_payload is not None:
         boot_ok, boot_details = _validate_bootstrap_intervals(bootstrap_payload)
-        _add_check(checks, "bootstrap_intervals_valid", boot_ok, boot_details, required=False)
+        _add_check(
+            checks, "bootstrap_intervals_valid", boot_ok, boot_details, required=False
+        )
 
     threshold_path = resolve_output_path(
         artifact_dir,
@@ -235,7 +252,13 @@ def evaluate_phase4_validation(
     threshold_payload = load_optional_json(threshold_path)
     if threshold_payload is not None:
         threshold_ok, threshold_details = _validate_threshold_sweep(threshold_payload)
-        _add_check(checks, "threshold_sweep_valid", threshold_ok, threshold_details, required=False)
+        _add_check(
+            checks,
+            "threshold_sweep_valid",
+            threshold_ok,
+            threshold_details,
+            required=False,
+        )
 
     bayesian_test_path = resolve_output_path(
         artifact_dir,
@@ -249,7 +272,13 @@ def evaluate_phase4_validation(
         _add_check(checks, "bayesian_evidence_available", bayes_ok, bayes_details)
     elif bayesian_payload is not None:
         bayes_ok, bayes_details = _validate_bayesian_evidence(bayesian_payload)
-        _add_check(checks, "bayesian_evidence_available", bayes_ok, bayes_details, required=False)
+        _add_check(
+            checks,
+            "bayesian_evidence_available",
+            bayes_ok,
+            bayes_details,
+            required=False,
+        )
 
     source = _resolve_dataset_source(loaded_manifest, merged_dataset)
     if require_polisis:
@@ -271,14 +300,25 @@ def evaluate_phase4_validation(
         )
 
     imbalance_ok, imbalance_details = _check_class_balance(merged_dataset)
-    _add_check(checks, "class_balance_distribution", imbalance_ok, imbalance_details, required=False)
+    _add_check(
+        checks,
+        "class_balance_distribution",
+        imbalance_ok,
+        imbalance_details,
+        required=False,
+    )
 
     required_checks = [check for check in checks if bool(check.get("required", True))]
     passed = all(bool(check["passed"]) for check in required_checks)
 
     summary = {
         "source": source,
-        "model_type": str(inputs.get("model_type", loaded_manifest.get("model_summary", {}).get("model_type", ""))),
+        "model_type": str(
+            inputs.get(
+                "model_type",
+                loaded_manifest.get("model_summary", {}).get("model_type", ""),
+            )
+        ),
         "metrics": {
             "validation_macro_f1": merged_metrics.get("validation_macro_f1"),
             "test_macro_f1": merged_metrics.get("test_macro_f1"),
@@ -311,7 +351,9 @@ def evaluate_phase4_validation(
     }
 
 
-def _derive_metrics(manifest_metrics: Mapping[str, Any], classifier_metrics: Mapping[str, Any]) -> Dict[str, Optional[float]]:
+def _derive_metrics(
+    manifest_metrics: Mapping[str, Any], classifier_metrics: Mapping[str, Any]
+) -> Dict[str, Optional[float]]:
     validation = _as_dict(classifier_metrics.get("validation"))
     test = _as_dict(classifier_metrics.get("test"))
     bayesian = _as_dict(classifier_metrics.get("bayesian"))
@@ -320,19 +362,32 @@ def _derive_metrics(manifest_metrics: Mapping[str, Any], classifier_metrics: Map
         "validation_macro_f1": _to_optional_float(
             manifest_metrics.get("validation_macro_f1", validation.get("macro_f1"))
         ),
-        "test_macro_f1": _to_optional_float(manifest_metrics.get("test_macro_f1", test.get("macro_f1"))),
+        "test_macro_f1": _to_optional_float(
+            manifest_metrics.get("test_macro_f1", test.get("macro_f1"))
+        ),
         "validation_accuracy": _to_optional_float(
             manifest_metrics.get("validation_accuracy", validation.get("accuracy"))
         ),
-        "test_accuracy": _to_optional_float(manifest_metrics.get("test_accuracy", test.get("accuracy"))),
-        "bayesian_primary_score": _to_optional_float(
-            manifest_metrics.get("bayesian_primary_score", bayesian.get("primary_score"))
+        "test_accuracy": _to_optional_float(
+            manifest_metrics.get("test_accuracy", test.get("accuracy"))
         ),
-        "calibration_test_ece": _to_optional_float(_as_dict(classifier_metrics.get("measurement_targets")).get("calibration", {}).get("test_ece")),
+        "bayesian_primary_score": _to_optional_float(
+            manifest_metrics.get(
+                "bayesian_primary_score", bayesian.get("primary_score")
+            )
+        ),
+        "calibration_test_ece": _to_optional_float(
+            _as_dict(classifier_metrics.get("measurement_targets"))
+            .get("calibration", {})
+            .get("test_ece")
+        ),
     }
 
 
-def _resolve_ece(metrics: Mapping[str, Optional[float]], calibration_payload: Optional[Mapping[str, Any]]) -> Optional[float]:
+def _resolve_ece(
+    metrics: Mapping[str, Optional[float]],
+    calibration_payload: Optional[Mapping[str, Any]],
+) -> Optional[float]:
     metric_ece = metrics.get("calibration_test_ece")
     if metric_ece is not None:
         return float(metric_ece)
@@ -346,7 +401,13 @@ def _validate_prediction_rows(
     validation_rows: Sequence[Mapping[str, Any]],
     test_rows: Sequence[Mapping[str, Any]],
 ) -> tuple[bool, Dict[str, Any]]:
-    required_fields = {"example_id", "policy_uid", "actual_label", "predicted_label", "confidence"}
+    required_fields = {
+        "example_id",
+        "policy_uid",
+        "actual_label",
+        "predicted_label",
+        "confidence",
+    }
 
     checked = 0
     invalid_examples: List[str] = []
@@ -371,7 +432,9 @@ def _validate_prediction_rows(
     }
 
 
-def _validate_probability_mass(rows: Sequence[Mapping[str, Any]]) -> tuple[bool, Dict[str, Any]]:
+def _validate_probability_mass(
+    rows: Sequence[Mapping[str, Any]],
+) -> tuple[bool, Dict[str, Any]]:
     inspected = 0
     invalid = 0
     missing_probabilities = 0
@@ -423,7 +486,9 @@ def _validate_probability_mass(rows: Sequence[Mapping[str, Any]]) -> tuple[bool,
     }
 
 
-def _validate_bootstrap_intervals(payload: Mapping[str, Any]) -> tuple[bool, Dict[str, Any]]:
+def _validate_bootstrap_intervals(
+    payload: Mapping[str, Any],
+) -> tuple[bool, Dict[str, Any]]:
     metrics = _as_dict(payload.get("metrics"))
     checked = 0
     invalid = 0
@@ -453,7 +518,9 @@ def _validate_bootstrap_intervals(payload: Mapping[str, Any]) -> tuple[bool, Dic
     }
 
 
-def _validate_threshold_sweep(payload: Mapping[str, Any]) -> tuple[bool, Dict[str, Any]]:
+def _validate_threshold_sweep(
+    payload: Mapping[str, Any],
+) -> tuple[bool, Dict[str, Any]]:
     by_label = _as_dict(payload.get("by_label"))
     series_count = 0
     invalid_points = 0
@@ -477,7 +544,9 @@ def _validate_threshold_sweep(payload: Mapping[str, Any]) -> tuple[bool, Dict[st
     }
 
 
-def _validate_bayesian_evidence(payload: Optional[Mapping[str, Any]]) -> tuple[bool, Dict[str, Any]]:
+def _validate_bayesian_evidence(
+    payload: Optional[Mapping[str, Any]],
+) -> tuple[bool, Dict[str, Any]]:
     if payload is None:
         return False, {"reason": "bayesian_payload_missing"}
 
@@ -497,7 +566,9 @@ def _validate_bayesian_evidence(payload: Optional[Mapping[str, Any]]) -> tuple[b
     }
 
 
-def _check_class_balance(dataset_manifest: Mapping[str, Any]) -> tuple[bool, Dict[str, Any]]:
+def _check_class_balance(
+    dataset_manifest: Mapping[str, Any],
+) -> tuple[bool, Dict[str, Any]]:
     distribution = _as_dict(dataset_manifest.get("class_distribution"))
     total = sum(int(value) for value in distribution.values())
     if total <= 0:
@@ -515,7 +586,9 @@ def _check_class_balance(dataset_manifest: Mapping[str, Any]) -> tuple[bool, Dic
     }
 
 
-def _resolve_dataset_source(manifest: Mapping[str, Any], dataset_manifest: Mapping[str, Any]) -> str:
+def _resolve_dataset_source(
+    manifest: Mapping[str, Any], dataset_manifest: Mapping[str, Any]
+) -> str:
     source = str(dataset_manifest.get("source", "")).strip()
     if source:
         return source
@@ -527,7 +600,9 @@ def _resolve_dataset_source(manifest: Mapping[str, Any], dataset_manifest: Mappi
 
     polisis = str(inputs.get("polisis_root", "")).strip()
     if polisis:
-        profile = str(inputs.get("polisis_input_set", "normalized")).strip() or "normalized"
+        profile = (
+            str(inputs.get("polisis_input_set", "normalized")).strip() or "normalized"
+        )
         return f"polisis::{profile}"
 
     input_set = str(inputs.get("input_set", "")).strip() or "unknown"

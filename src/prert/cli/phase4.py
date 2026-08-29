@@ -37,7 +37,9 @@ def main() -> None:
 
 def _parse_args() -> argparse.Namespace:
     root = Path.cwd()
-    parser = argparse.ArgumentParser(description="Run Phase 4 artifact-based validation")
+    parser = argparse.ArgumentParser(
+        description="Run Phase 4 artifact-based validation"
+    )
 
     parser.add_argument(
         "--baseline-dir",

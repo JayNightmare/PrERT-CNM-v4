@@ -7,7 +7,6 @@ from pathlib import Path
 import re
 from typing import Sequence
 
-
 _ISO_IEC_FAMILY_RE = re.compile(r"ISO[-_\s]?IEC[-_\s]?(\d+(?:-\d+)*)", re.IGNORECASE)
 _ISO_FAMILY_RE = re.compile(r"ISO[-_\s]?(\d+(?:-\d+)*)", re.IGNORECASE)
 _YEAR_RE = re.compile(r"((?:19|20)\d{2})")
@@ -22,7 +21,9 @@ class IsoDocxSource:
     display_name: str
 
 
-def discover_iso_docx_sources(regulations_dir: Path, explicit_paths: Sequence[Path] | None = None) -> list[IsoDocxSource]:
+def discover_iso_docx_sources(
+    regulations_dir: Path, explicit_paths: Sequence[Path] | None = None
+) -> list[IsoDocxSource]:
     if explicit_paths:
         candidates = [Path(path) for path in explicit_paths]
     else:

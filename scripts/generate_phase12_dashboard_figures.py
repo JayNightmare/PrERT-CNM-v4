@@ -92,7 +92,9 @@ def main() -> None:
     levels = {
         "User": int(manifest["coverage_summary"]["level_counts"]["user"]),
         "System": int(manifest["coverage_summary"]["level_counts"]["system"]),
-        "Organization": int(manifest["coverage_summary"]["level_counts"]["organization"]),
+        "Organization": int(
+            manifest["coverage_summary"]["level_counts"]["organization"]
+        ),
     }
 
     risk_bands = _load_risk_band_counts(phase2_dir / "baseline_scores.jsonl")

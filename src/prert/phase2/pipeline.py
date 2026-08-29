@@ -7,9 +7,16 @@ from typing import Any, Dict, Optional
 
 from prert.phase2.io import read_jsonl, write_json, write_jsonl
 from prert.phase2.metrics import build_metric_coverage_summary, build_metric_specs
-from prert.phase2.public_mapping import load_public_rows, map_public_rows, summarize_public_mapping
+from prert.phase2.public_mapping import (
+    load_public_rows,
+    map_public_rows,
+    summarize_public_mapping,
+)
 from prert.phase2.scoring import score_observations
-from prert.phase2.synthetic import generate_synthetic_observations, generate_synthetic_policy_documents
+from prert.phase2.synthetic import (
+    generate_synthetic_observations,
+    generate_synthetic_policy_documents,
+)
 
 
 def run_phase2_pipeline(
@@ -25,19 +32,33 @@ def run_phase2_pipeline(
     coverage_summary = build_metric_coverage_summary(controls, metric_specs)
 
     policy_documents = generate_synthetic_policy_documents(metric_specs, seed=seed)
-    observations = generate_synthetic_observations(metric_specs, seed=seed, policy_documents=policy_documents)
-    metric_rows, level_rows, scenario_rows = score_observations(metric_specs, observations)
+    observations = generate_synthetic_observations(
+        metric_specs, seed=seed, policy_documents=policy_documents
+    )
+    metric_rows, level_rows, scenario_rows = score_observations(
+        metric_specs, observations
+    )
 
     public_rows = load_public_rows(public_input_path)
     public_source_name = public_input_path.name if public_input_path else "none"
     mapped_public_rows = map_public_rows(public_rows, source_name=public_source_name)
     public_summary = summarize_public_mapping(mapped_public_rows)
 
-    write_jsonl(output_dir / "metric_specs.jsonl", (spec.as_dict() for spec in metric_specs))
-    write_jsonl(output_dir / "synthetic_policies.jsonl", (policy.as_dict() for policy in policy_documents))
-    write_jsonl(output_dir / "synthetic_events.jsonl", (row.as_dict() for row in observations))
+    write_jsonl(
+        output_dir / "metric_specs.jsonl", (spec.as_dict() for spec in metric_specs)
+    )
+    write_jsonl(
+        output_dir / "synthetic_policies.jsonl",
+        (policy.as_dict() for policy in policy_documents),
+    )
+    write_jsonl(
+        output_dir / "synthetic_events.jsonl", (row.as_dict() for row in observations)
+    )
     write_jsonl(output_dir / "public_data_mapped.jsonl", mapped_public_rows)
-    write_jsonl(output_dir / "baseline_scores.jsonl", [*metric_rows, *level_rows, *scenario_rows])
+    write_jsonl(
+        output_dir / "baseline_scores.jsonl",
+        [*metric_rows, *level_rows, *scenario_rows],
+    )
 
     _write_data_dictionary(output_dir / "synthetic_data_dictionary.md")
 
@@ -58,7 +79,9 @@ def run_phase2_pipeline(
             "metric_score_rows": len(metric_rows),
             "level_summary_rows": len(level_rows),
             "scenario_summary_rows": len(scenario_rows),
-            "baseline_score_rows_total": len(metric_rows) + len(level_rows) + len(scenario_rows),
+            "baseline_score_rows_total": len(metric_rows)
+            + len(level_rows)
+            + len(scenario_rows),
         },
     }
 

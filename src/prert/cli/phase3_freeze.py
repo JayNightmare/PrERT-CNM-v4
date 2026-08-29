@@ -10,7 +10,10 @@ from prert.phase2.opp115 import INPUT_SET_TO_SUBDIR
 from prert.phase3.dataset import POLISIS_INPUT_SET_TO_SUBDIR
 from prert.phase3.classifier import DEFAULT_PRIVACYBERT_MODEL_NAME
 from prert.phase3 import run_phase3_pipeline
-from prert.phase3.acceptance import evaluate_phase3_acceptance, write_phase3_acceptance_report
+from prert.phase3.acceptance import (
+    evaluate_phase3_acceptance,
+    write_phase3_acceptance_report,
+)
 
 
 def main() -> None:
@@ -78,7 +81,9 @@ def main() -> None:
 
 def _parse_args() -> argparse.Namespace:
     root = Path.cwd()
-    parser = argparse.ArgumentParser(description="Run Phase 3 acceptance freeze workflow")
+    parser = argparse.ArgumentParser(
+        description="Run Phase 3 acceptance freeze workflow"
+    )
 
     parser.add_argument(
         "--output-dir",
@@ -130,7 +135,12 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="Optional pre-labeled JSONL dataset (text,label,policy_uid) to bypass OPP-115/Polisis parsing.",
     )
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for deterministic split behavior.")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for deterministic split behavior.",
+    )
     parser.add_argument(
         "--model-type",
         type=str,
@@ -153,13 +163,45 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Disable the non-blocking Polisis advisory check in acceptance reports.",
     )
-    parser.add_argument("--random-state", type=int, default=42, help="Random state for classifier initialization.")
-    parser.add_argument("--max-features", type=int, default=20000, help="Maximum number of TF-IDF features.")
-    parser.add_argument("--ngram-max", type=int, default=2, help="Upper bound for n-gram range.")
-    parser.add_argument("--min-df", type=int, default=2, help="Minimum document frequency for TF-IDF terms.")
-    parser.add_argument("--max-df", type=float, default=0.95, help="Maximum document frequency for TF-IDF terms.")
-    parser.add_argument("--c", type=float, default=1.0, help="Inverse regularization strength for logistic regression.")
-    parser.add_argument("--max-iter", type=int, default=1000, help="Maximum iterations for logistic regression solver.")
+    parser.add_argument(
+        "--random-state",
+        type=int,
+        default=42,
+        help="Random state for classifier initialization.",
+    )
+    parser.add_argument(
+        "--max-features",
+        type=int,
+        default=20000,
+        help="Maximum number of TF-IDF features.",
+    )
+    parser.add_argument(
+        "--ngram-max", type=int, default=2, help="Upper bound for n-gram range."
+    )
+    parser.add_argument(
+        "--min-df",
+        type=int,
+        default=2,
+        help="Minimum document frequency for TF-IDF terms.",
+    )
+    parser.add_argument(
+        "--max-df",
+        type=float,
+        default=0.95,
+        help="Maximum document frequency for TF-IDF terms.",
+    )
+    parser.add_argument(
+        "--c",
+        type=float,
+        default=1.0,
+        help="Inverse regularization strength for logistic regression.",
+    )
+    parser.add_argument(
+        "--max-iter",
+        type=int,
+        default=1000,
+        help="Maximum iterations for logistic regression solver.",
+    )
 
     parser.add_argument(
         "--privacybert-model-name",
@@ -167,10 +209,30 @@ def _parse_args() -> argparse.Namespace:
         default=DEFAULT_PRIVACYBERT_MODEL_NAME,
         help="Transformers model name or path used for privacybert backend.",
     )
-    parser.add_argument("--privacybert-epochs", type=float, default=2.0, help="Training epochs for privacybert backend.")
-    parser.add_argument("--privacybert-batch-size", type=int, default=8, help="Per-device batch size for privacybert backend.")
-    parser.add_argument("--privacybert-learning-rate", type=float, default=5e-5, help="Learning rate for privacybert backend.")
-    parser.add_argument("--privacybert-max-length", type=int, default=256, help="Maximum token length for privacybert backend.")
+    parser.add_argument(
+        "--privacybert-epochs",
+        type=float,
+        default=2.0,
+        help="Training epochs for privacybert backend.",
+    )
+    parser.add_argument(
+        "--privacybert-batch-size",
+        type=int,
+        default=8,
+        help="Per-device batch size for privacybert backend.",
+    )
+    parser.add_argument(
+        "--privacybert-learning-rate",
+        type=float,
+        default=5e-5,
+        help="Learning rate for privacybert backend.",
+    )
+    parser.add_argument(
+        "--privacybert-max-length",
+        type=int,
+        default=256,
+        help="Maximum token length for privacybert backend.",
+    )
     parser.add_argument(
         "--privacybert-loss-type",
         type=str,
@@ -178,11 +240,36 @@ def _parse_args() -> argparse.Namespace:
         choices=("ce", "weighted_ce", "focal"),
         help="Loss function for privacybert backend. 'focal' (default) penalises minority-class errors; 'weighted_ce' uses balanced class weights; 'ce' is plain cross-entropy.",
     )
-    parser.add_argument("--privacybert-focal-gamma", type=float, default=2.0, help="Focal-loss gamma. Higher values focus more on hard examples.")
-    parser.add_argument("--privacybert-label-smoothing", type=float, default=0.05, help="Label smoothing factor. Applies only when --privacybert-loss-type=ce.")
-    parser.add_argument("--privacybert-weight-decay", type=float, default=0.01, help="AdamW weight decay for privacybert backend.")
-    parser.add_argument("--privacybert-warmup-steps", type=int, default=0, help="Number of warmup steps for privacybert backend.")
-    parser.add_argument("--privacybert-early-stopping-patience", type=int, default=1, help="Early-stopping patience (in eval rounds) when validation split is supplied.")
+    parser.add_argument(
+        "--privacybert-focal-gamma",
+        type=float,
+        default=2.0,
+        help="Focal-loss gamma. Higher values focus more on hard examples.",
+    )
+    parser.add_argument(
+        "--privacybert-label-smoothing",
+        type=float,
+        default=0.05,
+        help="Label smoothing factor. Applies only when --privacybert-loss-type=ce.",
+    )
+    parser.add_argument(
+        "--privacybert-weight-decay",
+        type=float,
+        default=0.01,
+        help="AdamW weight decay for privacybert backend.",
+    )
+    parser.add_argument(
+        "--privacybert-warmup-steps",
+        type=int,
+        default=0,
+        help="Number of warmup steps for privacybert backend.",
+    )
+    parser.add_argument(
+        "--privacybert-early-stopping-patience",
+        type=int,
+        default=1,
+        help="Early-stopping patience (in eval rounds) when validation split is supplied.",
+    )
 
     parser.add_argument(
         "--disable-bayesian-scoring",
@@ -201,7 +288,12 @@ def _parse_args() -> argparse.Namespace:
         default=5,
         help="Top contributing clauses retained per level in Bayesian outputs.",
     )
-    parser.add_argument("--max-rows", type=int, default=None, help="Optional maximum number of examples to ingest.")
+    parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=None,
+        help="Optional maximum number of examples to ingest.",
+    )
     parser.add_argument(
         "--run-id",
         type=str,

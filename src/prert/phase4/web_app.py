@@ -22,7 +22,9 @@ def _load_space_app(app_path: Path | None = None) -> ModuleType:
     if not resolved_path.exists():
         raise RuntimeError(f"Gradio Space app not found: {resolved_path}")
 
-    spec = importlib.util.spec_from_file_location("prert_phase4_gradio_space_app", resolved_path)
+    spec = importlib.util.spec_from_file_location(
+        "prert_phase4_gradio_space_app", resolved_path
+    )
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Unable to load Gradio Space app: {resolved_path}")
 

@@ -50,7 +50,9 @@ def _sample_predictions() -> list[dict[str, object]]:
 
 def test_compute_calibration_report_ranges() -> None:
     labels = ["user", "system", "organization"]
-    report = compute_calibration_report(_sample_predictions(), labels=labels, num_bins=5)
+    report = compute_calibration_report(
+        _sample_predictions(), labels=labels, num_bins=5
+    )
 
     assert report["num_rows"] == 6
     assert report["num_bins"] == 5
@@ -60,12 +62,11 @@ def test_compute_calibration_report_ranges() -> None:
     assert len(report["overall"]["bins"]) == 5
 
 
-
 def test_threshold_sweep_is_ordered_and_bounded() -> None:
     labels = ["user", "system", "organization"]
     sweep = compute_threshold_sweep(_sample_predictions(), labels=labels)
 
-    assert sweep["focus_labels"] == ["user", "system"]
+    assert sweep["focus_labels"] == ["user", "system", "organization"]
     for label in sweep["focus_labels"]:
         series = sweep["by_label"][label]
         thresholds = [float(row["threshold"]) for row in series]
@@ -74,7 +75,6 @@ def test_threshold_sweep_is_ordered_and_bounded() -> None:
             assert 0.0 <= float(row["precision"]) <= 1.0
             assert 0.0 <= float(row["recall"]) <= 1.0
             assert 0.0 <= float(row["f1"]) <= 1.0
-
 
 
 def test_bootstrap_intervals_are_valid() -> None:

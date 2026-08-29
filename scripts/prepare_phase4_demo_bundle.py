@@ -14,7 +14,6 @@ from pathlib import Path
 import shutil
 from typing import Dict, List
 
-
 BASELINE_REQUIRED_FILES: tuple[str, ...] = (
     "phase3_manifest.json",
     "dataset_manifest.json",
@@ -85,7 +84,9 @@ def main() -> None:
     }
 
     manifest_path = output_root / "phase4_demo_bundle_manifest.json"
-    manifest_path.write_text(json.dumps(bundle_manifest, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(bundle_manifest, indent=2) + "\n", encoding="utf-8"
+    )
 
     print("Phase 4 demo bundle ready")
     print(f"Output root: {output_root}")
@@ -95,7 +96,9 @@ def main() -> None:
 def _parse_args() -> argparse.Namespace:
     root = Path.cwd()
 
-    parser = argparse.ArgumentParser(description="Prepare deployable Phase 4 demo assets")
+    parser = argparse.ArgumentParser(
+        description="Prepare deployable Phase 4 demo assets"
+    )
     parser.add_argument(
         "--source-freeze-dir",
         type=Path,
@@ -157,10 +160,14 @@ def _copy_phase3_subset(
         copied[optional_bucket].append(str(dst))
 
 
-def _copy_nb_model_checkpoint(source_nb_dir: Path, target_root: Path, copied: Dict[str, List[str]]) -> None:
+def _copy_nb_model_checkpoint(
+    source_nb_dir: Path, target_root: Path, copied: Dict[str, List[str]]
+) -> None:
     source_model = source_nb_dir / "classifier_checkpoint/model.json"
     if not source_model.exists():
-        raise FileNotFoundError(f"Naive Bayes model checkpoint not found: {source_model}")
+        raise FileNotFoundError(
+            f"Naive Bayes model checkpoint not found: {source_model}"
+        )
 
     target_model = target_root / "phase-3-nb/classifier_checkpoint/model.json"
     target_model.parent.mkdir(parents=True, exist_ok=True)

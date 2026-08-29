@@ -15,11 +15,21 @@ from pathlib import Path
 import json
 import os
 import re
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from prert.phase3.classifier import NaiveBayesTextClassifier
 from prert.phase3.risk import compute_bayesian_risk
-
 
 LABELS: tuple[str, str, str] = ("user", "system", "organization")
 MODEL_PATH_ENV: str = "PRERT_PHASE4_MODEL_PATH"
@@ -76,6 +86,7 @@ SENSITIVE_FIELD_PATTERNS: tuple[str, ...] = (
 @dataclass(frozen=True)
 class RegulationControl:
     """A single regulation requirement mapped to a compliance check."""
+
     regulation: str
     control_id: str
     title: str
@@ -85,6 +96,7 @@ class RegulationControl:
 @dataclass(frozen=True)
 class RegulationVerdict:
     """Pass/fail result for a single policy claim against a single regulation control."""
+
     regulation: str
     control_id: str
     control_title: str
@@ -108,6 +120,7 @@ class RegulationVerdict:
 @dataclass
 class PolicyClaimResult:
     """Assessment of a single policy clause against all regulation frameworks."""
+
     claim_index: int
     claim_text: str
     check_id: str
@@ -573,7 +586,9 @@ def extract_schema_fields(schema_text: str) -> List[str]:
         raw = line.strip().strip(",")
         if not raw:
             continue
-        if raw.lower().startswith(("create table", "primary key", "foreign key", "constraint", "index", ")")):
+        if raw.lower().startswith(
+            ("create table", "primary key", "foreign key", "constraint", "index", ")")
+        ):
             continue
 
         match = re.match(r'^[`"\[]?([A-Za-z_][A-Za-z0-9_]*)[`"\]]?\s+[A-Za-z]', raw)
@@ -665,7 +680,9 @@ def _score_schema_alignment(
         details.append("PII fields detected but security safeguards are weak.")
     if pii_fields and not has_sharing:
         penalties += 2.0
-        details.append("PII fields detected but third-party sharing disclosures are weak.")
+        details.append(
+            "PII fields detected but third-party sharing disclosures are weak."
+        )
     if pii_fields and not has_retention:
         penalties += 2.0
         details.append("PII fields detected but retention details are weak.")
@@ -673,10 +690,18 @@ def _score_schema_alignment(
     lowered_policy = policy_text.lower()
     if sensitive_fields and not has_security:
         penalties += 3.0
-        details.append("Sensitive fields detected but security language is insufficient.")
-    if sensitive_fields and "sensitive" not in lowered_policy and "special category" not in lowered_policy:
+        details.append(
+            "Sensitive fields detected but security language is insufficient."
+        )
+    if (
+        sensitive_fields
+        and "sensitive" not in lowered_policy
+        and "special category" not in lowered_policy
+    ):
         penalties += 2.0
-        details.append("Sensitive fields detected but no explicit sensitive-data policy language found.")
+        details.append(
+            "Sensitive fields detected but no explicit sensitive-data policy language found."
+        )
 
     raw_score = max_score - penalties
     score = max(0.0, min(max_score, raw_score))
@@ -692,7 +717,9 @@ def _score_schema_alignment(
     }
 
 
-def _score_model_signal(clauses: Sequence[str], model_path: Optional[Path]) -> Dict[str, Any]:
+def _score_model_signal(
+    clauses: Sequence[str], model_path: Optional[Path]
+) -> Dict[str, Any]:
     max_score = 5.0
 
     resolved_model_path = model_path
@@ -705,7 +732,9 @@ def _score_model_signal(clauses: Sequence[str], model_path: Optional[Path]) -> D
             "score": 0.0,
             "max_score": max_score,
             "passed": False,
-            "details": ["No baseline Naive Bayes checkpoint found; model signal skipped."],
+            "details": [
+                "No baseline Naive Bayes checkpoint found; model signal skipped."
+            ],
             "model_used": "none",
             "label_distribution": {},
             "avg_confidence": None,
@@ -771,7 +800,9 @@ def _score_model_signal(clauses: Sequence[str], model_path: Optional[Path]) -> D
     }
 
 
-def _find_clause_evidence(clauses: Sequence[str], keywords: Sequence[str], max_items: int) -> List[str]:
+def _find_clause_evidence(
+    clauses: Sequence[str], keywords: Sequence[str], max_items: int
+) -> List[str]:
     evidence: List[str] = []
     seen: set[str] = set()
     lowered_keywords = [keyword.lower() for keyword in keywords]
@@ -852,7 +883,9 @@ def assess_policy_compliance_stream(
     allowed_regulations = _normalize_selected_regulations(selected_regulations)
     retriever = _EvidenceRetriever(allowed_regulations=allowed_regulations)
     claims: List[PolicyClaimResult] = []
-    regulation_tallies: Dict[str, Dict[str, int]] = defaultdict(lambda: {"pass": 0, "fail": 0})
+    regulation_tallies: Dict[str, Dict[str, int]] = defaultdict(
+        lambda: {"pass": 0, "fail": 0}
+    )
     regulation_control_totals: Dict[str, int] = {}
     predictions_for_risk: List[Dict[str, Any]] = []
 
@@ -872,10 +905,16 @@ def assess_policy_compliance_stream(
         "stage": "read_claim",
         "clauses_total": len(clauses),
         "evidence_provider": retriever.provider,
-        "selected_regulations": sorted(allowed_regulations) if allowed_regulations else list_available_regulations(),
+        "selected_regulations": (
+            sorted(allowed_regulations)
+            if allowed_regulations
+            else list_available_regulations()
+        ),
     }
 
-    regulation_control_totals.update(_collect_regulation_control_totals(allowed_regulations=allowed_regulations))
+    regulation_control_totals.update(
+        _collect_regulation_control_totals(allowed_regulations=allowed_regulations)
+    )
 
     for claim_index, clause in enumerate(clauses):
         yield {
@@ -923,7 +962,9 @@ def assess_policy_compliance_stream(
                 "matched_keywords": list(matched_keywords),
             }
 
-            evidence_matches = retriever.retrieve(clause=clause, spec=spec, matched_keywords=matched_keywords, limit=18)
+            evidence_matches = retriever.retrieve(
+                clause=clause, spec=spec, matched_keywords=matched_keywords, limit=18
+            )
             verdicts: List[RegulationVerdict] = []
 
             for match in evidence_matches:
@@ -964,7 +1005,9 @@ def assess_policy_compliance_stream(
                     )
                 )
 
-                regulation_tallies[control.regulation]["pass" if compliant else "fail"] += 1
+                regulation_tallies[control.regulation][
+                    "pass" if compliant else "fail"
+                ] += 1
 
                 yield {
                     "event": "verdict_complete",
@@ -999,7 +1042,9 @@ def assess_policy_compliance_stream(
     )
     model_signal = _score_model_signal(clauses=clauses, model_path=model_path)
     total_pass = sum(t.get("pass_count", 0) for t in regulation_summary.values())
-    total_controls = sum(t.get("total_controls", 0) for t in regulation_summary.values())
+    total_controls = sum(
+        t.get("total_controls", 0) for t in regulation_summary.values()
+    )
     raw_score = (total_pass / total_controls * 100) if total_controls > 0 else 0.0
     overall_score = max(0.0, min(100.0, round(raw_score, 2)))
     grade = _grade_from_score(overall_score)
@@ -1049,9 +1094,7 @@ def _clause_satisfies_control(
     lowered_requirement = control.requirement.lower()
     lowered_clause = clause.lower()
 
-    requirement_overlap = sum(
-        1 for kw in matched_keywords if kw in lowered_requirement
-    )
+    requirement_overlap = sum(1 for kw in matched_keywords if kw in lowered_requirement)
     if requirement_overlap >= 2:
         return True
 
@@ -1074,7 +1117,11 @@ def _extract_control_signals(control: RegulationControl) -> List[str]:
         "Article 34": ["communicate", "high risk", "breach"],
         "Article 37": ["data protection officer", "dpo"],
         "Article 5.1(b)": ["specified purpose", "legitimate purpose", "compatible"],
-        "Article 5.1(e)": ["no longer than necessary", "storage limitation", "retention period"],
+        "Article 5.1(e)": [
+            "no longer than necessary",
+            "storage limitation",
+            "retention period",
+        ],
         "CT.PO-P1": ["transparency", "inform"],
         "CT.PO-P2": ["purpose", "communicated"],
         "CT.PO-P4": ["third party", "sharing", "disclosure"],
@@ -1114,8 +1161,8 @@ def _build_verdict_reason(
     return (
         f"Clause {verdict} {control.control_id} ({control.title}). "
         f"Evidence source={evidence_source}, match_score={evidence_score:.3f}, "
-        f"matched_keywords=[{keywords_csv}], control_requirement=\"{requirement_excerpt}\", "
-        f"clause_excerpt=\"{clause_excerpt}\"."
+        f'matched_keywords=[{keywords_csv}], control_requirement="{requirement_excerpt}", '
+        f'clause_excerpt="{clause_excerpt}".'
     )
 
 
@@ -1143,13 +1190,17 @@ def list_available_regulations() -> List[str]:
     return sorted(regulations)
 
 
-def _normalize_selected_regulations(selected_regulations: Optional[Sequence[str]]) -> set[str]:
+def _normalize_selected_regulations(
+    selected_regulations: Optional[Sequence[str]],
+) -> set[str]:
     if not selected_regulations:
         return set()
     return {str(item).strip() for item in selected_regulations if str(item).strip()}
 
 
-def _collect_regulation_control_totals(allowed_regulations: Optional[set[str]] = None) -> Dict[str, int]:
+def _collect_regulation_control_totals(
+    allowed_regulations: Optional[set[str]] = None,
+) -> Dict[str, int]:
     totals: Dict[str, int] = {}
     allow_all = not allowed_regulations
 
@@ -1178,7 +1229,9 @@ def _build_regulation_summary(
         pass_count = int(totals.get("pass", 0))
         fail_count = int(totals.get("fail", 0))
         total_evaluated = pass_count + fail_count
-        compliance_pct = round((pass_count / total_evaluated * 100.0) if total_evaluated else 0.0, 2)
+        compliance_pct = round(
+            (pass_count / total_evaluated * 100.0) if total_evaluated else 0.0, 2
+        )
         summary[reg] = {
             "pass_count": pass_count,
             "fail_count": fail_count,
@@ -1238,7 +1291,12 @@ def _load_ground_truth_controls() -> Tuple[Dict[str, Any], ...]:
 
 
 def _normalize_control_row(row: Mapping[str, Any], source: str) -> EvidenceMatch:
-    control_id = str(row.get("native_id") or row.get("control_id") or row.get("normalized_id") or "unknown")
+    control_id = str(
+        row.get("native_id")
+        or row.get("control_id")
+        or row.get("normalized_id")
+        or "unknown"
+    )
     title = str(row.get("title") or control_id)
     requirement = str(row.get("text") or row.get("requirement") or "")
     regulation = str(row.get("regulation") or "UNKNOWN")
@@ -1262,11 +1320,17 @@ def _score_control_match(
     matched_keywords: Sequence[str],
     candidate: EvidenceMatch,
 ) -> float:
-    control_tokens = _tokenize_text(f"{candidate.control_id} {candidate.title} {candidate.requirement}")
+    control_tokens = _tokenize_text(
+        f"{candidate.control_id} {candidate.title} {candidate.requirement}"
+    )
     if not control_tokens:
         return 0.0
     overlap = len(clause_tokens.intersection(control_tokens))
-    keyword_hits = sum(1 for keyword in matched_keywords if keyword.lower() in candidate.requirement.lower())
+    keyword_hits = sum(
+        1
+        for keyword in matched_keywords
+        if keyword.lower() in candidate.requirement.lower()
+    )
     return float(overlap) + (keyword_hits * 2.0)
 
 
@@ -1310,7 +1374,9 @@ class _EvidenceRetriever:
             if scored:
                 return scored
 
-        local_matches = self._retrieve_local(clause=clause, spec=spec, matched_keywords=matched_keywords, limit=limit)
+        local_matches = self._retrieve_local(
+            clause=clause, spec=spec, matched_keywords=matched_keywords, limit=limit
+        )
         return local_matches
 
     def _retrieve_chroma(self, clause: str, limit: int) -> List[EvidenceMatch]:
@@ -1338,18 +1404,33 @@ class _EvidenceRetriever:
         if metadatas and isinstance(metadatas, list) and isinstance(metadatas[0], list):
             metadatas = metadatas[0]
 
-        for idx, document in enumerate(documents if isinstance(documents, list) else []):
+        for idx, document in enumerate(
+            documents if isinstance(documents, list) else []
+        ):
             metadata = {}
-            if isinstance(metadatas, list) and idx < len(metadatas) and isinstance(metadatas[idx], dict):
+            if (
+                isinstance(metadatas, list)
+                and idx < len(metadatas)
+                and isinstance(metadatas[idx], dict)
+            ):
                 metadata = metadatas[idx]
             row = {
                 "regulation": metadata.get("regulation", "UNKNOWN"),
-                "native_id": metadata.get("native_id") or metadata.get("control_id") or metadata.get("normalized_id") or f"ctrl-{idx}",
-                "title": metadata.get("title") or metadata.get("native_id") or metadata.get("control_id") or "Control",
+                "native_id": metadata.get("native_id")
+                or metadata.get("control_id")
+                or metadata.get("normalized_id")
+                or f"ctrl-{idx}",
+                "title": metadata.get("title")
+                or metadata.get("native_id")
+                or metadata.get("control_id")
+                or "Control",
                 "text": str(document or ""),
             }
             normalized = _normalize_control_row(row, source="chroma")
-            if self.allowed_regulations and normalized.regulation not in self.allowed_regulations:
+            if (
+                self.allowed_regulations
+                and normalized.regulation not in self.allowed_regulations
+            ):
                 continue
             matches.append(normalized)
         return matches
@@ -1365,7 +1446,10 @@ class _EvidenceRetriever:
         candidates: List[EvidenceMatch] = []
 
         for control in REGULATION_CONTROLS.get(spec.check_id, []):
-            if self.allowed_regulations and control.regulation not in self.allowed_regulations:
+            if (
+                self.allowed_regulations
+                and control.regulation not in self.allowed_regulations
+            ):
                 continue
             candidates.append(
                 EvidenceMatch(
@@ -1382,7 +1466,10 @@ class _EvidenceRetriever:
             match = _normalize_control_row(row, source="ground_truth")
             if not match.requirement:
                 continue
-            if self.allowed_regulations and match.regulation not in self.allowed_regulations:
+            if (
+                self.allowed_regulations
+                and match.regulation not in self.allowed_regulations
+            ):
                 continue
             candidates.append(match)
 
@@ -1420,7 +1507,10 @@ class _EvidenceRetriever:
                 )
             )
 
-        scored.sort(key=lambda item: (item.score, item.regulation, item.control_id), reverse=True)
+        scored.sort(
+            key=lambda item: (item.score, item.regulation, item.control_id),
+            reverse=True,
+        )
 
         deduped: List[EvidenceMatch] = []
         seen: set[tuple[str, str]] = set()

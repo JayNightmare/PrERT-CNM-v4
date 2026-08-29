@@ -21,7 +21,9 @@ def main() -> None:
 
     iso_sources = _resolve_iso_sources(args)
     if not iso_sources:
-        raise RuntimeError("No ISO DOCX files found. Provide --iso-path values or set --iso-dir correctly.")
+        raise RuntimeError(
+            "No ISO DOCX files found. Provide --iso-path values or set --iso-dir correctly."
+        )
 
     _cleanup_stale_iso_outputs(output_dir, iso_sources)
 
@@ -45,14 +47,19 @@ def main() -> None:
 
     _write_records(output_dir / "controls_gdpr.jsonl", gdpr_records)
     for source in iso_sources:
-        _write_records(output_dir / f"controls_{source.output_stem}.jsonl", iso_records_by_stem[source.output_stem])
+        _write_records(
+            output_dir / f"controls_{source.output_stem}.jsonl",
+            iso_records_by_stem[source.output_stem],
+        )
     _write_records(output_dir / "controls_nistpf.jsonl", nist_records)
     _write_records(output_dir / "controls_all.jsonl", all_records)
 
     print(f"Wrote {len(gdpr_records)} GDPR control rows")
     for source in iso_sources:
         count = len(iso_records_by_stem[source.output_stem])
-        print(f"Wrote {count} {source.display_name} control rows ({source.output_stem})")
+        print(
+            f"Wrote {count} {source.display_name} control rows ({source.output_stem})"
+        )
     print(f"Wrote {len(nist_records)} NIST PF control rows")
 
     if args.chunk:
@@ -60,7 +67,9 @@ def main() -> None:
         nist_chunks = chunk_records(nist_records)
         iso_chunks_by_stem: dict[str, list[ControlChunk]] = {}
         for source in iso_sources:
-            iso_chunks_by_stem[source.output_stem] = chunk_records(iso_records_by_stem[source.output_stem])
+            iso_chunks_by_stem[source.output_stem] = chunk_records(
+                iso_records_by_stem[source.output_stem]
+            )
 
         all_chunks: List[ControlChunk] = [*gdpr_chunks, *nist_chunks]
         for source in iso_sources:
@@ -68,7 +77,10 @@ def main() -> None:
 
         _write_chunks(output_dir / "chunks_gdpr.jsonl", gdpr_chunks)
         for source in iso_sources:
-            _write_chunks(output_dir / f"chunks_{source.output_stem}.jsonl", iso_chunks_by_stem[source.output_stem])
+            _write_chunks(
+                output_dir / f"chunks_{source.output_stem}.jsonl",
+                iso_chunks_by_stem[source.output_stem],
+            )
         _write_chunks(output_dir / "chunks_nistpf.jsonl", nist_chunks)
         _write_chunks(output_dir / "chunks_all.jsonl", all_chunks)
 
@@ -83,7 +95,9 @@ def _parse_args() -> argparse.Namespace:
     default_root = Path.cwd()
     default_regulations_dir = default_root / "docs/Standards/Regulations"
 
-    parser = argparse.ArgumentParser(description="Extract Phase 1 controls from GDPR, ISO standards, and NIST")
+    parser = argparse.ArgumentParser(
+        description="Extract Phase 1 controls from GDPR, ISO standards, and NIST"
+    )
     parser.add_argument(
         "--gdpr-path",
         type=Path,
@@ -127,12 +141,18 @@ def _resolve_iso_sources(args: argparse.Namespace) -> list[IsoDocxSource]:
     if args.iso_path:
         explicit_paths = [path.resolve() for path in args.iso_path]
 
-    sources = discover_iso_docx_sources(args.iso_dir.resolve(), explicit_paths=explicit_paths)
+    sources = discover_iso_docx_sources(
+        args.iso_dir.resolve(), explicit_paths=explicit_paths
+    )
     return sources
 
 
-def _cleanup_stale_iso_outputs(output_dir: Path, iso_sources: list[IsoDocxSource]) -> None:
-    expected_controls = {f"controls_{source.output_stem}.jsonl" for source in iso_sources}
+def _cleanup_stale_iso_outputs(
+    output_dir: Path, iso_sources: list[IsoDocxSource]
+) -> None:
+    expected_controls = {
+        f"controls_{source.output_stem}.jsonl" for source in iso_sources
+    }
     expected_chunks = {f"chunks_{source.output_stem}.jsonl" for source in iso_sources}
 
     for path in output_dir.glob("controls_iso*.jsonl"):

@@ -9,8 +9,9 @@ from typing import List, Tuple
 from .docx_reader import read_docx_text
 from .schema import ControlRecord, make_normalized_id, normalize_whitespace, stable_hash
 
-
-CLAUSE_RE = re.compile(r"^((?:[1-9]\d*)(?:\.[0-9]+){0,4}|A\.[0-9]+(?:\.[0-9]+)?)\s+(.+)$")
+CLAUSE_RE = re.compile(
+    r"^((?:[1-9]\d*)(?:\.[0-9]+){0,4}|A\.[0-9]+(?:\.[0-9]+)?)\s+(.+)$"
+)
 # A2: accept lower- and upper-case letters, digits, and roman numerals so
 # atomic ISO controls aren't merged into their parent clause.
 BULLET_RE = re.compile(r"^\s*([A-Za-z]|[ivxIVX]+|\d{1,2})\)\s*;?\s+(.*)$")
@@ -114,7 +115,11 @@ def _clause_to_records(
     records: List[ControlRecord] = []
 
     bullet_blocks = _split_bullets(body_text)
-    preface_text = bullet_blocks[0][1] if bullet_blocks and bullet_blocks[0][0] == "_preface" else ""
+    preface_text = (
+        bullet_blocks[0][1]
+        if bullet_blocks and bullet_blocks[0][0] == "_preface"
+        else ""
+    )
 
     if preface_text:
         records.append(
@@ -194,7 +199,9 @@ def _split_bullets(body_text: str) -> List[Tuple[str, str]]:
                 if preface_text:
                     entries.append(("_preface", preface_text))
             else:
-                entries.append((active_id, normalize_whitespace(" ".join(active_lines))))
+                entries.append(
+                    (active_id, normalize_whitespace(" ".join(active_lines)))
+                )
 
             active_id = bullet_match.group(1)
             active_lines = [bullet_match.group(2)]

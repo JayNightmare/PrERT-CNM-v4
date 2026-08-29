@@ -8,8 +8,9 @@ from typing import List
 
 from docx import Document  # type: ignore[import-not-found]
 
-
-_VISIBLE_CLAUSE_RE = re.compile(r"^(?:[1-9]\d*(?:\.[0-9]+){0,4}|A\.[0-9]+(?:\.[0-9]+)?)\b")
+_VISIBLE_CLAUSE_RE = re.compile(
+    r"^(?:[1-9]\d*(?:\.[0-9]+){0,4}|A\.[0-9]+(?:\.[0-9]+)?)\b"
+)
 
 
 def read_docx_text(path: Path) -> str:
@@ -43,7 +44,9 @@ def _clean_text(value: str) -> str:
     return cleaned.strip()
 
 
-def _heading_number_prefix(paragraph, numbering_state: dict[int, List[int]]) -> str | None:
+def _heading_number_prefix(
+    paragraph, numbering_state: dict[int, List[int]]
+) -> str | None:
     style_name = ""
     if paragraph.style is not None and paragraph.style.name:
         style_name = str(paragraph.style.name)

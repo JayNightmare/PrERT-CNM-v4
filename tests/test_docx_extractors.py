@@ -31,7 +31,9 @@ def test_iso_docx_entrypoint_preserves_clause_and_bullets(tmp_path: Path) -> Non
         ],
     )
 
-    records = parse_iso_controls(path, regulation="ISO27002", source_document_id="iso-27002-2022")
+    records = parse_iso_controls(
+        path, regulation="ISO27002", source_document_id="iso-27002-2022"
+    )
     ids = {record.native_id for record in records}
 
     assert "4.1" in ids

@@ -69,7 +69,9 @@ class OpenApiChromaClient:
     ) -> OpenApiCollectionHandle:
         collection = self._find_collection_by_name(name)
         if collection is None:
-            collection = self._create_collection(name=name, schema=schema, metadata=metadata)
+            collection = self._create_collection(
+                name=name, schema=schema, metadata=metadata
+            )
 
         collection_id = collection.get("id") or collection.get("collection_id")
         if not collection_id:
@@ -131,7 +133,9 @@ class OpenApiChromaClient:
 
         return embeddings
 
-    def search(self, *, collection_id: str, searches: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def search(
+        self, *, collection_id: str, searches: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         path = self._collection_path(collection_id, "search")
         payload = {"searches": searches}
         resp = self._http.post(path, json=payload)
@@ -271,7 +275,9 @@ class ChromaCloudClient:
             except Exception:
                 pass
 
-        collection = self._fallback.get_or_create_collection(name=name, schema=schema, metadata=metadata)
+        collection = self._fallback.get_or_create_collection(
+            name=name, schema=schema, metadata=metadata
+        )
         self._collection_cache[name] = collection
         return collection
 
@@ -288,7 +294,9 @@ class ChromaCloudClient:
         if collection is None:
             collection = self.get_or_create_collection(name=collection_name)
 
-        if self._sdk_client is not None and not isinstance(collection, OpenApiCollectionHandle):
+        if self._sdk_client is not None and not isinstance(
+            collection, OpenApiCollectionHandle
+        ):
             kwargs: Dict[str, Any] = {
                 "ids": ids,
                 "documents": documents,
@@ -319,7 +327,9 @@ class ChromaCloudClient:
         if collection is None:
             collection = self.get_or_create_collection(name=collection_name)
 
-        if self._sdk_client is not None and not isinstance(collection, OpenApiCollectionHandle):
+        if self._sdk_client is not None and not isinstance(
+            collection, OpenApiCollectionHandle
+        ):
             if search_payload is not None and hasattr(collection, "search"):
                 return collection.search(search_payload)
             if query_text is not None and hasattr(collection, "query"):
@@ -330,12 +340,18 @@ class ChromaCloudClient:
                 if where is not None:
                     kwargs["where"] = where
                 return collection.query(**kwargs)
-            raise ValueError("SDK search requires either a Search payload or query_text")
+            raise ValueError(
+                "SDK search requires either a Search payload or query_text"
+            )
 
         if search_payload is None:
-            raise ValueError("OpenAPI fallback currently requires explicit search payload")
+            raise ValueError(
+                "OpenAPI fallback currently requires explicit search payload"
+            )
 
-        searches = search_payload if isinstance(search_payload, list) else [search_payload]
+        searches = (
+            search_payload if isinstance(search_payload, list) else [search_payload]
+        )
         return collection.search(searches=searches)
 
     def _get_or_create_sdk_collection(
@@ -363,7 +379,9 @@ class ChromaCloudClient:
             kwargs["get_or_create"] = True
             return client.create_collection(**kwargs)
 
-        raise RuntimeError("Cloud SDK client does not expose collection creation methods")
+        raise RuntimeError(
+            "Cloud SDK client does not expose collection creation methods"
+        )
 
     def _build_sdk_client(self, settings: ChromaSettings) -> Any:
         try:

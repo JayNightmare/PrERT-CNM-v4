@@ -5,7 +5,9 @@ from pathlib import Path
 from prert.phase3.app350 import run_app350_processing
 
 
-def test_run_app350_processing_reads_zip_and_writes_auxiliary_rows(tmp_path: Path) -> None:
+def test_run_app350_processing_reads_zip_and_writes_auxiliary_rows(
+    tmp_path: Path,
+) -> None:
     input_zip = tmp_path / "APP-350_v1.1.zip"
     output_jsonl = tmp_path / "processed" / "app350_phase3_auxiliary.jsonl"
     output_manifest = tmp_path / "processed" / "app350_phase3_auxiliary_manifest.json"

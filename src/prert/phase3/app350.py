@@ -9,7 +9,6 @@ import zipfile
 
 from prert.phase3.io import write_json, write_jsonl
 
-
 SYSTEM_PRACTICE_EXACT = {
     "SSO",
     "Facebook_SSO",
@@ -129,7 +128,9 @@ def map_app350_practice_to_level(practice: str) -> str | None:
     return None
 
 
-def _extract_policy_rows(document: Mapping[str, Any], input_member: str) -> Tuple[List[Dict[str, Any]], Dict[str, Counter[str]]]:
+def _extract_policy_rows(
+    document: Mapping[str, Any], input_member: str
+) -> Tuple[List[Dict[str, Any]], Dict[str, Counter[str]]]:
     policy_id = str(document.get("policy_id", "unknown")).strip() or "unknown"
     policy_uid = f"app350::{policy_id}"
     policy_name = str(document.get("policy_name", "")).strip()
@@ -232,13 +233,17 @@ def _iter_app350_documents(input_path: Path) -> Iterator[Tuple[str, Mapping[str,
             for member in sorted(archive.namelist()):
                 if not _is_annotation_member(member):
                     continue
-                payload = yaml.safe_load(archive.read(member).decode("utf-8", "replace"))
+                payload = yaml.safe_load(
+                    archive.read(member).decode("utf-8", "replace")
+                )
                 if not isinstance(payload, dict):
                     raise ValueError(f"Invalid APP-350 annotation payload: {member}")
                 yield member, payload
         return
 
-    raise FileNotFoundError(f"APP-350 input path not found or unsupported: {input_path}")
+    raise FileNotFoundError(
+        f"APP-350 input path not found or unsupported: {input_path}"
+    )
 
 
 def _resolve_annotations_dir(input_path: Path) -> Path:
@@ -250,12 +255,18 @@ def _resolve_annotations_dir(input_path: Path) -> Path:
     for candidate in candidates:
         if candidate.exists() and candidate.is_dir() and list(candidate.glob("*.yml")):
             return candidate
-    raise FileNotFoundError(f"APP-350 annotations directory not found under: {input_path}")
+    raise FileNotFoundError(
+        f"APP-350 annotations directory not found under: {input_path}"
+    )
 
 
 def _is_annotation_member(member: str) -> bool:
     normalized = member.replace("\\", "/")
-    return normalized.endswith(".yml") and "/annotations/" in normalized and not normalized.startswith("__MACOSX/")
+    return (
+        normalized.endswith(".yml")
+        and "/annotations/" in normalized
+        and not normalized.startswith("__MACOSX/")
+    )
 
 
 def _load_yaml_module() -> Any:
