@@ -53,7 +53,7 @@ Redesign of the Contextual Neural Memory to avoid the class-discrimination colla
 ### 1. Build the ChromaDB index (one-time, ~2 min)
 
 ```bash
-python -m prert.phase3.cnm_v2.cli_v2 build-chroma \
+prert cnmv2 build-chroma \
     --controls-path artifacts/phase-1/controls.jsonl \
     --output-dir artifacts/cnm-index-v2
 ```
@@ -68,7 +68,7 @@ cat artifacts/cnm-index-v2/index_metadata.json    # count should be 956 (or your
 ### 2. Test at k=5 first before running the full sweep
 
 ```bash
-python -m prert.phase3.cnm_v2.cli_v2 phase3 \
+prert cnmv2 phase3 \
     --cnm-index artifacts/cnm-index-v2 \
     --top-k 5 \
     --output-dir artifacts/phase-3-cnmv2-k5 \
@@ -84,7 +84,7 @@ If macro-F1 comes back **below 0.85**, stop — the gate has failed to fall back
 ### 3. Full ablation (only if the k=5 pilot works)
 
 ```bash
-python -m prert.phase3.cnm_v2.cli_v2 ablation \
+prert cnmv2 ablation \
     --cnm-index artifacts/cnm-index-v2 \
     --k-values 0,1,3,5,10 \
     --output-dir artifacts/phase-3-cnmv2-ablation \

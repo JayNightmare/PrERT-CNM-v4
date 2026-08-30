@@ -29,7 +29,13 @@ class _SentenceTransformerEncoder:
 
         self.model_name = model_name
         self.model = SentenceTransformer(model_name, device=device)
-        self.dim = int(self.model.get_sentence_embedding_dimension())
+        self.dim = int(self.model.get_embedding_dimension() or EMBEDDING_DIM_DEFAULT)
+        if self.model.get_embedding_dimension() is None:
+            _LOGGER.warning(
+                "----- SentenceTransformer.get_embedding_dimension() returned None; "
+                "falling back to default dim=%d -----",
+                EMBEDDING_DIM_DEFAULT,
+            )
 
     def encode(
         self,
