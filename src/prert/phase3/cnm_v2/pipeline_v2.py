@@ -22,7 +22,7 @@ from prert.phase3.cnm_v2.classifier_v2 import CNMv2Classifier, CNMv2TrainingConf
 from prert.phase3.pipeline import run_phase3_pipeline as _run_phase3_pipeline
 from prert.phase3.types import ClauseExample
 
-_LOGGER = logging.getLogger("prert.phase3.cnm_v2.pipeline_v2")
+_LOGGER = logging.getLogger(__name__)
 
 
 def run_phase3_cnmv2_pipeline(
@@ -128,10 +128,6 @@ def run_cnmv2_ablation(
     common_cnm_args: Dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> Dict[int, Dict[str, Any]]:
-    import gc
-
-    import torch
-
     common_cnm_args = dict(common_cnm_args or {})
     results: Dict[int, Dict[str, Any]] = {}
     for k in k_values:
@@ -147,10 +143,4 @@ def run_cnmv2_ablation(
             **kwargs,
         )
         results[k] = manifest
-        # Release GPU memory before loading the next fold's model; without
-        # this, CUDA allocator fragmentation across folds has caused segfaults.
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            torch.cuda.synchronize()
     return results

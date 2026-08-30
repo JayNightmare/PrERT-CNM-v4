@@ -31,29 +31,6 @@ DEFAULT_COLLECTION_NAME = "prert_cnm_controls"
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 
-def _coerce_chroma_metadata(value: Any) -> Any:
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, list):
-        return [_coerce_chroma_metadata(item) for item in value]
-    if isinstance(value, dict):
-        return json.dumps(value, ensure_ascii=False, sort_keys=True)
-    if isinstance(value, np.ndarray):
-        return value.tolist()
-    return str(value)
-
-
-def _flatten_metadata_dict(data: Dict[str, Any], prefix: str = "") -> Dict[str, Any]:
-    flat: Dict[str, Any] = {}
-    for key, value in data.items():
-        flattened_key = f"{prefix}.{key}" if prefix else str(key)
-        if isinstance(value, dict):
-            flat.update(_flatten_metadata_dict(value, prefix=flattened_key))
-        else:
-            flat[flattened_key] = _coerce_chroma_metadata(value)
-    return flat
-
-
 @dataclass
 class ControlRecord:
     control_id: str
@@ -145,21 +122,14 @@ class ChromaMemoryIndex:
 
         collection = self._ensure_collection()
         # Chroma stores embeddings as python lists — this is unavoidable.
-        sanitized_metadatas = []
-        for r in records:
-            metadata: Dict[str, Any] = {"source": r.source, "section": r.section}
-            for key, value in r.metadata.items():
-                if isinstance(value, dict):
-                    metadata.update(_flatten_metadata_dict(value, prefix=key))
-                else:
-                    metadata[key] = _coerce_chroma_metadata(value)
-            sanitized_metadatas.append(metadata)
-
         collection.add(
             ids=[r.control_id for r in records],
             embeddings=embeddings.tolist(),
             documents=[r.text for r in records],
-            metadatas=sanitized_metadatas,
+            metadatas=[
+                {"source": r.source, "section": r.section, **r.metadata}
+                for r in records
+            ],
         )
         self._records = list(records)
         self._embeddings_matrix = embeddings
@@ -252,23 +222,23 @@ class ChromaMemoryIndex:
         """Batched top-k cosine over `query_matrix` (Q, D) → (indices (Q,k), scores (Q,k)).
 
         Both query_matrix and stored embeddings are L2-normalised, so cosine
-        similarity = inner product.
+        similarity = inner product. When `k == 0` (CNM disabled / ablation
+        baseline) the returned arrays have shape (Q, 0) — downstream code must
+        handle empty retrievals explicitly.
         """
         if self._embeddings_matrix is None:
             raise RuntimeError("Index not built or loaded")
         if query_matrix.dtype != np.float32:
             query_matrix = query_matrix.astype(np.float32)
+        Q = query_matrix.shape[0]
+        if k <= 0:
+            # Cleanly-typed empty result; do not call argpartition with k-1=-1.
+            return (
+                np.zeros((Q, 0), dtype=np.int64),
+                np.zeros((Q, 0), dtype=np.float32),
+            )
         sims = query_matrix @ self._embeddings_matrix.T  # (Q, M)
         k = min(k, sims.shape[1])
-
-        # Handle k=0 case: return empty arrays with correct shape
-        if k == 0:
-            num_queries = sims.shape[0]
-            return (
-                np.empty((num_queries, 0), dtype=np.int64),
-                np.empty((num_queries, 0), dtype=np.float32),
-            )
-
         top_idx = np.argpartition(-sims, k - 1, axis=1)[:, :k]
         row_scores = np.take_along_axis(sims, top_idx, axis=1)
         order = np.argsort(-row_scores, axis=1, kind="stable")

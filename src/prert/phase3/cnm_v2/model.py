@@ -40,7 +40,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers.utils.generic import ModelOutput
+from transformers.utils import ModelOutput
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -176,15 +176,20 @@ class CNMv2Model(nn.Module):
         logits_t = self._text_logits(h_cls)  # (B, C)
 
         logits_r: Optional[torch.Tensor] = None
-        if (
+        retrieval_active = (
             retrieved_indices is not None
             and retrieved_scores is not None
+            and retrieved_indices.numel() > 0  # k=0 arrives here as (B, 0) tensors
             and not self.retrieval_frozen()
-        ):
+        )
+        if retrieval_active:
             logits_r = self._retrieval_logits(retrieved_indices, retrieved_scores)
             alpha = self._gate(h_cls).unsqueeze(-1)  # (B, 1)
             logits = alpha * logits_t + (1.0 - alpha) * logits_r
         else:
+            # Text-head-only mode: identical geometry to the plain PrivBERT
+            # baseline. Used at k=0 in the ablation and during retrieval-freeze
+            # warm-up.
             logits = logits_t
             alpha = torch.ones(input_ids.shape[0], 1, device=input_ids.device)
 
@@ -202,9 +207,9 @@ class CNMv2Model(nn.Module):
 
 @dataclass
 class CNMv2Output(ModelOutput):
-    loss: Optional[torch.Tensor] = None
-    logits: Optional[torch.Tensor] = None
-    logits_text: Optional[torch.Tensor] = None
+    logits: torch.Tensor = None
+    logits_text: torch.Tensor = None
     logits_retrieval: Optional[torch.Tensor] = None
-    gate: Optional[torch.Tensor] = None
-    hidden: Optional[torch.Tensor] = None
+    gate: torch.Tensor = None
+    hidden: torch.Tensor = None
+    loss: Optional[torch.Tensor] = None

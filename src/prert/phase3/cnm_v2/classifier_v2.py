@@ -185,7 +185,7 @@ class CNMv2Classifier:
 
     def _ensure_retrieval_encoder(self):
         if self._retrieval_encoder is None:
-            from prert.phase3.cnm.embed import TextEncoder
+            from prert.phase3.cnm.embed import TextEncoder  # reuse v1's encoder facade
 
             encoder_name = (
                 self.cnm_config.encoder_name_override
@@ -249,11 +249,10 @@ class CNMv2Classifier:
 
         # --- tokenise
         train_enc = self.tokenizer(
-            list(train_texts),
+            train_texts,
             truncation=True,
             padding="max_length",
             max_length=self.max_length,
-            return_tensors=None,
         )
         train_base = _PrivacyBertTrainingDataset(
             encodings=train_enc, labels=train_labels
@@ -277,11 +276,10 @@ class CNMv2Classifier:
             if val_texts:
                 val_ret_idx, val_ret_scores = self._precompute_retrievals(val_texts)
                 val_enc = self.tokenizer(
-                    list(val_texts),
+                    val_texts,
                     truncation=True,
                     padding="max_length",
                     max_length=self.max_length,
-                    return_tensors=None,
                 )
                 val_base = _PrivacyBertTrainingDataset(
                     encodings=val_enc, labels=val_labels
@@ -365,7 +363,12 @@ class CNMv2Classifier:
                     and not model_ref.retrieval_frozen()
                 ):
                     retrieved_idx = inputs.get("retrieved_indices")
-                    if retrieved_idx is not None:
+                    # Guard against empty retrieval (k=0 ablation baseline): a
+                    # (B, 0) tensor produces an empty unique() then an empty
+                    # KL, and mean() over an empty tensor is NaN, which then
+                    # poisons the gradient. Skip the auxiliary loss entirely
+                    # when there is nothing retrieved.
+                    if retrieved_idx is not None and retrieved_idx.numel() > 0:
                         # Get unique control indices in this batch
                         flat_idx = retrieved_idx.reshape(-1).unique()
                         target = empirical_control_dist_t.to(logits.device)[
@@ -517,6 +520,7 @@ class CNMv2Classifier:
         q = encoder.encode([text], normalise=True)
         indices, scores = memory.batch_top_k(q, k=self.cnm_config.top_k)
 
+        device = next(self._model.parameters()).device
         enc = self.tokenizer(
             text,
             truncation=True,
@@ -524,7 +528,6 @@ class CNMv2Classifier:
             max_length=self.max_length,
             return_tensors="pt",
         )
-        device = next(self._model.parameters()).device
         with torch.no_grad():
             out = self._model(
                 input_ids=enc["input_ids"].to(device),
@@ -554,6 +557,7 @@ class CNMv2Classifier:
         q = encoder.encode([text], normalise=True)
         indices, scores = memory.batch_top_k(q, k=self.cnm_config.top_k)
 
+        device = next(self._model.parameters()).device
         enc = self.tokenizer(
             text,
             truncation=True,
@@ -561,7 +565,6 @@ class CNMv2Classifier:
             max_length=self.max_length,
             return_tensors="pt",
         )
-        device = next(self._model.parameters()).device
         with torch.no_grad():
             out = self._model(
                 input_ids=enc["input_ids"].to(device),
