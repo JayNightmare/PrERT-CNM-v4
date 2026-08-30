@@ -11,9 +11,9 @@
 |       v3       | [![wakatime](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411.svg)](https://wakatime.com/badge/user/2d4d1d3d-9942-415a-87fc-0530a909486d/project/21793439-1f64-4645-9090-cf7e1ecc0411) |            25 hours |
 |       v4       |                                                                                                             [![wakatime](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4.svg)](https://wakatime.com/badge/github/JayNightmare/PrERT-CNM-v4) |            35 hours |
 |                |
-|  **Total Sums**  | **73 hrs 14 mins** | **105 hrs** |
+|  **Total Sums**  | **76 hrs 47 mins** | **95 hrs** |
 |                |
-|     **Total**      | **168 hrs 14 mins** |                     |
+|     **Total**      | **171 hrs 47 mins** |                     |
 
 ## Phase Breakdowns
 
